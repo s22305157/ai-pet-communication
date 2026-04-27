@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "393735079871",
+    "project_id": "fir-project-tw",
+    "storage_bucket": "fir-project-tw.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393735079871:android:fa8b95c9904f8cd7b3430a",
+        "android_client_info": {
+          "package_name": "com.example.ai_pet_communication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "393735079871-cemtgmbg698e9993hj5vcb13253u94vq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6OEU79lB53HZfS2gz2Im-HZ8RDVPTBCQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "393735079871-cemtgmbg698e9993hj5vcb13253u94vq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

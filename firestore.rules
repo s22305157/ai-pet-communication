@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 用戶資料安全規則
+    match /Users/{userId} {
+      // 允許用戶讀取自己的資料
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // 允許用戶在「首次登入」時建立文件，但初始點數必須為 1
+      allow create: if request.auth != null && request.auth.uid == userId 
+                    && request.resource.data.points == 1;
+                    
+      // 允許用戶更新資料，但「點數 (points)」欄位必須與原本一致，不准前端自行增加
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.points == resource.data.points;
+    }
+    
+    // 預設拒絕其他所有存取
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
