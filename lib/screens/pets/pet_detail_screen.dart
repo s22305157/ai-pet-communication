@@ -1,12 +1,153 @@
+import 'dart:typed_data';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import '../../../constants.dart';
 import '../../models/pet_model.dart';
+import '../../services/pet_service.dart';
 
-class PetDetailScreen extends StatelessWidget {
+class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
 
   const PetDetailScreen({super.key, required this.pet});
+
+  @override
+  State<PetDetailScreen> createState() => _PetDetailScreenState();
+}
+
+class _PetDetailScreenState extends State<PetDetailScreen> {
+  late PetModel _currentPet;
+  final PetService _petService = PetService();
+  final ImagePicker _picker = ImagePicker();
+
+  bool _isUploading = false;
+
+  /// 圖片 bytes，優先用於顯示，避免 CORS 問題
+  /// - 初次進入頁面時：從 URL 抓取（_loadAvatarFromUrl）
+  /// - 用戶選取新圖片後：直接使用本機 bytes
+  Uint8List? _avatarBytes;
+  bool _isLoadingAvatar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPet = widget.pet;
+    // 若已有頭像 URL，進入頁面時先用 http 抓成 bytes
+    if (_currentPet.avatarUrl.isNotEmpty) {
+      _loadAvatarFromUrl(_currentPet.avatarUrl);
+    }
+  }
+
+  // ── 用 http 把遠端圖片抓成 bytes（繞過 CORS 限制）──────────────────────
+  Future<void> _loadAvatarFromUrl(String url) async {
+    setState(() => _isLoadingAvatar = true);
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _avatarBytes = response.bodyBytes;
+          _isLoadingAvatar = false;
+        });
+      } else {
+        if (mounted) setState(() => _isLoadingAvatar = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingAvatar = false);
+    }
+  }
+
+  // ── 選取並上傳新頭像 ─────────────────────────────────────────────────────
+  Future<void> _pickAndUploadAvatar() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+
+    // 立即讀取 bytes → 先更新 UI 預覽
+    final Uint8List bytes = await file.readAsBytes();
+    setState(() {
+      _avatarBytes = bytes;
+      _isUploading = true;
+    });
+
+    try {
+      final imageId = const Uuid().v4();
+
+      // 1. 上傳到 Firebase Storage
+      final url = await _petService.uploadPetAvatar(uid, imageId, bytes);
+
+      // 2. 更新 Firestore
+      final updatedPet = _currentPet.copyWith(avatarUrl: url);
+      await _petService.updatePet(updatedPet.petId!, updatedPet);
+
+      if (mounted) {
+        setState(() {
+          _currentPet = updatedPet;
+          _isUploading = false;
+          // _avatarBytes 已更新，不需再 reload
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('頭像更新成功！'),
+            backgroundColor: AppColors.secondary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('頭像上傳失敗: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── UI Helpers ───────────────────────────────────────────────────────────
+  Widget _buildAvatarContent() {
+    if (_isUploading || _isLoadingAvatar) {
+      return const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: AppColors.primary,
+        ),
+      );
+    }
+    if (_avatarBytes != null) {
+      return Image.memory(
+        _avatarBytes!,
+        width: 120,
+        height: 120,
+        fit: BoxFit.cover,
+      );
+    }
+    return _buildInitialPlaceholder();
+  }
+
+  Widget _buildInitialPlaceholder() {
+    return Center(
+      child: Text(
+        _currentPet.name.isNotEmpty ? _currentPet.name[0] : '?',
+        style: GoogleFonts.outfit(
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
 
   Widget _buildInfoRow(String label, String value, IconData icon) {
     return Padding(
@@ -61,56 +202,79 @@ class PetDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Avatar Section
+            // ── Avatar Section ──
             Center(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                  border: Border.all(color: Colors.white, width: 4),
-                ),
-                child: Center(
-                  child: Text(
-                    pet.name.isNotEmpty ? pet.name[0] : '?',
-                    style: GoogleFonts.outfit(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: (_isUploading || _isLoadingAvatar)
+                        ? null
+                        : _pickAndUploadAvatar,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                        border: Border.all(color: Colors.white, width: 4),
+                      ),
+                      child: ClipOval(child: _buildAvatarContent()),
                     ),
                   ),
-                ),
+                  // 相機按鈕
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: (_isUploading || _isLoadingAvatar)
+                          ? null
+                          : _pickAndUploadAvatar,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              pet.name,
+              _currentPet.name,
               style: GoogleFonts.outfit(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (pet.species.isNotEmpty || pet.breed.isNotEmpty)
+            if (_currentPet.species.isNotEmpty || _currentPet.breed.isNotEmpty)
               Text(
-                '${pet.species} ${pet.breed.isNotEmpty ? '· ${pet.breed}' : ''}',
+                '${_currentPet.species} ${_currentPet.breed.isNotEmpty ? '· ${_currentPet.breed}' : ''}',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   color: AppColors.textSecondary,
                 ),
               ),
-            
+
             const SizedBox(height: 32),
-            
-            // Info Card
+
+            // ── Info Card ──
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
               padding: const EdgeInsets.all(24),
@@ -128,17 +292,17 @@ class PetDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow('性別', pet.gender, Icons.pets),
-                  _buildInfoRow('生日', pet.birthday, Icons.cake),
+                  _buildInfoRow('性別', _currentPet.gender, Icons.pets),
+                  _buildInfoRow('生日', _currentPet.birthday, Icons.cake),
                   const Divider(height: 24),
-                  _buildInfoRow('個性', pet.personality, Icons.favorite),
+                  _buildInfoRow('個性', _currentPet.personality, Icons.favorite),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
-            // History Section (Placeholder for now)
+
+            // ── 溝通紀錄區（Placeholder）──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -164,12 +328,16 @@ class PetDetailScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: AppColors.secondary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppStyles.borderRadius),
-                      border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+                      borderRadius:
+                          BorderRadius.circular(AppStyles.borderRadius),
+                      border: Border.all(
+                          color: AppColors.secondary.withOpacity(0.3)),
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.chat_bubble_outline, size: 48, color: AppColors.secondary.withOpacity(0.5)),
+                        Icon(Icons.chat_bubble_outline,
+                            size: 48,
+                            color: AppColors.secondary.withOpacity(0.5)),
                         const SizedBox(height: 12),
                         Text(
                           '尚無溝通紀錄',
@@ -180,7 +348,7 @@ class PetDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '未來會在這裡顯示您與 ${pet.name} 的對話',
+                          '未來會在這裡顯示您與 ${_currentPet.name} 的對話',
                           style: GoogleFonts.outfit(
                             fontSize: 12,
                             color: AppColors.textSecondary.withOpacity(0.7),

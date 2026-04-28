@@ -15,6 +15,15 @@ service cloud.firestore {
                     && request.resource.data.points == resource.data.points;
     }
     
+    // 寵物資料安全規則
+    match /pets/{petId} {
+      // 允許用戶讀取、更新、刪除自己的寵物資料
+      allow read, update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
+      
+      // 允許用戶建立寵物資料，但 owner_id 必須是自己的 UID
+      allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
+    }
+    
     // 預設拒絕其他所有存取
     match /{document=**} {
       allow read, write: if false;

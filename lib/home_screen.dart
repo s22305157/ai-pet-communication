@@ -8,6 +8,7 @@ import 'services/pet_service.dart';
 import 'models/pet_model.dart';
 import 'screens/pets/pet_form_sheet.dart';
 import 'screens/pets/pet_detail_screen.dart';
+import 'widgets/pet_avatar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,13 +34,18 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildTopBar(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              child: Text(
-                '選擇您的寵物朋友',
-                style: GoogleFonts.outfit(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '我的毛小孩',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -62,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          '新增寵物',
+          '新增毛小孩',
           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
@@ -79,6 +85,31 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    '載入資料時發生錯誤',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         final pets = snapshot.data ?? [];
 
         if (pets.isEmpty) {
@@ -89,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(Icons.pets, size: 64, color: AppColors.textSecondary.withOpacity(0.3)),
                 const SizedBox(height: 16),
                 Text(
-                  '還沒有新增任何寵物喔！\n點擊右下角按鈕新增',
+                  '還沒有新增任何毛小孩喔！\n點擊右下角按鈕新增',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
                     color: AppColors.textSecondary,
@@ -145,23 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 // Pet Avatar
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      pet.name.isNotEmpty ? pet.name[0] : '?',
-                      style: GoogleFonts.outfit(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
+                PetAvatar(
+                  avatarUrl: pet.avatarUrl,
+                  petName: pet.name,
+                  size: 60,
+                  fontSize: 24,
                 ),
                 const SizedBox(width: 16),
                 // Pet Info
@@ -208,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          title: Text('刪除寵物', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                          title: Text('刪除毛小孩', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                           content: Text('確定要刪除 ${pet.name} 的資料嗎？\n(此動作無法復原)'),
                           actions: [
                             TextButton(
