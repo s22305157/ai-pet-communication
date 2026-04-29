@@ -15,6 +15,8 @@ import '../../features/readings/application/reading_service.dart';
 import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
+import '../../services/error_service.dart';
+import '../../services/auth_service.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
@@ -118,7 +120,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('頭像上傳失敗: $e'),
+            content: Text('頭像上傳失敗: ${ErrorService.getErrorMessage(e)}'),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -460,6 +462,141 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             const SizedBox(height: 40),
           ],
         ),
+      ),
+      bottomNavigationBar: _buildBottomAction(context),
+    );
+  }
+
+  Widget _buildBottomAction(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => _handleStartCommunication(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(
+                    '開始與 ${_currentPet.name} 溝通',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleStartCommunication(BuildContext context) async {
+    final authService = AuthService();
+    final user = await authService.getUserData();
+    
+    if (user == null) return;
+
+    final isPro = user.membershipType == 'pro' || user.membershipType == 'plus';
+    
+    if (isPro) {
+      // Pro 用戶直接進入
+      _navigateToAI(context);
+    } else if (user.points > 0) {
+      // Free 用戶且有點數：提示並扣點 (扣點邏輯應在 AI 服務中執行)
+      _showPointConsumptionDialog(context);
+    } else {
+      // 無點數：顯示升級彈窗
+      _showUpgradeDialog(context);
+    }
+  }
+
+  void _navigateToAI(BuildContext context) {
+    // TODO: 導向 AI 溝通介面
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('即將開啟 AI 寵物溝通介面...')),
+    );
+  }
+
+  void _showPointConsumptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('開始溝通'),
+        content: const Text('本次溝通將消耗 1 PT 點數。確認開始嗎？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToAI(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('確認', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpgradeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
+            const SizedBox(width: 12),
+            Text('點數不足', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text('升級至 Pro 方案即可享受無限次 AI 溝通，或購買點數繼續使用。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('稍後再說'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('了解 Pro 方案', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

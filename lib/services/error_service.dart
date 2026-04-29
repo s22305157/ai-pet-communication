@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ErrorService {
-  static String getHumanReadableError(dynamic error) {
+  static String getErrorMessage(dynamic error) {
     // Firebase Auth 錯誤
     if (error is FirebaseAuthException) {
       switch (error.code) {

@@ -5,6 +5,7 @@ import 'constants.dart';
 import 'services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
+import 'services/error_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -180,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('登入失敗: $e'),
+                  content: Text('登入失敗: ${ErrorService.getErrorMessage(e)}'),
                   backgroundColor: Colors.redAccent,
                 ),
               );

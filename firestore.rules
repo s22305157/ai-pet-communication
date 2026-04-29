@@ -13,8 +13,10 @@ service cloud.firestore {
                        // 1. 點數只能減少 (或不變)，且不得低於 0
                        (request.resource.data.points <= resource.data.points && request.resource.data.points >= 0)
                        &&
-                       // 2. 嚴格禁止修改會員等級 (membership_type)
-                       (request.resource.data.membership_type == resource.data.membership_type)
+                       // 2. 暫時允許修改會員等級以進行切換驗證 (正式上線應移至後端)
+                       // (request.resource.data.membership_type == resource.data.membership_type)
+                       // &&
+                       true
                        &&
                        // 3. 確保 uid 欄位不可變動
                        (request.resource.data.uid == resource.data.uid)

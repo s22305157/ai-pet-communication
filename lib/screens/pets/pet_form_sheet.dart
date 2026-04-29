@@ -112,7 +112,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorService.getHumanReadableError(e)),
+            content: Text(ErrorService.getErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -199,7 +199,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorService.getHumanReadableError(e)),
+            content: Text(ErrorService.getErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );

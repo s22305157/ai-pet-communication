@@ -8,10 +8,20 @@ import 'auth_service.dart';
 import '../models/user_model.dart';
 
 class PetService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final LocalPetService _localService = LocalPetService();
-  final AuthService _authService = AuthService();
+  final FirebaseFirestore _db;
+  final FirebaseStorage _storage;
+  final LocalPetService _localService;
+  final AuthService _authService;
+
+  PetService({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+    LocalPetService? localService,
+    AuthService? authService,
+  })  : _db = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance,
+        _localService = localService ?? LocalPetService(),
+        _authService = authService ?? AuthService();
 
   // 判斷是否應使用雲端儲存 (Pro 以上版本)
   Future<bool> _shouldUseCloud() async {
@@ -19,17 +29,21 @@ class PetService {
     return userModel?.membershipType != 'free';
   }
 
-  // 根據 UID 監聽寵物列表 (自動切換本地/雲端)
+  // 根據 UID 監聽寵物列表 (自動切換本地/雲端 + 自動遷移)
   Stream<List<PetModel>> watchPetsByOwner(String uid) {
-    // 這裡我們透過 StreamBuilder 的巢狀組合或外部傳入來決定更好
-    // 但為了簡化，我們同時監聽 UserModel 的狀態
-    return _authService.getUserStream().asyncExpand((user) {
-      if (user == null || user.membershipType == 'free') {
+    return _authService.getUserStream().asyncExpand((user) async* {
+      if (user == null) {
+        // 登出狀態：回傳空列表並停止監聽
+        yield [];
+      } else if (user.membershipType == 'free') {
         // Free 用戶：顯示本地資料
-        return _localService.watchPets();
+        yield* _localService.watchPets();
       } else {
-        // Pro 用戶：顯示雲端資料
-        return _db
+        // Pro 用戶：先檢查是否需要遷移，然後顯示雲端資料
+        // 在背景執行遷移，不阻塞 UI
+        _migrateIfNeeded(uid);
+        
+        yield* _db
             .collection('pets')
             .where('owner_id', isEqualTo: uid)
             .snapshots()
@@ -38,6 +52,44 @@ class PetService {
         });
       }
     });
+  }
+
+  // 內部遷移邏輯：將本地資料推送到雲端
+  Future<void> _migrateIfNeeded(String uid) async {
+    final localPets = _localService.getAllPets();
+    if (localPets.isEmpty) return;
+
+    print("Detecting local pets, starting migration with conflict resolution...");
+    for (var pet in localPets) {
+      // 根據名稱與擁有者尋找雲端現有資料
+      final existing = await _db
+          .collection('pets')
+          .where('owner_id', isEqualTo: uid)
+          .where('name', isEqualTo: pet.name)
+          .get();
+
+      if (existing.docs.isEmpty) {
+        // 雲端無資料：直接新增
+        await _db.collection('pets').add(pet.toMap());
+      } else {
+        // 雲端有資料：執行衝突解決策略 (Timestamp Wins)
+        final cloudDoc = existing.docs.first;
+        final cloudPet = PetModel.fromDoc(cloudDoc);
+
+        final localTime = pet.updatedAt ?? DateTime(2000);
+        final cloudTime = cloudPet.updatedAt ?? DateTime(2000);
+
+        if (localTime.isAfter(cloudTime)) {
+          // 本地較新：更新雲端
+          print("Conflict detected for ${pet.name}: Local is newer. Updating cloud...");
+          await _db.collection('pets').doc(cloudDoc.id).update(pet.toMap());
+        } else {
+          // 雲端較新：不動作，保持雲端為準
+          print("Conflict detected for ${pet.name}: Cloud is newer or same. Keeping cloud version.");
+        }
+      }
+    }
+    print("Migration and conflict resolution complete.");
   }
 
   Future<void> createPet(PetModel pet) async {

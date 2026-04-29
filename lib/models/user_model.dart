@@ -1,53 +1,57 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class UserModel {
   final String uid;
   final String email;
   final String displayName;
   final String? photoURL;
-  final String membershipType; // free, pro, premium
   final int points;
-  final int totalReadings;
-  final DateTime? lastResetDate;
-  final String clientVersion;
+  final String membershipType;
 
   UserModel({
     required this.uid,
     required this.email,
     required this.displayName,
     this.photoURL,
+    this.points = 0,
     this.membershipType = 'free',
-    this.points = 1,
-    this.totalReadings = 0,
-    this.lastResetDate,
-    this.clientVersion = '0.0.2',
   });
 
-  factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    return UserModel(
-      uid: doc.id,
-      email: data['email'] ?? '',
-      displayName: data['display_name'] ?? '',
-      photoURL: data['photo_url'],
-      membershipType: data['membership_type'] ?? 'free',
-      points: data['points'] ?? 0,
-      totalReadings: data['total_readings'] ?? 0,
-      lastResetDate: (data['last_reset_date'] as Timestamp?)?.toDate(),
-      clientVersion: data['client_version'] ?? '1.0.0',
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'email': email,
       'display_name': displayName,
       'photo_url': photoURL,
-      'membership_type': membershipType,
       'points': points,
-      'total_readings': totalReadings,
-      'last_reset_date': lastResetDate != null ? Timestamp.fromDate(lastResetDate!) : FieldValue.serverTimestamp(),
-      'client_version': clientVersion,
+      'membership_type': membershipType,
     };
+  }
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      uid: map['uid'] ?? '',
+      email: map['email'] ?? '',
+      displayName: map['display_name'] ?? '',
+      photoURL: map['photo_url'],
+      points: (map['points'] ?? 0).toInt(),
+      membershipType: map['membership_type'] ?? 'free',
+    );
+  }
+
+  UserModel copyWith({
+    String? uid,
+    String? email,
+    String? displayName,
+    String? photoURL,
+    int? points,
+    String? membershipType,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      photoURL: photoURL ?? this.photoURL,
+      points: points ?? this.points,
+      membershipType: membershipType ?? this.membershipType,
+    );
   }
 }
