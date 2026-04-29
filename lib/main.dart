@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'constants.dart';
@@ -16,6 +17,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Hive for local storage
+  await Hive.initFlutter();
+  await Hive.openBox('local_pets');
   
   runApp(const AiPetApp());
 }
