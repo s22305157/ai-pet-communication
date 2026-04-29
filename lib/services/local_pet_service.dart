@@ -13,6 +13,13 @@ class LocalPetService {
     }).toList();
   }
 
+  // 取得單一本地寵物
+  Future<PetModel?> getPet(String petId) async {
+    final data = _box.get(petId);
+    if (data == null) return null;
+    return PetModel.fromMap(Map<String, dynamic>.from(data as Map));
+  }
+
   // 監聽本地寵物資料流 (立即發送初始值)
   Stream<List<PetModel>> watchPets() async* {
     yield getAllPets();

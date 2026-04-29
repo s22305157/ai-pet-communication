@@ -38,8 +38,22 @@ void main() {
       membershipType: 'pro',
       points: 100,
     );
+    registerFallbackValue(PetModel(
+      petId: 'dummy',
+      ownerId: 'dummy',
+      name: 'dummy',
+      species: 'dummy',
+      breed: 'dummy',
+      gender: 'dummy',
+      birthday: 'dummy',
+      personality: 'dummy',
+      avatarUrl: 'dummy',
+    ));
+    
     when(() => mockAuth.getUserStream()).thenAnswer((_) => Stream.value(testUser));
     when(() => mockAuth.getUserData()).thenAnswer((_) async => testUser);
+    when(() => mockLocal.updatePet(any(), any())).thenAnswer((_) async {});
+    when(() => mockLocal.deletePet(any())).thenAnswer((_) async {});
     
     petService = PetService(
       firestore: mockDb,
@@ -53,6 +67,7 @@ void main() {
     test('遷移時應正確解決衝突 (本地較新勝出)', () async {
       final uid = 'user123';
       final localPet = PetModel(
+        petId: 'local_id',
         ownerId: uid,
         name: '小乖',
         species: '狗',
@@ -94,8 +109,10 @@ void main() {
       
       when(() => mockSnapshot.docs).thenReturn([mockDoc]);
       when(() => mockDoc.id).thenReturn('cloud_id');
+      when(() => mockDoc.exists).thenReturn(true);
       // 手動模擬雲端資料，確保時間是舊的 (2024-01-01)
       when(() => mockDoc.data()).thenReturn({
+        'pet_id': 'cloud_id',
         'owner_id': uid,
         'name': '小乖',
         'species': '狗',
@@ -104,7 +121,8 @@ void main() {
 
       // 模擬更新雲端
       final mockDocRef = MockDocumentReference();
-      when(() => mockCollection.doc('cloud_id')).thenReturn(mockDocRef as DocumentReference<Map<String, dynamic>>);
+      when(() => mockCollection.doc(any())).thenReturn(mockDocRef as DocumentReference<Map<String, dynamic>>);
+      when(() => mockDocRef.get()).thenAnswer((_) async => mockDoc as DocumentSnapshot<Map<String, dynamic>>);
       when(() => mockDocRef.update(any())).thenAnswer((_) async {});
 
       // 執行測試

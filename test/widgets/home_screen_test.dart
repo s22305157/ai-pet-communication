@@ -54,6 +54,7 @@ void main() {
   testWidgets('HomeScreen shows pet list and sync indicator', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
         home: HomeScreen(
           user: mockUser,
           petService: mockPetService,

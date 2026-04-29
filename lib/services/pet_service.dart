@@ -105,6 +105,22 @@ class PetService {
     }
   }
 
+  // 獲取單一寵物資料
+  Future<PetModel?> getPet(String petId) async {
+    try {
+      if (await _shouldUseCloud()) {
+        final doc = await _db.collection('pets').doc(petId).get();
+        if (doc.exists) {
+          return PetModel.fromDoc(doc);
+        }
+      }
+    } catch (e) {
+      debugPrint('Cloud getPet failed: $e');
+    }
+    // Fallback or Free tier
+    return await _localService.getPet(petId);
+  }
+
   Future<void> createPet(PetModel pet) async {
     // 確保 ID 在建立時即存在
     final petId = pet.petId.isEmpty ? _db.collection('pets').doc().id : pet.petId;

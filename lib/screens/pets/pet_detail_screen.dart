@@ -223,11 +223,11 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                   backgroundColor: Colors.transparent,
                   builder: (_) => PetFormSheet(existingPet: _currentPet),
                 );
-                // 表單關閉後，從 Firestore 重新獲取最新資料並刷新 UI
-                final doc = await FirebaseFirestore.instance.collection('pets').doc(_currentPet.petId).get();
-                if (doc.exists && mounted) {
+                // 表單關閉後，從 PetService 重新獲取最新資料並刷新 UI
+                final refreshedPet = await _petService.getPet(_currentPet.petId);
+                if (refreshedPet != null && mounted) {
                   setState(() {
-                    _currentPet = PetModel.fromDoc(doc);
+                    _currentPet = refreshedPet;
                   });
                 }
               } else if (value == 'delete') {

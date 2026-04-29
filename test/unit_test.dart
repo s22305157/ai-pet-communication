@@ -6,6 +6,7 @@ void main() {
   group('PetModel Tests', () {
     test('PetModel toMap 轉換驗證', () {
       final pet = PetModel(
+        petId: 'pet123',
         ownerId: 'user123',
         name: '小乖',
         species: '狗',
@@ -27,6 +28,7 @@ void main() {
 
     test('PetModel copyWith 驗證', () {
       final pet = PetModel(
+        petId: 'pet123',
         ownerId: 'user123',
         name: '小乖',
         species: '狗',

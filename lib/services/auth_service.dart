@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -18,18 +19,34 @@ class AuthService {
 
   // 獲取當前用戶數據流 (即時監聽 Firestore)
   Stream<UserModel?> getUserStream() {
-    return _auth.authStateChanges().map((user) {
-      if (user == null) return null;
-      return user.uid;
-    }).distinct().asyncExpand((uid) {
-      if (uid == null) return Stream.value(null);
-      return _db.collection('Users').doc(uid).snapshots().map((snapshot) {
-        if (snapshot.exists && snapshot.data() != null) {
-          return UserModel.fromMap(snapshot.data() as Map<String, dynamic>);
-        }
-        return null;
-      });
-    });
+    late StreamController<UserModel?> controller;
+    StreamSubscription<User?>? authSub;
+    StreamSubscription<DocumentSnapshot>? docSub;
+
+    controller = StreamController<UserModel?>.broadcast(
+      onListen: () {
+        authSub = _auth.authStateChanges().listen((user) {
+          docSub?.cancel();
+          if (user == null) {
+            controller.add(null);
+          } else {
+            docSub = _db.collection('Users').doc(user.uid).snapshots().listen((snapshot) {
+              if (snapshot.exists && snapshot.data() != null) {
+                controller.add(UserModel.fromMap(snapshot.data() as Map<String, dynamic>));
+              } else {
+                controller.add(null);
+              }
+            });
+          }
+        });
+      },
+      onCancel: () {
+        authSub?.cancel();
+        docSub?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   // 獲取當前用戶數據 (單次)
