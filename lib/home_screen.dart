@@ -373,9 +373,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: InkWell(
                           onTap: () async {
-                            final isPro = await _authService.isProUser();
-                            if (!isPro) {
-                              _showUpgradeDialog(context);
+                            final user = await _authService.getUserData();
+                            final type = user?.membershipType.toLowerCase() ?? 'free';
+                            
+                            if (type != 'pro') {
+                              _showUpgradeDialog(context, currentTier: type);
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('您的資料已由雲端安全守護')),
@@ -482,27 +484,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showUpgradeDialog(BuildContext context) {
+  void _showUpgradeDialog(BuildContext context, {required String currentTier}) {
+    final String targetTier = currentTier == 'free' ? 'Plus' : 'Pro';
+    final Color tierColor = currentTier == 'free' ? Colors.blue : Colors.amber;
+    final String title = '解鎖 $targetTier 方案';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
+            Icon(Icons.workspace_premium_rounded, color: tierColor),
             const SizedBox(width: 12),
-            Text('升級至 Pro 方案', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('解鎖強大功能，守護您的毛小孩資料：', style: GoogleFonts.outfit()),
+            Text(
+              currentTier == 'free' 
+                ? '開啟雲端備份，守護毛小孩的每一份回憶：'
+                : '晉升 Pro 尊榮，享受極致 AI 體驗：', 
+              style: GoogleFonts.outfit()
+            ),
             const SizedBox(height: 16),
-            _buildFeatureItem(Icons.cloud_sync_rounded, '雲端即時備份與同步'),
-            _buildFeatureItem(Icons.devices_rounded, '跨裝置存取寵物檔案'),
-            _buildFeatureItem(Icons.auto_awesome_rounded, '無限制 AI 寵物溝通次數'),
+            _buildFeatureItem(Icons.cloud_sync_rounded, currentTier == 'free' ? '雲端即時備份與同步' : '雲端最速同步優先權'),
+            _buildFeatureItem(Icons.devices_rounded, '跨裝置隨時隨地存取'),
+            _buildFeatureItem(Icons.auto_awesome_rounded, currentTier == 'free' ? 'AI 溝通點數加成' : '無限次 AI 寵物溝通'),
           ],
         ),
         actions: [
@@ -513,12 +524,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              // 導向設定頁面
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: tierColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
-            child: Text('立即了解', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('了解 $targetTier 詳情', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

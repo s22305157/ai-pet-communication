@@ -13,6 +13,10 @@ void main() {
 
   Widget createWidgetUnderTest({Reading? reading, String petId = 'p1', String readingId = 'r1'}) {
     return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        splashFactory: NoSplash.splashFactory,
+      ),
       home: ReadingDetailScreen(
         reading: reading,
         petId: petId,

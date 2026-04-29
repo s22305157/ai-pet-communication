@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/pet_model.dart';
 import 'local_pet_service.dart';
 import 'auth_service.dart';
@@ -101,10 +102,30 @@ class PetService {
   }
 
   Future<void> updatePet(String petId, PetModel pet) async {
-    if (await _shouldUseCloud()) {
-      await _db.collection('pets').doc(petId).update(pet.toMap());
-    } else {
-      await _localService.updatePet(petId, pet);
+    try {
+      if (await _shouldUseCloud()) {
+        final docRef = _db.collection('pets').doc(petId);
+        
+        // --- 基礎衝突處理：時間戳記勝出 (Timestamp Wins) ---
+        final remoteDoc = await docRef.get();
+        if (remoteDoc.exists) {
+          final remotePet = PetModel.fromDoc(remoteDoc);
+          if (remotePet.updatedAt != null && pet.updatedAt != null) {
+            if (remotePet.updatedAt!.isAfter(pet.updatedAt!)) {
+              debugPrint('Conflict detected for $petId: Cloud is newer. Skipping update.');
+              // 這裡可以選擇拋出特定異常或直接返回，我們選擇確保雲端最新
+              return;
+            }
+          }
+        }
+        
+        await docRef.update(pet.toMap());
+      } else {
+        await _localService.updatePet(petId, pet);
+      }
+    } catch (e) {
+      debugPrint('Update Pet Error: $e');
+      rethrow;
     }
   }
 
