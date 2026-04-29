@@ -16,11 +16,19 @@ class AuthService {
     }
   }
 
-  // 獲取當前用戶數據流
+  // 獲取當前用戶數據流 (即時監聽 Firestore)
   Stream<UserModel?> getUserStream() {
-    return _auth.authStateChanges().asyncMap((user) async {
+    return _auth.authStateChanges().map((user) {
       if (user == null) return null;
-      return await getUserData();
+      return user.uid;
+    }).distinct().asyncExpand((uid) {
+      if (uid == null) return Stream.value(null);
+      return _db.collection('Users').doc(uid).snapshots().map((snapshot) {
+        if (snapshot.exists && snapshot.data() != null) {
+          return UserModel.fromMap(snapshot.data() as Map<String, dynamic>);
+        }
+        return null;
+      });
     });
   }
 

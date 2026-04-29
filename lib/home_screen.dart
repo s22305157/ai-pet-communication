@@ -340,13 +340,6 @@ class _HomeScreenState extends State<HomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Welcome back,',
-                    style: GoogleFonts.outfit(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
                   StreamBuilder<UserModel?>(
                     stream: _authService.getUserStream(),
                     builder: (context, userSnap) {
@@ -356,8 +349,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           : tier == 'plus'
                               ? Colors.blue.shade700
                               : AppColors.textPrimary;
+                      final firestoreName = userSnap.data?.displayName;
+                      final authName = widget.user.displayName;
+                      
+                      // 優先順序：Firestore 名稱 -> Auth 名稱 -> 預設名稱
+                      String displayName = '毛小孩主人';
+                      if (firestoreName != null && firestoreName.isNotEmpty) {
+                        displayName = firestoreName;
+                      } else if (authName != null && authName.isNotEmpty) {
+                        displayName = authName;
+                      }
+
                       return Text(
-                        userSnap.data?.displayName ?? widget.user.displayName ?? '毛小孩主人',
+                        displayName,
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
