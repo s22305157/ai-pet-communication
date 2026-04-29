@@ -15,15 +15,23 @@ import 'screens/profile/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final User user;
-  const HomeScreen({super.key, required this.user});
+  final PetService? petService;
+  final AuthService? authService;
+
+  const HomeScreen({
+    super.key,
+    required this.user,
+    this.petService,
+    this.authService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final AuthService _authService = AuthService();
-  final PetService _petService = PetService();
+  late final PetService _petService = widget.petService ?? PetService();
+  late final AuthService _authService = widget.authService ?? AuthService();
   
   late final String _uid = widget.user.uid;
   Stream<List<PetModel>>? _petsStream;
@@ -31,8 +39,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _petService.isCloudActive.addListener(_onCloudStatusChanged);
     // 初始化時直接建立資料流，不再需要判斷 UID 是否改變（因為切換帳號會重建整個 HomeScreen）
     _petsStream = _petService.watchPetsByOwner(_uid);
+  }
+
+  void _onCloudStatusChanged() {
+    if (!_petService.isCloudActive.value && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('雲端連線失敗，目前已切換至本地模式。'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _petService.isCloudActive.removeListener(_onCloudStatusChanged);
+    super.dispose();
   }
 
   @override
@@ -127,14 +154,38 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.pets, size: 64, color: AppColors.textSecondary.withOpacity(0.3)),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.pets_rounded,
+                    size: 80,
+                    color: AppColors.primary.withOpacity(0.2),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Text(
-                  '還沒有新增任何毛小孩喔！\n點擊右下角按鈕新增',
-                  textAlign: TextAlign.center,
+                  '還沒有新增任何毛小孩喔！',
                   style: GoogleFonts.outfit(
-                    color: AppColors.textSecondary,
-                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    '點擊右下角的「+」按鈕，\n開始建立您與毛小孩的專屬回憶。',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
                   ),
                 ),
               ],
@@ -379,87 +430,74 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 同步狀態指示器 (Sync Indicator)
-              StreamBuilder<void>(
-                stream: FirebaseFirestore.instance.snapshotsInSync(),
-                builder: (context, _) {
-                  // 我們可以使用 snapshotsInSync 來得知何時所有本地寫入都已完成同步
-                  return FutureBuilder<bool>(
-                    future: Future.value(true), // 這裡可以進一步擴充檢查真實網路
-                    builder: (context, netSnapshot) {
-                      return Container(
-                        margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+              // P2: 同步與資料來源提示 UI
+              ValueListenableBuilder<bool>(
+                valueListenable: _petService.isSyncing,
+                builder: (context, isSyncing, _) {
+                  if (isSyncing) {
+                    return const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondary),
                         ),
-                        child: InkWell(
-                          onTap: () async {
-                            final user = await _authService.getUserData();
-                            final type = user?.membershipType.toLowerCase() ?? 'free';
-                            
-                            if (type != 'pro') {
-                              _showUpgradeDialog(context, currentTier: type);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('您的資料已由雲端安全守護')),
-                              );
-                            }
-                          },
-                          child: Tooltip(
-                            message: '資料存儲狀態',
-                            child: StreamBuilder<UserModel?>(
-                              stream: _authService.getUserStream(),
-                              builder: (context, userSnapshot) {
-                                final user = userSnapshot.data;
-                                
-                                // 如果是 Free 用戶，顯示本地儲存圖示
-                                if (user == null || user.membershipType == 'free') {
-                                  return const Icon(
-                                    Icons.storage_rounded,
-                                    size: 18,
-                                    color: AppColors.textSecondary,
-                                  );
-                                }
+                      ),
+                    );
+                  }
+                  
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _petService.isCloudActive,
+                    builder: (context, isCloud, _) {
+                      return StreamBuilder<UserModel?>(
+                        stream: _authService.getUserStream(),
+                        builder: (context, userSnap) {
+                          final hasCloudSupport = userSnap.data?.membershipType != 'free';
+                          
+                          // 根據狀態決定顏色與圖示
+                          Color iconColor;
+                          IconData iconData;
+                          String tooltip;
 
-                                // 如果是 Pro 用戶，顯示雲端同步狀態
-                                return StreamBuilder<QuerySnapshot>(
-                                  // 監聽是否有待處理的寫入 (Pending Writes)
-                                  stream: FirebaseFirestore.instance.collection('pets').where('owner_id', isEqualTo: user.uid).snapshots(),
-                                  builder: (context, snapshot) {
-                                    bool hasPending = snapshot.data?.metadata.hasPendingWrites ?? false;
-                                    bool isFromCache = snapshot.data?.metadata.isFromCache ?? false;
+                          if (!hasCloudSupport) {
+                            iconColor = AppColors.textSecondary.withOpacity(0.5);
+                            iconData = Icons.storage_rounded;
+                            tooltip = '本地儲存模式 (Free)';
+                          } else if (!isCloud) {
+                            iconColor = Colors.orange;
+                            iconData = Icons.cloud_off_rounded;
+                            tooltip = '連線中斷，切換至本地模式';
+                          } else {
+                            iconColor = Colors.green.shade400;
+                            iconData = Icons.cloud_done_rounded;
+                            tooltip = '雲端同步已開啟 (Plus/Pro)';
+                          }
 
-                                    if (hasPending) {
-                                      return const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
-                                        ),
-                                      );
-                                    }
-
-                                    return Icon(
-                                      isFromCache ? Icons.cloud_off_rounded : Icons.cloud_done_outlined,
-                                      size: 18,
-                                      color: isFromCache ? Colors.orange : Colors.green.withOpacity(0.8),
+                          return Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            child: Tooltip(
+                              message: tooltip,
+                              child: InkWell(
+                                onTap: () {
+                                  if (!hasCloudSupport) {
+                                    _showUpgradeDialog(context, currentTier: 'free');
+                                  } else if (!isCloud) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('目前網路不穩，已自動啟動本地保護機制')),
                                     );
-                                  },
-                                );
-                              },
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('您的資料已由雲端安全守護')),
+                                    );
+                                  }
+                                },
+                                child: Icon(iconData, size: 20, color: iconColor),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       );
                     },
                   );

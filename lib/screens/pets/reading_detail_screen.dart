@@ -84,6 +84,52 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            onSelected: (value) async {
+              if (value == 'delete' && _currentReading != null) {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Text('刪除溝通紀錄', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                    content: const Text('確定要刪除這筆溝通紀錄嗎？\n(此動作無法復原)'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('刪除', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true && mounted) {
+                  await _repository.deleteReading(widget.petId, widget.readingId);
+                  if (mounted) Navigator.pop(context); // 返回列表
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.redAccent),
+                    SizedBox(width: 12),
+                    Text('刪除紀錄', style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _buildBody(),
     );

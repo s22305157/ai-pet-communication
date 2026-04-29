@@ -167,7 +167,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
 
     try {
       final pet = PetModel(
-        petId: widget.existingPet?.petId,
+        petId: widget.existingPet?.petId ?? '',
         ownerId: uid,
         name: nameController.text.trim(),
         species: speciesController.text.trim(),

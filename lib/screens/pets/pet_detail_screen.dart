@@ -48,7 +48,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   void initState() {
     super.initState();
     _currentPet = widget.pet;
-    _readingsStream = _readingsRepository.watchReadingsByPetId(_currentPet.petId!);
+    _readingsStream = _readingsRepository.watchReadingsByPetId(_currentPet.petId);
     // 若已有頭像 URL，進入頁面時先用 http 抓成 bytes
     if (_currentPet.avatarUrl.isNotEmpty) {
       _loadAvatarFromUrl(_currentPet.avatarUrl);
@@ -101,7 +101,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
 
       // 2. 更新 Firestore
       final updatedPet = _currentPet.copyWith(avatarUrl: url);
-      await _petService.updatePet(updatedPet.petId!, updatedPet);
+      await _petService.updatePet(updatedPet.petId, updatedPet);
 
       if (mounted) {
         setState(() {
@@ -212,23 +212,72 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_note_rounded, size: 28),
-            onPressed: () async {
-              await showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => PetFormSheet(existingPet: _currentPet),
-              );
-              // 表單關閉後，從 Firestore 重新獲取最新資料並刷新 UI
-              final doc = await FirebaseFirestore.instance.collection('pets').doc(_currentPet.petId).get();
-              if (doc.exists && mounted) {
-                setState(() {
-                  _currentPet = PetModel.fromDoc(doc);
-                });
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            onSelected: (value) async {
+              if (value == 'edit') {
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => PetFormSheet(existingPet: _currentPet),
+                );
+                // 表單關閉後，從 Firestore 重新獲取最新資料並刷新 UI
+                final doc = await FirebaseFirestore.instance.collection('pets').doc(_currentPet.petId).get();
+                if (doc.exists && mounted) {
+                  setState(() {
+                    _currentPet = PetModel.fromDoc(doc);
+                  });
+                }
+              } else if (value == 'delete') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    title: Text('刪除毛小孩', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                    content: Text('確定要刪除 ${_currentPet.name} 的資料嗎？\n(此動作無法復原)'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('刪除', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true && mounted) {
+                  await _petService.deletePet(_currentPet.petId);
+                  if (mounted) Navigator.pop(context); // 返回首頁
+                }
               }
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: const [
+                    Icon(Icons.edit_note_rounded, color: AppColors.textPrimary),
+                    SizedBox(width: 12),
+                    Text('編輯資料'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: const [
+                    Icon(Icons.delete_outline, color: Colors.redAccent),
+                    SizedBox(width: 12),
+                    Text('刪除毛小孩', style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -434,7 +483,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => ReadingDetailScreen(
                                     reading: reading,
-                                    petId: _currentPet.petId!,
+                                    petId: _currentPet.petId,
                                     readingId: reading.id,
                                     firestore: widget.firestore,
                                   ),
@@ -445,7 +494,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                               final readingService = ReadingService(
                                 FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance),
                               );
-                              await readingService.deleteReading(_currentPet.petId!, reading.id);
+                              await readingService.deleteReading(_currentPet.petId, reading.id);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('紀錄已刪除')),

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PetModel {
-  final String? petId;
+  final String petId;
   final String ownerId;
   final String name;
   final String species;
@@ -16,7 +16,7 @@ class PetModel {
   final DateTime? updatedAt;
 
   PetModel({
-    this.petId,
+    required this.petId,
     required this.ownerId,
     required this.name,
     required this.species,
@@ -33,6 +33,7 @@ class PetModel {
 
   Map<String, dynamic> toMap({bool isLocal = false}) {
     final map = {
+      'pet_id': petId,
       'owner_id': ownerId,
       'name': name,
       'species': species,
@@ -71,7 +72,7 @@ class PetModel {
     }
 
     return PetModel(
-      petId: id,
+      petId: id ?? data['pet_id'] ?? '',
       ownerId: data['owner_id'] ?? '',
       name: data['name'] ?? '',
       species: data['species'] ?? '',

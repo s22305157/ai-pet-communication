@@ -228,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
               const SizedBox(width: 16),
               Text(
-                'Continue with Google',
+                '使用 Google 帳號登入',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,

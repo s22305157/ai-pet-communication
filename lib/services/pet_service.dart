@@ -13,6 +13,12 @@ class PetService {
   final FirebaseStorage _storage;
   final LocalPetService _localService;
   final AuthService _authService;
+  
+  // 追蹤雲端連線狀態，供 UI 顯示
+  final ValueNotifier<bool> isCloudActive = ValueNotifier<bool>(true);
+  
+  // 追蹤是否正在進行遷移同步
+  final ValueNotifier<bool> isSyncing = ValueNotifier<bool>(false);
 
   PetService({
     FirebaseFirestore? firestore,
@@ -30,74 +36,90 @@ class PetService {
     return userModel?.membershipType != 'free';
   }
 
-  // 根據 UID 監聽寵物列表 (自動切換本地/雲端 + 自動遷移)
+  // 根據 UID 監聽寵物列表 (自動切換本地/雲端 + 自動遷移 + 錯誤降級)
   Stream<List<PetModel>> watchPetsByOwner(String uid) {
     return _authService.getUserStream().asyncExpand((user) async* {
       if (user == null) {
-        // 登出狀態：回傳空列表並停止監聽
         yield [];
       } else if (user.membershipType == 'free') {
-        // Free 用戶：顯示本地資料
         yield* _localService.watchPets();
       } else {
-        // Pro 用戶：先檢查是否需要遷移，然後顯示雲端資料
-        // 在背景執行遷移，不阻塞 UI
+        // 付費帳戶 (Plus/Pro)：先嘗試雲端，失敗則降級本地
         _migrateIfNeeded(uid);
+        isCloudActive.value = true;
         
-        yield* _db
+        final cloudStream = _db
             .collection('pets')
             .where('owner_id', isEqualTo: uid)
             .snapshots()
             .map((snapshot) {
+          isCloudActive.value = true; // 成功收到快照，設為 true
           return snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList();
         });
+
+        yield* cloudStream.handleError((error) {
+          debugPrint('Cloud Watch Error: $error. Falling back to local.');
+          isCloudActive.value = false; // 報錯，設為 false
+          // 這裡可以發送全域提示，P2 後續會加入 UI 提示
+        }).asBroadcastStream();
+        
+        // 額外確保：如果雲端流沒資料或報錯，至少還有本地可以看 (這裡邏輯稍後優化)
       }
     });
   }
 
-  // 內部遷移邏輯：將本地資料推送到雲端
+  // 內部遷移邏輯：將本地資料推送到雲端 (使用 petId 進行唯一性檢查)
   Future<void> _migrateIfNeeded(String uid) async {
-    final localPets = _localService.getAllPets();
-    if (localPets.isEmpty) return;
+    if (isSyncing.value) return; // 避免重複觸發
+    
+    try {
+      final localPets = _localService.getAllPets();
+      if (localPets.isEmpty) return;
 
-    print("Detecting local pets, starting migration with conflict resolution...");
-    for (var pet in localPets) {
-      // 根據名稱與擁有者尋找雲端現有資料
-      final existing = await _db
-          .collection('pets')
-          .where('owner_id', isEqualTo: uid)
-          .where('name', isEqualTo: pet.name)
-          .get();
+      isSyncing.value = true;
+      debugPrint("Detecting local pets, starting migration by petId...");
+      for (var pet in localPets) {
+        final docRef = _db.collection('pets').doc(pet.petId);
+        final existing = await docRef.get();
 
-      if (existing.docs.isEmpty) {
-        // 雲端無資料：直接新增
-        await _db.collection('pets').add(pet.toMap());
-      } else {
-        // 雲端有資料：執行衝突解決策略 (Timestamp Wins)
-        final cloudDoc = existing.docs.first;
-        final cloudPet = PetModel.fromDoc(cloudDoc);
-
-        final localTime = pet.updatedAt ?? DateTime(2000);
-        final cloudTime = cloudPet.updatedAt ?? DateTime(2000);
-
-        if (localTime.isAfter(cloudTime)) {
-          // 本地較新：更新雲端
-          print("Conflict detected for ${pet.name}: Local is newer. Updating cloud...");
-          await _db.collection('pets').doc(cloudDoc.id).update(pet.toMap());
+        if (!existing.exists) {
+          // 雲端無資料：直接同步
+          await docRef.set(pet.toMap());
         } else {
-          // 雲端較新：不動作，保持雲端為準
-          print("Conflict detected for ${pet.name}: Cloud is newer or same. Keeping cloud version.");
+          // 雲端有資料：執行衝突解決策略 (Timestamp Wins)
+          final cloudPet = PetModel.fromDoc(existing);
+          final localTime = pet.updatedAt ?? DateTime(2000);
+          final cloudTime = cloudPet.updatedAt ?? DateTime(2000);
+
+          if (localTime.isAfter(cloudTime)) {
+            await docRef.update(pet.toMap());
+          }
         }
       }
+      // 遷移完成後可以選擇清理本地，但為了保險我們暫時保留
+      debugPrint("Migration complete.");
+    } catch (e) {
+      debugPrint("Migration failed: $e");
+    } finally {
+      isSyncing.value = false;
     }
-    print("Migration and conflict resolution complete.");
   }
 
   Future<void> createPet(PetModel pet) async {
-    if (await _shouldUseCloud()) {
-      await _db.collection('pets').add(pet.toMap());
-    } else {
-      await _localService.createPet(pet);
+    // 確保 ID 在建立時即存在
+    final petId = pet.petId.isEmpty ? _db.collection('pets').doc().id : pet.petId;
+    final petWithId = pet.copyWith(petId: petId);
+
+    try {
+      if (await _shouldUseCloud()) {
+        await _db.collection('pets').doc(petId).set(petWithId.toMap());
+      }
+      // 無論雲端是否成功，都在本地保留一份作為快照/Fallback
+      await _localService.updatePet(petId, petWithId);
+    } catch (e) {
+      debugPrint('Create Pet Cloud Failure, saved to local only: $e');
+      await _localService.updatePet(petId, petWithId);
+      // 這裡後續會加入「待同步」標記
     }
   }
 
@@ -106,35 +128,36 @@ class PetService {
       if (await _shouldUseCloud()) {
         final docRef = _db.collection('pets').doc(petId);
         
-        // --- 基礎衝突處理：時間戳記勝出 (Timestamp Wins) ---
         final remoteDoc = await docRef.get();
         if (remoteDoc.exists) {
           final remotePet = PetModel.fromDoc(remoteDoc);
           if (remotePet.updatedAt != null && pet.updatedAt != null) {
             if (remotePet.updatedAt!.isAfter(pet.updatedAt!)) {
-              debugPrint('Conflict detected for $petId: Cloud is newer. Skipping update.');
-              // 這裡可以選擇拋出特定異常或直接返回，我們選擇確保雲端最新
+              debugPrint('Conflict: Cloud is newer. Syncing cloud to local instead.');
+              await _localService.updatePet(petId, remotePet);
               return;
             }
           }
         }
-        
         await docRef.update(pet.toMap());
-      } else {
-        await _localService.updatePet(petId, pet);
       }
+      await _localService.updatePet(petId, pet);
     } catch (e) {
-      debugPrint('Update Pet Error: $e');
-      rethrow;
+      debugPrint('Update Pet Cloud Failure, saved to local only: $e');
+      await _localService.updatePet(petId, pet);
     }
   }
 
   Future<void> deletePet(String petId) async {
-    // 嘗試在雲端刪除
     try {
-      await _db.collection('pets').doc(petId).delete();
-    } catch (_) {
-      // 如果雲端找不到或失敗，嘗試在本地刪除
+      // 雙向刪除
+      if (await _shouldUseCloud()) {
+        await _db.collection('pets').doc(petId).delete();
+      }
+      await _localService.deletePet(petId);
+    } catch (e) {
+      debugPrint('Delete Pet Error: $e');
+      // 即使雲端失敗，也確保本地刪除以維持 UI 一致性
       await _localService.deletePet(petId);
     }
   }

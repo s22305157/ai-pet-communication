@@ -23,7 +23,7 @@ class LocalPetService {
 
   // 建立本地寵物
   Future<void> createPet(PetModel pet) async {
-    final petId = const Uuid().v4();
+    final petId = pet.petId.isEmpty ? const Uuid().v4() : pet.petId;
     final newPet = pet.copyWith(petId: petId);
     await _box.put(petId, newPet.toMap(isLocal: true));
   }
