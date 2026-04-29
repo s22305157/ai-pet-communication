@@ -1,28 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 使用者資料規則
+    // 使用者資料規則 (Users 集合)
     match /Users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId 
-                    && request.resource.data.points == 1;
-      allow update: if request.auth != null && request.auth.uid == userId
-                    && request.resource.data.points == resource.data.points;
-    }
+                    && request.resource.data.points == 1; // 初始點數鎖定為 1
+      
+       // 安全規則覆核：
+       allow update: if request.auth != null && request.auth.uid == userId
+                     && (
+                       // 1. 點數只能減少 (或不變)，且不得低於 0
+                       (request.resource.data.points <= resource.data.points && request.resource.data.points >= 0)
+                       &&
+                       // 2. 嚴格禁止修改會員等級 (membership_type)
+                       (request.resource.data.membership_type == resource.data.membership_type)
+                       &&
+                       // 3. 確保 uid 欄位不可變動
+                       (request.resource.data.uid == resource.data.uid)
+                     );
+       
+       // 允許刪除本人帳號
+       allow delete: if request.auth != null && request.auth.uid == userId;
+     }
     
-    // 寵物資料規則
+    // 寵物資料規則 (pets 集合)
     match /pets/{petId} {
       allow read, update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
       
-      // 溝通紀錄子集合規則
+      // 溝通紀錄規則 (readings 子集合)
       match /readings/{readingId} {
-        // 允許讀取、寫入與刪除，前提是父層 pet 的 owner_id 必須是當前使用者
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
+        // 確保只有寵物擁有人可以存取紀錄
+        allow read, write: if request.auth != null 
+          && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
       }
     }
     
-    // 預設拒絕其他所有存取
+    // 預設規則：拒絕所有其他存取
     match /{document=**} {
       allow read, write: if false;
     }

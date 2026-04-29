@@ -28,16 +28,7 @@ class PetService {
   }
 
   Future<void> updatePet(String petId, PetModel pet) async {
-    await _db.collection('pets').doc(petId).update({
-      'name': pet.name,
-      'species': pet.species,
-      'breed': pet.breed,
-      'gender': pet.gender,
-      'birthday': pet.birthday,
-      'personality': pet.personality,
-      'avatar_url': pet.avatarUrl,
-      'updated_at': FieldValue.serverTimestamp(),
-    });
+    await _db.collection('pets').doc(petId).update(pet.toMap());
   }
 
   Future<void> deletePet(String petId) async {

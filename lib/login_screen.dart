@@ -165,19 +165,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           });
           
           try {
-            User? user = await AuthService().signInWithGoogle();
+            var user = await AuthService().signInWithGoogle();
             if (user != null) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('登入成功！歡迎回到 AI PET COMMUNICATOR'),
+                    content: const Text('登入成功！歡迎回到 PAWLINK'),
                     backgroundColor: AppColors.secondary,
                   ),
-                );
-                
-                // 導航至主畫面
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
                 );
               }
             }

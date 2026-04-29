@@ -10,6 +10,8 @@ class PetModel {
   final String birthday;
   final String personality;
   final String avatarUrl;
+  final String color;
+  final double weight;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -23,12 +25,14 @@ class PetModel {
     required this.birthday,
     required this.personality,
     required this.avatarUrl,
+    this.color = '',
+    this.weight = 0.0,
     this.createdAt,
     this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = {
       'owner_id': ownerId,
       'name': name,
       'species': species,
@@ -37,9 +41,17 @@ class PetModel {
       'birthday': birthday,
       'personality': personality,
       'avatar_url': avatarUrl,
-      'created_at': FieldValue.serverTimestamp(),
+      'color': color,
+      'weight': weight,
       'updated_at': FieldValue.serverTimestamp(),
     };
+    
+    // 只有在新建資料且沒有 createdAt 時才設定 serverTimestamp
+    if (createdAt == null) {
+      map['created_at'] = FieldValue.serverTimestamp();
+    }
+    
+    return map;
   }
 
   factory PetModel.fromDoc(DocumentSnapshot doc) {
@@ -55,6 +67,8 @@ class PetModel {
       birthday: data['birthday'] ?? '',
       personality: data['personality'] ?? '',
       avatarUrl: data['avatar_url'] ?? '',
+      color: data['color'] ?? '',
+      weight: (data['weight'] ?? 0.0).toDouble(),
       createdAt: (data['created_at'] as Timestamp?)?.toDate(),
       updatedAt: (data['updated_at'] as Timestamp?)?.toDate(),
     );
@@ -70,6 +84,8 @@ class PetModel {
     String? birthday,
     String? personality,
     String? avatarUrl,
+    String? color,
+    double? weight,
   }) {
     return PetModel(
       petId: petId ?? this.petId,
@@ -81,6 +97,8 @@ class PetModel {
       birthday: birthday ?? this.birthday,
       personality: personality ?? this.personality,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      color: color ?? this.color,
+      weight: weight ?? this.weight,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
