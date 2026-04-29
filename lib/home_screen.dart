@@ -524,7 +524,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // 導向設定頁面
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: tierColor,

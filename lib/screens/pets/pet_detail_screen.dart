@@ -600,7 +600,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // 導向升級頁面 (SettingsScreen)
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: tierColor,
