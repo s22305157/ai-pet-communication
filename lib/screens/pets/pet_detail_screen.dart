@@ -28,7 +28,7 @@ class PetDetailScreen extends StatefulWidget {
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
   late PetModel _currentPet;
-  late final PetService _petService = PetService(firestore: widget.firestore);
+  late final PetService _petService = PetService();
   late final FirestoreReadingsRepository _readingsRepository = FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance);
   final ImagePicker _picker = ImagePicker();
 

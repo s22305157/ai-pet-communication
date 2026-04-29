@@ -31,7 +31,7 @@ class PetModel {
     this.updatedAt,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({bool isLocal = false}) {
     final map = {
       'owner_id': ownerId,
       'name': name,
@@ -43,22 +43,36 @@ class PetModel {
       'avatar_url': avatarUrl,
       'color': color,
       'weight': weight,
-      'updated_at': FieldValue.serverTimestamp(),
     };
     
-    // 只有在新建資料且沒有 createdAt 時才設定 serverTimestamp
-    if (createdAt == null) {
-      map['created_at'] = FieldValue.serverTimestamp();
+    // 處理時間戳記 (本地使用 DateTime, 雲端使用 FieldValue)
+    if (isLocal) {
+      map['updated_at'] = DateTime.now().toIso8601String();
+      if (createdAt == null) {
+        map['created_at'] = DateTime.now().toIso8601String();
+      } else {
+        map['created_at'] = createdAt!.toIso8601String();
+      }
+    } else {
+      map['updated_at'] = FieldValue.serverTimestamp();
+      if (createdAt == null) {
+        map['created_at'] = FieldValue.serverTimestamp();
+      }
     }
     
     return map;
   }
 
-  factory PetModel.fromDoc(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory PetModel.fromMap(Map<String, dynamic> data, {String? id}) {
+    DateTime? parseDate(dynamic date) {
+      if (date == null) return null;
+      if (date is Timestamp) return date.toDate();
+      if (date is String) return DateTime.tryParse(date);
+      return null;
+    }
 
     return PetModel(
-      petId: doc.id,
+      petId: id,
       ownerId: data['owner_id'] ?? '',
       name: data['name'] ?? '',
       species: data['species'] ?? '',
@@ -69,9 +83,13 @@ class PetModel {
       avatarUrl: data['avatar_url'] ?? '',
       color: data['color'] ?? '',
       weight: (data['weight'] ?? 0.0).toDouble(),
-      createdAt: (data['created_at'] as Timestamp?)?.toDate(),
-      updatedAt: (data['updated_at'] as Timestamp?)?.toDate(),
+      createdAt: parseDate(data['created_at']),
+      updatedAt: parseDate(data['updated_at']),
     );
+  }
+
+  factory PetModel.fromDoc(DocumentSnapshot doc) {
+    return PetModel.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
   }
 
   PetModel copyWith({
