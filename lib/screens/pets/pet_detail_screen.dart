@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,11 +9,17 @@ import 'package:uuid/uuid.dart';
 import '../../../constants.dart';
 import '../../models/pet_model.dart';
 import '../../services/pet_service.dart';
+import '../../features/readings/data/firestore_readings_repository.dart';
+import '../../features/readings/domain/reading.dart';
+import '../../features/readings/application/reading_service.dart';
+import 'widgets/reading_list_tile.dart';
+import 'reading_detail_screen.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
+  final FirebaseFirestore? firestore;
 
-  const PetDetailScreen({super.key, required this.pet});
+  const PetDetailScreen({super.key, required this.pet, this.firestore});
 
   @override
   State<PetDetailScreen> createState() => _PetDetailScreenState();
@@ -20,7 +27,8 @@ class PetDetailScreen extends StatefulWidget {
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
   late PetModel _currentPet;
-  final PetService _petService = PetService();
+  late final PetService _petService = PetService(firestore: widget.firestore);
+  late final FirestoreReadingsRepository _readingsRepository = FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance);
   final ImagePicker _picker = ImagePicker();
 
   bool _isUploading = false;
@@ -30,11 +38,13 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   /// - 用戶選取新圖片後：直接使用本機 bytes
   Uint8List? _avatarBytes;
   bool _isLoadingAvatar = false;
+  Stream<List<Reading>>? _readingsStream;
 
   @override
   void initState() {
     super.initState();
     _currentPet = widget.pet;
+    _readingsStream = _readingsRepository.watchReadingsByPetId(_currentPet.petId!);
     // 若已有頭像 URL，進入頁面時先用 http 抓成 bytes
     if (_currentPet.avatarUrl.isNotEmpty) {
       _loadAvatarFromUrl(_currentPet.avatarUrl);
@@ -323,40 +333,102 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.1),
-                      borderRadius:
-                          BorderRadius.circular(AppStyles.borderRadius),
-                      border: Border.all(
-                          color: AppColors.secondary.withOpacity(0.3)),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(Icons.chat_bubble_outline,
-                            size: 48,
-                            color: AppColors.secondary.withOpacity(0.5)),
-                        const SizedBox(height: 12),
-                        Text(
-                          '尚無溝通紀錄',
-                          style: GoogleFonts.outfit(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                  StreamBuilder<List<Reading>>(
+                    stream: _readingsStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: CircularProgressIndicator(color: AppColors.primary),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '未來會在這裡顯示您與 ${_currentPet.name} 的對話',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            color: AppColors.textSecondary.withOpacity(0.7),
+                        );
+                      }
+                      
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            '無法載入紀錄',
+                            style: GoogleFonts.outfit(color: Colors.redAccent),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                        );
+                      }
+
+                      final readings = snapshot.data ?? [];
+                      
+                      if (readings.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withOpacity(0.1),
+                            borderRadius:
+                                BorderRadius.circular(AppStyles.borderRadius),
+                            border: Border.all(
+                                color: AppColors.secondary.withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.chat_bubble_outline,
+                                  size: 48,
+                                  color: AppColors.secondary.withOpacity(0.5)),
+                              const SizedBox(height: 12),
+                              Text(
+                                '尚無溝通紀錄',
+                                style: GoogleFonts.outfit(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '未來會在這裡顯示您與 ${_currentPet.name} 的對話',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary.withOpacity(0.7),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: readings.length,
+                        itemBuilder: (context, index) {
+                          final reading = readings[index];
+                          return ReadingListTile(
+                            reading: reading,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ReadingDetailScreen(
+                                    reading: reading,
+                                    petId: _currentPet.petId!,
+                                    readingId: reading.id,
+                                    firestore: widget.firestore,
+                                  ),
+                                ),
+                              );
+                            },
+                            onDelete: () async {
+                              final readingService = ReadingService(
+                                FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance),
+                              );
+                              await readingService.deleteReading(_currentPet.petId!, reading.id);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('紀錄已刪除')),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),

@@ -16,10 +16,25 @@ class HomeScreen extends StatefulWidget {
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
-
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final PetService _petService = PetService();
+  Stream<List<PetModel>>? _petsStream;
+  String? _lastUid;
+
+  void _initPetsStream() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && uid != _lastUid) {
+      _petsStream = _petService.watchPetsByOwner(uid);
+      _lastUid = uid;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initPetsStream();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPetList(String uid) {
+    _initPetsStream(); // 確保 UID 變更時會重新初始化
+    
     return StreamBuilder<List<PetModel>>(
-      stream: _petService.watchPetsByOwner(uid),
+      stream: _petsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(

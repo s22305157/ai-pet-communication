@@ -1,6 +1,6 @@
-{
-    "name": "ai_pet_communication",
-    "short_name": "ai_pet_communication",
+﻿{
+    "name": "ai_pet_communicator",
+    "short_name": "ai_pet_communicator",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

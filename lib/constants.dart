@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // PawLink Light Theme Colors
+  // AI Pet Communicator Light Theme Colors
   static const Color primary = Color(0xFF7BB3D1); // Light Blue from logo
   static const Color secondary = Color(0xFF7EC8B7); // Light Teal from logo
   static const Color accent = Color(0xFF2D4A5E); // Dark Slate Blue for accents

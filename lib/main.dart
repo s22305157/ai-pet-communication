@@ -24,7 +24,7 @@ class AiPetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Pet Connect',
+      title: 'AI Pet Communicator',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

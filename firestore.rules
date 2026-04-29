@@ -1,27 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 用戶資料安全規則
+    // 使用者資料規則
     match /Users/{userId} {
-      // 允許用戶讀取自己的資料
       allow read: if request.auth != null && request.auth.uid == userId;
-      
-      // 允許用戶在「首次登入」時建立文件，但初始點數必須為 1
       allow create: if request.auth != null && request.auth.uid == userId 
                     && request.resource.data.points == 1;
-                    
-      // 允許用戶更新資料，但「點數 (points)」欄位必須與原本一致，不准前端自行增加
       allow update: if request.auth != null && request.auth.uid == userId
                     && request.resource.data.points == resource.data.points;
     }
     
-    // 寵物資料安全規則
+    // 寵物資料規則
     match /pets/{petId} {
-      // 允許用戶讀取、更新、刪除自己的寵物資料
       allow read, update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
-      
-      // 允許用戶建立寵物資料，但 owner_id 必須是自己的 UID
       allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
+      
+      // 溝通紀錄子集合規則
+      match /readings/{readingId} {
+        // 允許讀取、寫入與刪除，前提是父層 pet 的 owner_id 必須是當前使用者
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
+      }
     }
     
     // 預設拒絕其他所有存取

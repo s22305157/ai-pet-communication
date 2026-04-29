@@ -4,8 +4,12 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../models/pet_model.dart';
 
 class PetService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _db;
+  final FirebaseStorage _storage;
+
+  PetService({FirebaseFirestore? firestore, FirebaseStorage? storage})
+      : _db = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance;
 
   Stream<List<PetModel>> watchPetsByOwner(String uid) {
     return _db

@@ -71,6 +71,6 @@ class DefaultFirebaseOptions {
     projectId: 'fir-project-tw',
     storageBucket: 'fir-project-tw.firebasestorage.app',
     iosClientId: '393735079871-itjeudch6ga5lph8poobjpjeu36rq0n0.apps.googleusercontent.com',
-    iosBundleId: 'com.example.aiPetCommunication',
+    iosBundleId: 'com.example.ai_pet_communicator',
   );
 }

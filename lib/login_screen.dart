@@ -70,47 +70,67 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         position: _slideAnimation,
                         child: Column(
                           children: [
+                            const SizedBox(height: 40),
                             // Logo Placeholder (Since we can't easily reference local generated image path in code without adding to assets)
                             // I'll use a placeholder icon for now, and instruct the user how to add the logo.
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 20,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.pets_rounded,
-                                size: 80,
-                                color: AppColors.primary,
+                            Transform.translate(
+                              offset: const Offset(10, 0), // 向右微調 10 單位以補償視覺偏差
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withOpacity(0.15),
+                                      blurRadius: 40,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: Image.asset(
+                                  'assets/images/logo.png',
+                                  width: 220,
+                                  height: 220,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 32),
-                            Text(
-                              'PAWLINK',
-                              style: GoogleFonts.outfit(
-                                fontSize: 40,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                letterSpacing: 2.0,
+                            const SizedBox(height: 0),
+                            ShaderMask(
+                              shaderCallback: (bounds) => const LinearGradient(
+                                colors: [AppColors.textPrimary, AppColors.accent],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ).createShader(bounds),
+                              child: Text(
+                                'PAWLINK',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 2.0,
+                                  height: 1.0,
+                                  shadows: [
+                                    Shadow(
+                                      color: AppColors.textPrimary.withOpacity(0.3),
+                                      offset: const Offset(0, 4),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              'AI Pet Communication',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.outfit(
-                                fontSize: 16,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
+                             Text(
+                               'AI Pet Communicator',
+                               textAlign: TextAlign.center,
+                               style: GoogleFonts.outfit(
+                                 fontSize: 18,
+                                 color: AppColors.textSecondary.withOpacity(0.9),
+                                 letterSpacing: 0.5,
+                                 fontWeight: FontWeight.w500,
+                               ),
+                             ),
                           ],
                         ),
                       ),
@@ -150,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('登入成功！歡迎回到 PAWLINK'),
+                    content: const Text('登入成功！歡迎回到 AI PET COMMUNICATOR'),
                     backgroundColor: AppColors.secondary,
                   ),
                 );
