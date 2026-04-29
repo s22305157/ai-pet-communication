@@ -23,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '設定與會員',
+          '設定',
           style: GoogleFonts.outfit(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -41,62 +41,6 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(AppStyles.padding),
             children: [
               const SizedBox(height: 16),
-              _buildSectionTitle('會員方案與資產'),
-              
-              // 1. 方案狀態卡片 (動態階梯)
-              if (type == 'free')
-                _buildUpgradeCard(context, targetTier: 'Plus', nextTier: 'Pro', color: Colors.blue)
-              else if (type == 'plus')
-                _buildUpgradeCard(context, targetTier: 'Pro', isUpgrade: true, color: Colors.amber)
-              else
-                _buildSettingsCard([
-                  _buildSettingTile(
-                    icon: Icons.workspace_premium_rounded,
-                    title: '方案狀態',
-                    trailing: Text('Pro 尊榮會員', style: GoogleFonts.outfit(color: Colors.amber, fontWeight: FontWeight.bold)),
-                    onTap: () {},
-                  ),
-                ]),
-
-              const SizedBox(height: 16),
-
-              // 2. 點數顯示與購買入口
-              _buildSettingsCard([
-                _buildSettingTile(
-                  icon: Icons.monetization_on_rounded,
-                  title: '我的點數',
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('${user?.points ?? 0} PT', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 12),
-                      _buildShopButton(context),
-                    ],
-                  ),
-                  onTap: () {},
-                ),
-              ]),
-              
-              const SizedBox(height: 12),
-              // 3. 無廣告提示
-              if (type != 'pro')
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.auto_awesome, size: 14, color: AppColors.secondary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '升級會員即可享受全站無廣告體驗',
-                          style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 32),
               _buildSectionTitle('資料與同步'),
               _buildSettingsCard([
                 _buildSettingTile(
@@ -136,77 +80,6 @@ class SettingsScreen extends StatelessWidget {
             ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildUpgradeCard(BuildContext context, {required String targetTier, String? nextTier, bool isUpgrade = false, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.8), color],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(isUpgrade ? Icons.trending_up_rounded : Icons.workspace_premium_rounded, color: Colors.white, size: 28),
-              const SizedBox(width: 12),
-              Text(
-                isUpgrade ? '升級至 $targetTier' : '解鎖 $targetTier 方案',
-                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '享有無廣告體驗、雲端同步與 AI 加成',
-            style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.9), fontSize: 13),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {}, // 導向購買
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: color,
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('立即升級 $targetTier', style: const TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShopButton(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('點數商城開發中'))),
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text(
-              '購買點數',
-              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-            ),
-          ),
-        ),
       ),
     );
   }

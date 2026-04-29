@@ -485,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.monetization_on_rounded,
+                          Icons.pets_rounded,
                           color: AppColors.secondary,
                           size: 20,
                         ),
