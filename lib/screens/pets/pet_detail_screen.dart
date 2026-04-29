@@ -519,17 +519,21 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     
     if (user == null) return;
 
-    final isPro = user.membershipType == 'pro' || user.membershipType == 'plus';
+    final type = user.membershipType.toLowerCase();
     
-    if (isPro) {
-      // Pro 用戶直接進入
+    if (type == 'pro') {
+      // Pro 用戶：無限次使用
       _navigateToAI(context);
-    } else if (user.points > 0) {
-      // Free 用戶且有點數：提示並扣點 (扣點邏輯應在 AI 服務中執行)
-      _showPointConsumptionDialog(context);
+    } else if (type == 'plus') {
+      // Plus 用戶：可能有限制或推薦升級至 Pro
+      _showUpgradeDialog(context, currentTier: 'plus');
     } else {
-      // 無點數：顯示升級彈窗
-      _showUpgradeDialog(context);
+      // Free 用戶
+      if (user.points > 0) {
+        _showPointConsumptionDialog(context);
+      } else {
+        _showUpgradeDialog(context, currentTier: 'free');
+      }
     }
   }
 
@@ -544,13 +548,13 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('開始溝通'),
-        content: const Text('本次溝通將消耗 1 PT 點數。確認開始嗎？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('開始溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: const Text('本次溝通將消耗 1 PT 點數。\n升級會員可享優惠或無限次溝通！'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text('稍後', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -560,41 +564,50 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
-            child: const Text('確認', style: TextStyle(color: Colors.white)),
+            child: const Text('確認扣點', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  void _showUpgradeDialog(BuildContext context) {
+  void _showUpgradeDialog(BuildContext context, {required String currentTier}) {
+    final String targetTier = currentTier == 'free' ? 'Plus' : 'Pro';
+    final Color tierColor = currentTier == 'free' ? Colors.blue : Colors.amber;
+    final String message = currentTier == 'free' 
+        ? '升級至 Plus 方案即可開啟雲端同步並獲得額外點數加成！'
+        : '升級至 Pro 尊榮方案，即刻享受無限次 AI 溝通與最優先支援。';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Row(
           children: [
-            const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
+            Icon(Icons.workspace_premium_rounded, color: tierColor),
             const SizedBox(width: 12),
-            Text('點數不足', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            Text('解鎖 $targetTier 方案', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text('升級至 Pro 方案即可享受無限次 AI 溝通，或購買點數繼續使用。'),
+        content: Text(message, style: GoogleFonts.outfit()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('稍後再說'),
+            child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
+              // 導向升級頁面 (SettingsScreen)
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: tierColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
-            child: const Text('了解 Pro 方案', style: TextStyle(color: Colors.white)),
+            child: Text('了解 $targetTier 方案', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

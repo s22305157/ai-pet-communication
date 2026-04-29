@@ -14,6 +14,10 @@ void main() {
 
   Widget createWidgetUnderTest() {
     return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        splashFactory: NoSplash.splashFactory,
+      ),
       home: PetDetailScreen(
         pet: PetModel(
           petId: 'pet_1',

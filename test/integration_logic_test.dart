@@ -39,6 +39,7 @@ void main() {
       points: 100,
     );
     when(() => mockAuth.getUserStream()).thenAnswer((_) => Stream.value(testUser));
+    when(() => mockAuth.getUserData()).thenAnswer((_) async => testUser);
     
     petService = PetService(
       firestore: mockDb,
@@ -111,6 +112,47 @@ void main() {
 
       // 驗證
       verify(() => mockDocRef.update(any())).called(1);
+    });
+
+    test('更新時應防止舊資料覆蓋新雲端資料 (雲端較新勝出)', () async {
+      final uid = 'user123';
+      final petId = 'pet_abc';
+      final mockCollection = MockCollectionReference();
+      
+      // 本地資料 (較舊)
+      final localPet = PetModel(
+        petId: petId,
+        ownerId: uid,
+        name: '小乖',
+        species: '狗',
+        breed: '柴犬',
+        gender: '公',
+        birthday: '2023',
+        personality: '活潑',
+        avatarUrl: 'url_old',
+        updatedAt: DateTime(2024, 1, 1),
+      );
+
+      // 雲端資料 (較新)
+      final mockDoc = MockQueryDocumentSnapshot();
+      final mockDocRef = MockDocumentReference();
+      
+      when(() => mockDb.collection('pets')).thenReturn(mockCollection);
+      when(() => mockCollection.doc(petId)).thenReturn(mockDocRef as DocumentReference<Map<String, dynamic>>);
+      when(() => mockDocRef.get()).thenAnswer((_) async => mockDoc as DocumentSnapshot<Map<String, dynamic>>);
+      when(() => mockDoc.exists).thenReturn(true);
+      when(() => mockDoc.id).thenReturn(petId); // 補上這個
+      when(() => mockDoc.data()).thenReturn({
+        'owner_id': uid,
+        'name': '小乖',
+        'updated_at': '2024-01-02T00:00:00.000', // 雲端較新
+      });
+
+      // 執行更新
+      await petService.updatePet(petId, localPet);
+
+      // 驗證：不應該呼叫 update
+      verifyNever(() => mockDocRef.update(any()));
     });
   });
 }
