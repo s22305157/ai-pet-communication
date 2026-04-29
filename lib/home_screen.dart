@@ -353,28 +353,83 @@ class _HomeScreenState extends State<HomeScreen> {
               StreamBuilder<void>(
                 stream: FirebaseFirestore.instance.snapshotsInSync(),
                 builder: (context, _) {
-                  return Container(
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  // 我們可以使用 snapshotsInSync 來得知何時所有本地寫入都已完成同步
+                  return FutureBuilder<bool>(
+                    future: Future.value(true), // 這裡可以進一步擴充檢查真實網路
+                    builder: (context, netSnapshot) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Tooltip(
-                      message: '雲端同步中',
-                      child: Icon(
-                        Icons.cloud_done_outlined,
-                        size: 18,
-                        color: Colors.green.withOpacity(0.8),
-                      ),
-                    ),
+                        child: InkWell(
+                          onTap: () async {
+                            final isPro = await _authService.isProUser();
+                            if (!isPro) {
+                              _showUpgradeDialog(context);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('您的資料已由雲端安全守護')),
+                              );
+                            }
+                          },
+                          child: Tooltip(
+                            message: '資料存儲狀態',
+                            child: StreamBuilder<UserModel?>(
+                              stream: _authService.getUserStream(),
+                              builder: (context, userSnapshot) {
+                                final user = userSnapshot.data;
+                                
+                                // 如果是 Free 用戶，顯示本地儲存圖示
+                                if (user == null || user.membershipType == 'free') {
+                                  return const Icon(
+                                    Icons.storage_rounded,
+                                    size: 18,
+                                    color: AppColors.textSecondary,
+                                  );
+                                }
+
+                                // 如果是 Pro 用戶，顯示雲端同步狀態
+                                return StreamBuilder<QuerySnapshot>(
+                                  // 監聽是否有待處理的寫入 (Pending Writes)
+                                  stream: FirebaseFirestore.instance.collection('pets').where('owner_id', isEqualTo: user.uid).snapshots(),
+                                  builder: (context, snapshot) {
+                                    bool hasPending = snapshot.data?.metadata.hasPendingWrites ?? false;
+                                    bool isFromCache = snapshot.data?.metadata.isFromCache ?? false;
+
+                                    if (hasPending) {
+                                      return const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+                                        ),
+                                      );
+                                    }
+
+                                    return Icon(
+                                      isFromCache ? Icons.cloud_off_rounded : Icons.cloud_done_outlined,
+                                      size: 18,
+                                      color: isFromCache ? Colors.orange : Colors.green.withOpacity(0.8),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -426,4 +481,61 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  void _showUpgradeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: Colors.amber),
+            const SizedBox(width: 12),
+            Text('升級至 Pro 方案', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('解鎖強大功能，守護您的毛小孩資料：', style: GoogleFonts.outfit()),
+            const SizedBox(height: 16),
+            _buildFeatureItem(Icons.cloud_sync_rounded, '雲端即時備份與同步'),
+            _buildFeatureItem(Icons.devices_rounded, '跨裝置存取寵物檔案'),
+            _buildFeatureItem(Icons.auto_awesome_rounded, '無限制 AI 寵物溝通次數'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('立即了解', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.secondary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: GoogleFonts.outfit(fontSize: 14))),
+        ],
+      ),
+    );
+  }
 }
+

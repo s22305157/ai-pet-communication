@@ -45,7 +45,6 @@ class PetModel {
       'weight': weight,
     };
     
-    // 處理時間戳記 (本地使用 DateTime, 雲端使用 FieldValue)
     if (isLocal) {
       map['updated_at'] = DateTime.now().toIso8601String();
       if (createdAt == null) {
