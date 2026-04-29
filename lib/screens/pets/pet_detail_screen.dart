@@ -14,6 +14,7 @@ import '../../features/readings/domain/reading.dart';
 import '../../features/readings/application/reading_service.dart';
 import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
+import 'pet_form_sheet.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
@@ -207,6 +208,27 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_note_rounded, size: 28),
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => PetFormSheet(existingPet: _currentPet),
+              );
+              // 表單關閉後，從 Firestore 重新獲取最新資料並刷新 UI
+              final doc = await FirebaseFirestore.instance.collection('pets').doc(_currentPet.petId).get();
+              if (doc.exists && mounted) {
+                setState(() {
+                  _currentPet = PetModel.fromDoc(doc);
+                });
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -304,6 +326,8 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                 children: [
                   _buildInfoRow('性別', _currentPet.gender, Icons.pets),
                   _buildInfoRow('生日', _currentPet.birthday, Icons.cake),
+                  _buildInfoRow('毛色', _currentPet.color, Icons.palette_outlined),
+                  _buildInfoRow('體重', '${_currentPet.weight} kg', Icons.monitor_weight_outlined),
                   const Divider(height: 24),
                   _buildInfoRow('個性', _currentPet.personality, Icons.favorite),
                 ],

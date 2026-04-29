@@ -9,37 +9,33 @@ import 'models/pet_model.dart';
 import 'screens/pets/pet_form_sheet.dart';
 import 'screens/pets/pet_detail_screen.dart';
 import 'widgets/pet_avatar.dart';
+import 'screens/profile/profile_screen.dart';
+import 'models/user_model.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final User user;
+  const HomeScreen({super.key, required this.user});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
+
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _authService = AuthService();
   final PetService _petService = PetService();
+  
+  late final String _uid = widget.user.uid;
   Stream<List<PetModel>>? _petsStream;
-  String? _lastUid;
-
-  void _initPetsStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null && uid != _lastUid) {
-      _petsStream = _petService.watchPetsByOwner(uid);
-      _lastUid = uid;
-    }
-  }
 
   @override
   void initState() {
     super.initState();
-    _initPetsStream();
+    // 初始化時直接建立資料流，不再需要判斷 UID 是否改變（因為切換帳號會重建整個 HomeScreen）
+    _petsStream = _petService.watchPetsByOwner(_uid);
   }
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -64,9 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Expanded(
-              child: uid == null
-                  ? const Center(child: Text('請先登入'))
-                  : _buildPetList(uid),
+              child: _buildPetList(_uid),
             ),
           ],
         ),
@@ -91,8 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPetList(String uid) {
-    _initPetsStream(); // 確保 UID 變更時會重新初始化
-    
     return StreamBuilder<List<PetModel>>(
       stream: _petsStream,
       builder: (context, snapshot) {
@@ -304,13 +296,29 @@ class _HomeScreenState extends State<HomeScreen> {
           // 左側：用戶頭像與問候
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.surface,
-                child: Icon(
-                  Icons.person_rounded,
-                  color: AppColors.primary,
-                  size: 28,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  );
+                },
+                child: Hero(
+                  tag: 'profile_avatar',
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.surface,
+                    backgroundImage: widget.user.photoURL != null 
+                        ? NetworkImage(widget.user.photoURL!) 
+                        : null,
+                    child: widget.user.photoURL == null
+                        ? const Icon(
+                            Icons.person_rounded,
+                            color: AppColors.primary,
+                            size: 28,
+                          )
+                        : null,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -325,7 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    'Hooman', // 未來可替換為真實姓名
+                    widget.user.displayName ?? '毛小孩主人',
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -337,53 +345,82 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           
-          // 右側：即時點數顯示 (Point Pill)
-          StreamBuilder<DocumentSnapshot>(
-            stream: _authService.getUserStream(),
-            builder: (context, snapshot) {
-              int points = 0;
-              
-              if (snapshot.hasData && snapshot.data!.exists) {
-                final data = snapshot.data!.data() as Map<String, dynamic>?;
-                if (data != null && data.containsKey('points')) {
-                  points = data['points'] as int;
-                }
-              }
-
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+          // 右側區塊：同步狀態與點數
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 同步狀態指示器 (Sync Indicator)
+              StreamBuilder<void>(
+                stream: FirebaseFirestore.instance.snapshotsInSync(),
+                builder: (context, _) {
+                  return Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                  border: Border.all(color: Colors.white.withOpacity(0.5)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.monetization_on_rounded,
-                      color: AppColors.secondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$points PT',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    child: Tooltip(
+                      message: '雲端同步中',
+                      child: Icon(
+                        Icons.cloud_done_outlined,
+                        size: 18,
+                        color: Colors.green.withOpacity(0.8),
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
+                  );
+                },
+              ),
+              // 即時點數顯示 (Point Pill)
+              StreamBuilder<UserModel?>(
+                stream: _authService.getUserStream(),
+                builder: (context, snapshot) {
+                  final user = snapshot.data;
+                  final points = user?.points ?? 0;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.monetization_on_rounded,
+                          color: AppColors.secondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$points PT',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

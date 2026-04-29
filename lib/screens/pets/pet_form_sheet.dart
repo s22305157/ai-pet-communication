@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../../../constants.dart';
 import '../../models/pet_model.dart';
 import '../../services/pet_service.dart';
+import '../../services/error_service.dart';
 
 class PetFormSheet extends StatefulWidget {
   final PetModel? existingPet;
@@ -38,6 +39,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
   late TextEditingController genderController;
   late TextEditingController birthdayController;
   late TextEditingController personalityController;
+  late TextEditingController colorController;
+  late TextEditingController weightController;
 
   @override
   void initState() {
@@ -50,6 +53,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
     genderController = TextEditingController(text: pet?.gender ?? '');
     birthdayController = TextEditingController(text: pet?.birthday ?? '');
     personalityController = TextEditingController(text: pet?.personality ?? '');
+    colorController = TextEditingController(text: pet?.color ?? '');
+    weightController = TextEditingController(text: pet?.weight?.toString() ?? '0.0');
     _avatarUrl = pet?.avatarUrl ?? '';
   }
 
@@ -61,6 +66,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
     genderController.dispose();
     birthdayController.dispose();
     personalityController.dispose();
+    colorController.dispose();
+    weightController.dispose();
     super.dispose();
   }
 
@@ -105,13 +112,42 @@ class _PetFormSheetState extends State<PetFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('頭像上傳失敗：$e'),
+            content: Text(ErrorService.getHumanReadableError(e)),
             backgroundColor: Colors.redAccent,
           ),
         );
       }
     } finally {
       if (mounted) setState(() => _isUploadingAvatar = false);
+    }
+  }
+
+  // ── 選取日期 ──────────────────────────────────────────────────────────────
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: widget.existingPet?.birthday != null 
+          ? DateTime.tryParse(widget.existingPet!.birthday) ?? DateTime.now()
+          : DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        birthdayController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
     }
   }
 
@@ -139,7 +175,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
         gender: genderController.text.trim(),
         birthday: birthdayController.text.trim(),
         personality: personalityController.text.trim(),
-        avatarUrl: _avatarUrl, // 已上傳的 Cloud Storage 公開 URL
+        avatarUrl: _avatarUrl,
+        color: colorController.text.trim(),
+        weight: double.tryParse(weightController.text.trim()) ?? 0.0,
       );
 
       if (widget.existingPet == null) {
@@ -161,7 +199,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('儲存失敗：$e'),
+            content: Text(ErrorService.getHumanReadableError(e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -306,6 +344,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
         ),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -362,6 +401,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
                       child: TextFormField(
                         controller: speciesController,
                         decoration: _buildInputDecoration('種類 (例如：狗、貓)'),
+                        validator: (v) => (v == null || v.isEmpty) ? '請輸入種類' : null,
                         style: GoogleFonts.outfit(),
                       ),
                     ),
@@ -379,17 +419,52 @@ class _PetFormSheetState extends State<PetFormSheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextFormField(
-                        controller: genderController,
+                      child: DropdownButtonFormField<String>(
+                        value: ['公', '母', '未知'].contains(genderController.text) ? genderController.text : null,
                         decoration: _buildInputDecoration('性別'),
-                        style: GoogleFonts.outfit(),
+                        items: ['公', '母', '未知'].map((label) => DropdownMenuItem(
+                          value: label,
+                          child: Text(label, style: GoogleFonts.outfit()),
+                        )).toList(),
+                        onChanged: (v) => setState(() => genderController.text = v ?? ''),
+                        validator: (v) => (v == null || v.isEmpty) ? '請選擇性別' : null,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
                         controller: birthdayController,
-                        decoration: _buildInputDecoration('生日/年齡'),
+                        readOnly: true,
+                        onTap: _selectDate,
+                        decoration: _buildInputDecoration('生日 (點擊選擇)'),
+                        validator: (v) => (v == null || v.isEmpty) ? '請選擇生日' : null,
+                        style: GoogleFonts.outfit(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: colorController,
+                        decoration: _buildInputDecoration('毛色 (例如：奶油色)'),
+                        style: GoogleFonts.outfit(),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: weightController,
+                        decoration: _buildInputDecoration('體重 (kg)'),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return '請輸入體重';
+                          final weight = double.tryParse(v);
+                          if (weight == null || weight <= 0) return '請輸入有效體重';
+                          return null;
+                        },
                         style: GoogleFonts.outfit(),
                       ),
                     ),
