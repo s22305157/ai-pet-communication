@@ -17,6 +17,7 @@ import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
 import '../../services/error_service.dart';
 import '../../services/auth_service.dart';
+import '../../screens/profile/settings_screen.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
@@ -602,7 +603,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
               );
             },
             style: ElevatedButton.styleFrom(

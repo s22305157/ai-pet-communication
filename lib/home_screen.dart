@@ -11,6 +11,7 @@ import 'screens/pets/pet_detail_screen.dart';
 import 'widgets/pet_avatar.dart';
 import 'screens/profile/profile_screen.dart';
 import 'models/user_model.dart';
+import 'screens/profile/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final User user;
@@ -303,22 +304,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (context) => const ProfileScreen()),
                   );
                 },
-                child: Hero(
-                  tag: 'profile_avatar',
-                  child: CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppColors.surface,
-                    backgroundImage: widget.user.photoURL != null 
-                        ? NetworkImage(widget.user.photoURL!) 
-                        : null,
-                    child: widget.user.photoURL == null
-                        ? const Icon(
-                            Icons.person_rounded,
-                            color: AppColors.primary,
-                            size: 28,
-                          )
-                        : null,
-                  ),
+                child: StreamBuilder<UserModel?>(
+                  stream: _authService.getUserStream(),
+                  builder: (context, userSnap) {
+                    final tier = userSnap.data?.membershipType?.toLowerCase() ?? 'free';
+                    final borderColor = tier == 'pro'
+                        ? Colors.amber
+                        : tier == 'plus'
+                            ? Colors.blue
+                            : Colors.grey.shade400;
+                    return Hero(
+                      tag: 'profile_avatar',
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: borderColor, width: 2.5),
+                        ),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.surface,
+                          backgroundImage: widget.user.photoURL != null
+                              ? NetworkImage(widget.user.photoURL!)
+                              : null,
+                          child: widget.user.photoURL == null
+                              ? Icon(Icons.person_rounded, color: borderColor, size: 26)
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -332,13 +347,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  Text(
-                    widget.user.displayName ?? '毛小孩主人',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  StreamBuilder<UserModel?>(
+                    stream: _authService.getUserStream(),
+                    builder: (context, userSnap) {
+                      final tier = userSnap.data?.membershipType?.toLowerCase() ?? 'free';
+                      final nameColor = tier == 'pro'
+                          ? Colors.amber.shade700
+                          : tier == 'plus'
+                              ? Colors.blue.shade700
+                              : AppColors.textPrimary;
+                      return Text(
+                        userSnap.data?.displayName ?? widget.user.displayName ?? '毛小孩主人',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: nameColor,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -526,7 +552,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
