@@ -15,6 +15,7 @@ import '../../features/readings/application/reading_service.dart';
 import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
+import '../../features/chat/presentation/chat_screen.dart';
 import '../../services/error_service.dart';
 import '../../services/auth_service.dart';
 import '../../screens/profile/settings_screen.dart';
@@ -587,40 +588,74 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     }
   }
 
-  void _navigateToAI(BuildContext context) {
-    // TODO: 導向 AI 溝通介面
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('即將開啟 AI 寵物溝通介面...')),
+  void _showPointConsumptionDialog(BuildContext context) {
+    bool isProcessing = false;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 防止點擊外部關閉
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('開始溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('本次溝通將消耗 1 PT 點數。\n升級會員可享優惠或無限次溝通！'),
+              if (isProcessing) ...[
+                const SizedBox(height: 20),
+                const CircularProgressIndicator(color: AppColors.primary),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isProcessing ? null : () => Navigator.pop(context),
+              child: Text('稍後', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: isProcessing ? null : () async {
+                setDialogState(() => isProcessing = true);
+                try {
+                  final authService = AuthService();
+                  await authService.consumePoints(1);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    _navigateToAI(context, pointDeducted: true);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => isProcessing = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('扣點失敗: ${ErrorService.getErrorMessage(e)}')),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text('確認扣點', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  void _showPointConsumptionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('開始溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: const Text('本次溝通將消耗 1 PT 點數。\n升級會員可享優惠或無限次溝通！'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('稍後', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _navigateToAI(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: const Text('確認扣點', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+  void _navigateToAI(BuildContext context, {bool pointDeducted = false}) {
+    // TODO: 導向 AI 溝通介面
+    // 正式導航至 AI 溝通畫面
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(pet: widget.pet),
+        ),
+      );
+    }
   }
 
   void _showUpgradeDialog(BuildContext context, {required String currentTier}) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -46,24 +47,52 @@ class PetService {
       } else {
         // 付費帳戶 (Plus/Pro)：先嘗試雲端，失敗則降級本地
         _migrateIfNeeded(uid);
-        isCloudActive.value = true;
         
-        final cloudStream = _db
-            .collection('pets')
-            .where('owner_id', isEqualTo: uid)
-            .snapshots()
-            .map((snapshot) {
-          isCloudActive.value = true; // 成功收到快照，設為 true
-          return snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList();
-        });
+        final controller = StreamController<List<PetModel>>();
+        StreamSubscription? cloudSub;
+        StreamSubscription? localSub;
 
-        yield* cloudStream.handleError((error) {
-          debugPrint('Cloud Watch Error: $error. Falling back to local.');
-          isCloudActive.value = false; // 報錯，設為 false
-          // 這裡可以發送全域提示，P2 後續會加入 UI 提示
-        }).asBroadcastStream();
-        
-        // 額外確保：如果雲端流沒資料或報錯，至少還有本地可以看 (這裡邏輯稍後優化)
+        void startLocalFallback() {
+          if (localSub != null) return;
+          isCloudActive.value = false;
+          localSub = _localService.watchPets().listen(
+            (data) {
+              if (!controller.isClosed) controller.add(data);
+            },
+            onError: (e) {
+              if (!controller.isClosed) controller.addError(e);
+            },
+          );
+        }
+
+        controller.onListen = () {
+          isCloudActive.value = true;
+          cloudSub = _db
+              .collection('pets')
+              .where('owner_id', isEqualTo: uid)
+              .snapshots()
+              .listen(
+            (snapshot) {
+              isCloudActive.value = true;
+              if (!controller.isClosed) {
+                controller.add(snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList());
+              }
+            },
+            onError: (error) {
+              debugPrint('雲端監聽錯誤: $error。啟動本地降級串流。');
+              startLocalFallback();
+            },
+            cancelOnError: false,
+          );
+        };
+
+        controller.onCancel = () {
+          cloudSub?.cancel();
+          localSub?.cancel();
+          controller.close();
+        };
+
+        yield* controller.stream;
       }
     });
   }
@@ -77,7 +106,7 @@ class PetService {
       if (localPets.isEmpty) return;
 
       isSyncing.value = true;
-      debugPrint("Detecting local pets, starting migration by petId...");
+      debugPrint("檢測到本地寵物資料，開始按 petId 進行遷移...");
       for (var pet in localPets) {
         final docRef = _db.collection('pets').doc(pet.petId);
         final existing = await docRef.get();
@@ -97,9 +126,9 @@ class PetService {
         }
       }
       // 遷移完成後可以選擇清理本地，但為了保險我們暫時保留
-      debugPrint("Migration complete.");
+      debugPrint("遷移完成。");
     } catch (e) {
-      debugPrint("Migration failed: $e");
+      debugPrint("遷移失敗: $e");
     } finally {
       isSyncing.value = false;
     }
@@ -115,9 +144,9 @@ class PetService {
         }
       }
     } catch (e) {
-      debugPrint('Cloud getPet failed: $e');
+      debugPrint('雲端 getPet 失敗: $e');
     }
-    // Fallback or Free tier
+    // 降級處理或免費方案
     return await _localService.getPet(petId);
   }
 
@@ -133,7 +162,7 @@ class PetService {
       // 無論雲端是否成功，都在本地保留一份作為快照/Fallback
       await _localService.updatePet(petId, petWithId);
     } catch (e) {
-      debugPrint('Create Pet Cloud Failure, saved to local only: $e');
+      debugPrint('建立寵物雲端同步失敗，僅儲存至本地: $e');
       await _localService.updatePet(petId, petWithId);
       // 這裡後續會加入「待同步」標記
     }
@@ -149,7 +178,7 @@ class PetService {
           final remotePet = PetModel.fromDoc(remoteDoc);
           if (remotePet.updatedAt != null && pet.updatedAt != null) {
             if (remotePet.updatedAt!.isAfter(pet.updatedAt!)) {
-              debugPrint('Conflict: Cloud is newer. Syncing cloud to local instead.');
+              debugPrint('衝突：雲端資料較新。改為將雲端資料同步至本地。');
               await _localService.updatePet(petId, remotePet);
               return;
             }
@@ -159,7 +188,7 @@ class PetService {
       }
       await _localService.updatePet(petId, pet);
     } catch (e) {
-      debugPrint('Update Pet Cloud Failure, saved to local only: $e');
+      debugPrint('更新寵物雲端同步失敗，僅儲存至本地: $e');
       await _localService.updatePet(petId, pet);
     }
   }
@@ -172,7 +201,7 @@ class PetService {
       }
       await _localService.deletePet(petId);
     } catch (e) {
-      debugPrint('Delete Pet Error: $e');
+      debugPrint('刪除寵物錯誤: $e');
       // 即使雲端失敗，也確保本地刪除以維持 UI 一致性
       await _localService.deletePet(petId);
     }

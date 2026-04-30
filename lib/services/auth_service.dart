@@ -5,13 +5,20 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import 'local_pet_service.dart';
+import 'subscription_service.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final LocalPetService _localPetService = LocalPetService();
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _db;
+  final LocalPetService _localPetService;
 
-  AuthService() {
+  AuthService({
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    LocalPetService? localService,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _db = firestore ?? FirebaseFirestore.instance,
+        _localPetService = localService ?? LocalPetService() {
     if (kIsWeb) {
       _auth.setPersistence(Persistence.LOCAL);
     }
@@ -87,11 +94,13 @@ class AuthService {
 
       User? user = userCredential.user;
       if (user != null) {
-        return await _initializeUser(user);
+        final userModel = await _initializeUser(user);
+        await syncSubscriptionStatus(); // 同步訂閱狀態
+        return userModel;
       }
       return null;
     } catch (e) {
-      debugPrint("Login Error: $e");
+      debugPrint("登入錯誤: $e");
       rethrow;
     }
   }
@@ -119,6 +128,7 @@ class AuthService {
 
   // 登出並清理本地資料
   Future<void> signOut() async {
+    await SubscriptionService().logOut(); // 登出 RevenueCat
     await _localPetService.clearAll(); // 清理 Hive
     await _auth.signOut();
     if (!kIsWeb) {
@@ -142,5 +152,46 @@ class AuthService {
     if (user != null) {
       await _db.collection('Users').doc(user.uid).update({'membership_type': type});
     }
+  }
+
+  // 同步訂閱狀態至 Firestore (整合 RevenueCat)
+  Future<void> syncSubscriptionStatus() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final subscriptionService = SubscriptionService();
+    // 登入 RevenueCat 以確保關聯正確
+    await subscriptionService.logIn(user.uid);
+    
+    final realStatus = await subscriptionService.checkEntitlementStatus();
+    
+    final doc = await _db.collection('Users').doc(user.uid).get();
+    if (doc.exists) {
+      final currentType = doc.data()?['membership_type'] ?? 'free';
+      if (currentType != realStatus) {
+        await updateMembership(realStatus);
+        debugPrint('AuthService: 訂閱狀態已從 $currentType 同步為 $realStatus');
+      }
+    }
+  }
+
+  // 消耗點數
+  Future<void> consumePoints(int amount) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    await _db.collection('Users').doc(user.uid).update({
+      'points': FieldValue.increment(-amount),
+    });
+  }
+
+  // 增加點數
+  Future<void> addPoints(int amount) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    await _db.collection('Users').doc(user.uid).update({
+      'points': FieldValue.increment(amount),
+    });
   }
 }

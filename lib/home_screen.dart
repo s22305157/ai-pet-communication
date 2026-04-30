@@ -12,6 +12,7 @@ import 'widgets/pet_avatar.dart';
 import 'screens/profile/profile_screen.dart';
 import 'models/user_model.dart';
 import 'screens/profile/settings_screen.dart';
+import 'services/ad_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final User user;
@@ -236,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Pet Avatar
+                // 毛小孩頭像
                 PetAvatar(
                   avatarUrl: pet.avatarUrl,
                   petName: pet.name,
@@ -244,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 24,
                 ),
                 const SizedBox(width: 16),
-                // Pet Info
+                // 毛小孩資訊
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                // Options Menu
+                // 選項選單
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -283,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         builder: (_) => PetFormSheet(existingPet: pet),
                       );
                     } else if (value == 'delete') {
-                      // Confirm delete
+                      // 確認刪除對話框
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
@@ -510,37 +511,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   final user = snapshot.data;
                   final points = user?.points ?? 0;
 
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: Border.all(color: Colors.white.withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.pets_rounded,
-                          color: AppColors.secondary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$points PT',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                  return GestureDetector(
+                    onTap: () => AdService().watchAdForPoints(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-                      ],
+                        ],
+                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.pets_rounded,
+                            color: AppColors.secondary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$points PT',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.add_circle_outline, size: 16, color: AppColors.primary),
+                        ],
+                      ),
                     ),
                   );
                 },

@@ -50,14 +50,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return Scaffold(
       body: Stack(
         children: [
-          // Background Gradient
+          // 背景漸層
           Container(
             decoration: const BoxDecoration(
               gradient: AppColors.backgroundGradient,
             ),
           ),
           
-          // Content
+          // 內容區塊
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(AppStyles.padding),
@@ -72,8 +72,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: Column(
                           children: [
                             const SizedBox(height: 40),
-                            // Logo Placeholder (Since we can't easily reference local generated image path in code without adding to assets)
-                            // I'll use a placeholder icon for now, and instruct the user how to add the logo.
+                            // 標誌預留區（暫時使用 Icon 替代，直到本地資源準備就緒）
+                            // 提示：請確保 assets/images/logo.png 已正確放置。
                             Transform.translate(
                               offset: const Offset(10, 0), // 向右微調 10 單位以補償視覺偏差
                               child: Container(
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                             const SizedBox(height: 8),
                              Text(
-                               'AI Pet Communicator',
+                               'AI 寵物溝通師',
                                textAlign: TextAlign.center,
                                style: GoogleFonts.outfit(
                                  fontSize: 18,
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     ),
                     const SizedBox(height: 64),
                     
-                    // Login Button
+                    // 登入按鈕
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: SlideTransition(
