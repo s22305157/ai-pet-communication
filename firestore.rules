@@ -8,22 +8,19 @@ service cloud.firestore {
                     && request.resource.data.points == 1; // 初始點數鎖定為 1
       
        // 安全規則覆核：
+       // 允許更新：限本人，且確保點數邏輯與 UID 不變
        allow update: if request.auth != null && request.auth.uid == userId
                      && (
                        // 1. 點數只能減少 (或不變)，且不得低於 0
                        (request.resource.data.points <= resource.data.points && request.resource.data.points >= 0)
                        &&
-                       // 2. 暫時允許修改會員等級以進行切換驗證 (正式上線應移至後端)
-                       // (request.resource.data.membership_type == resource.data.membership_type)
-                       // &&
-                       true
-                       &&
-                       // 3. 確保 uid 欄位不可變動
+                       // 2. 確保 uid 欄位不可變動
                        (request.resource.data.uid == resource.data.uid)
                      );
        
-       // 允許刪除本人帳號
+       // 允許刪除：本人帳號
        allow delete: if request.auth != null && request.auth.uid == userId;
+
      }
     
     // 寵物資料規則 (pets 集合)

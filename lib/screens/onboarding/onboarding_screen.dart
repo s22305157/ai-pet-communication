@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
 import '../../models/onboarding_model.dart';
 import '../../services/onboarding_service.dart';
-import '../auth_service.dart'; // Just in case, though we'll likely use it in main.dart
+import '../../services/auth_service.dart'; // Corrected path
 import '../../login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -19,6 +19,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   
   int _currentPage = 0;
   final Map<String, dynamic> _answers = {};
+  bool _isDisclaimerAccepted = false;
 
   // 產品理念文字
   final String _philosophyText = 
@@ -115,6 +116,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               fontSize: 17,
               height: 1.8,
               color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 32),
+          // 免責聲明勾選
+          InkWell(
+            onTap: () => setState(() => _isDisclaimerAccepted = !_isDisclaimerAccepted),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: Checkbox(
+                      value: _isDisclaimerAccepted,
+                      onChanged: (val) => setState(() => _isDisclaimerAccepted = val ?? false),
+                      activeColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '我了解此服務為 AI 娛樂性質，非解釋毛孩行為之準則',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: AppColors.textPrimary.withOpacity(0.8),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -250,41 +285,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (q.isRequired && _answers[q.id] == null) {
         canGoNext = false;
       }
+    } else if (_currentPage == 0) {
+      // 首次進入需勾選免責聲明
+      if (!_isDisclaimerAccepted) {
+        canGoNext = false;
+      }
     }
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
           if (_currentPage > 0)
-            TextButton(
-              onPressed: () {
-                _pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
-              child: Text(
-                '上一步',
-                style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () {
+                  _pageController.previousPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                },
+                child: Text(
+                  '上一步',
+                  style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 16),
+                ),
               ),
-            )
-          else
-            const SizedBox(width: 80),
-
-          ElevatedButton(
-            onPressed: canGoNext ? () => _handleNext(isLastPage) : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 0,
             ),
-            child: Text(
-              isLastPage ? '開始使用' : (_currentPage == 0 ? '立即開始' : '下一步'),
-              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+
+          Align(
+            alignment: _currentPage == 0 ? Alignment.center : Alignment.centerRight,
+            child: ElevatedButton(
+              onPressed: canGoNext ? () => _handleNext(isLastPage) : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: canGoNext ? AppColors.primary : Colors.grey.shade300,
+                foregroundColor: canGoNext ? Colors.white : Colors.grey.shade500,
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              child: _answers['submitting'] == true
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : Text(
+                    isLastPage ? '開始使用' : (_currentPage == 0 ? '立即開始' : '下一步'),
+                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
             ),
           ),
         ],
@@ -294,20 +344,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _handleNext(bool isLastPage) async {
     if (isLastPage) {
-      // 儲存答案並完成
-      List<OnboardingAnswer> answerList = _answers.entries
-          .map((e) => OnboardingAnswer(questionId: e.key, value: e.value))
-          .toList();
-      
-      await _onboardingService.saveAnswers(answerList);
-      await _onboardingService.markCompleted(true);
-      
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+      // 顯示載入中
+      setState(() {
+        _answers['submitting'] = true;
+      });
+
+      // 儲存答案並完成 (同步至雲端帳號)
+      try {
+        await AuthService().updateOnboardingStatus(true, _answers);
+        
+        // 同時也存一份在本地作為備份 (選用)
+        List<OnboardingAnswer> answerList = _answers.entries
+            .where((e) => e.key != 'submitting')
+            .map((e) => OnboardingAnswer(questionId: e.key, value: e.value))
+            .toList();
+        await _onboardingService.saveAnswers(answerList);
+        await _onboardingService.markCompleted(true);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('儲存失敗: $e')),
+          );
+        }
       }
+      
+      // 注意：這裡不需要 Navigator.push，因為 main.dart 的 StreamBuilder 
+      // 會在 Firestore 資料更新後自動切換回 HomeScreen
     } else {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),

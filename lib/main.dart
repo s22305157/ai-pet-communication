@@ -9,6 +9,8 @@ import 'constants.dart';
 import 'services/subscription_service.dart';
 import 'services/ad_service.dart';
 import 'services/onboarding_service.dart';
+import 'services/auth_service.dart';
+import 'models/user_model.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 
 // 導入產生的 Firebase 設定選項
@@ -27,10 +29,18 @@ void main() async {
   await Hive.openBox('local_pets');
 
   // 初始化訂閱服務 (RevenueCat)
-  await SubscriptionService().initialize();
+  try {
+    await SubscriptionService().initialize();
+  } catch (e) {
+    debugPrint('RevenueCat 初始化跳過: $e');
+  }
 
   // 初始化廣告服務 (AdMob)
-  await AdService().initialize();
+  try {
+    await AdService().initialize();
+  } catch (e) {
+    debugPrint('AdMob 初始化跳過: $e');
+  }
   
   runApp(const AiPetApp());
 }
@@ -62,34 +72,43 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: OnboardingService().hasCompletedOnboarding(),
-      builder: (context, onboardingSnap) {
-        // 等待新手引導狀態載入
-        if (onboardingSnap.connectionState == ConnectionState.waiting) {
+    final AuthService authService = AuthService();
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnap) {
+        if (authSnap.connectionState == ConnectionState.waiting) {
           return _buildLoadingScreen();
         }
 
-        // 如果尚未完成新手引導，導向引導頁面
-        if (onboardingSnap.data == false) {
-          return const OnboardingScreen();
+        if (authSnap.hasData) {
+          // 已登入，接著檢查帳號的新手導引狀態
+          return StreamBuilder<UserModel?>(
+            stream: authService.getUserStream(),
+            builder: (context, userSnap) {
+              if (userSnap.connectionState == ConnectionState.waiting) {
+                return _buildLoadingScreen();
+              }
+
+              final userModel = userSnap.data;
+              if (userModel == null) {
+                // 如果抓不到 UserModel，可能是在建立中，顯示載入中
+                return _buildLoadingScreen();
+              }
+
+              // 如果帳號尚未完成新手導引，顯示引導頁面
+              if (!userModel.hasCompletedOnboarding) {
+                return const OnboardingScreen();
+              }
+
+              // 已完成導引，顯示主畫面
+              return HomeScreen(user: authSnap.data!);
+            },
+          );
         }
 
-        // 已完成引導，檢查登入狀態
-        return StreamBuilder<User?>(
-          stream: FirebaseAuth.instance.authStateChanges(),
-          builder: (context, authSnap) {
-            if (authSnap.connectionState == ConnectionState.waiting) {
-              return _buildLoadingScreen();
-            }
-            
-            if (authSnap.hasData) {
-              return HomeScreen(user: authSnap.data!);
-            }
-            
-            return const LoginScreen();
-          },
-        );
+        // 未登入，直接顯示登入頁面
+        return const LoginScreen();
       },
     );
   }
@@ -105,6 +124,11 @@ class AuthWrapper extends StatelessWidget {
               'assets/images/logo.png',
               width: 120,
               height: 120,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.pets_rounded,
+                size: 80,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(

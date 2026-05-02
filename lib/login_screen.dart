@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                             const SizedBox(height: 8),
                              Text(
-                               'AI 寵物溝通師',
+                               'AI Pet Communicator',
                                textAlign: TextAlign.center,
                                style: GoogleFonts.outfit(
                                  fontSize: 18,

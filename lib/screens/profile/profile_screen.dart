@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
@@ -10,6 +12,22 @@ import 'settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  String _getNumericId(String? uid) => UserModel.getNumericId(uid);
+
+  void _copyToClipboard(BuildContext context, String? uid) {
+    if (uid == null) return;
+    final numericId = _getNumericId(uid);
+    Clipboard.setData(ClipboardData(text: numericId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('用戶 ID 已複製'),
+        backgroundColor: AppColors.secondary,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +146,32 @@ class ProfileScreen extends StatelessWidget {
                     _buildSettingTile(
                       icon: Icons.verified_user_outlined,
                       title: '用戶 ID',
-                      trailing: Text(user?.uid.substring(0, 8) ?? '-', style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _getNumericId(user?.uid),
+                            style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '複製',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      onTap: () => _copyToClipboard(context, user?.uid),
                     ),
                   ]),
                 ),
@@ -204,9 +247,11 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 
+                const SizedBox(height: 10),
+
                 const SizedBox(height: 30),
                 Text(
-                  '版本號 0.0.4',
+                  '版本號 0.0.7',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: AppColors.textSecondary.withOpacity(0.5),

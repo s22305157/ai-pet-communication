@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -26,9 +25,9 @@ class SubscriptionService {
       await Purchases.setLogLevel(LogLevel.debug);
 
       PurchasesConfiguration configuration;
-      if (Platform.isAndroid) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
         configuration = PurchasesConfiguration(_googleApiKey);
-      } else if (Platform.isIOS) {
+      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
         configuration = PurchasesConfiguration(_appleApiKey);
       } else {
         return;

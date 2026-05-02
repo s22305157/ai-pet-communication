@@ -16,6 +16,7 @@ import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
 import '../../features/chat/presentation/chat_screen.dart';
+import '../../services/ad_service.dart';
 import '../../services/error_service.dart';
 import '../../services/auth_service.dart';
 import '../../screens/profile/settings_screen.dart';
@@ -645,9 +646,15 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     );
   }
 
-  void _navigateToAI(BuildContext context, {bool pointDeducted = false}) {
-    // TODO: 導向 AI 溝通介面
-    // 正式導航至 AI 溝通畫面
+  Future<void> _navigateToAI(BuildContext context, {bool pointDeducted = false}) async {
+    // 插頁式廣告：等待感應的間隙 (不干擾原則)
+    // 只有在扣點或是非 Pro 用戶時顯示，增加一點等待感
+    final authService = AuthService();
+    final user = await authService.getUserData();
+    if (user != null && user.membershipType.toLowerCase() != 'pro') {
+      await AdService().showInterstitialAd();
+    }
+
     if (mounted) {
       Navigator.push(
         context,
@@ -682,6 +689,14 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
           ),
+          if (currentTier == 'free')
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showRewardedAdOption(context);
+              },
+              child: const Text('觀看影片領點數', style: TextStyle(color: AppColors.secondary)),
+            ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -696,6 +711,41 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               elevation: 0,
             ),
             child: Text('了解 $targetTier 方案', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRewardedAdOption(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.video_collection_rounded, color: AppColors.secondary),
+            const SizedBox(width: 12),
+            Text('獲得點數', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text('觀看一段短片，即可免費獲得 1 PT 溝通點數！'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              AdService().watchAdForPoints(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('觀看影片', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

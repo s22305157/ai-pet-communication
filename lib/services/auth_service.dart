@@ -136,13 +136,35 @@ class AuthService {
     }
   }
 
-  // 刪除帳號
+  // 刪除帳號 (增加更強的錯誤處理與權限檢查)
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
-    if (user != null) {
+    if (user == null) throw Exception('用戶未登入，無法刪除');
+    
+    try {
+      // 1. 嘗試刪除 Firestore 中的用戶文檔
       await _db.collection('Users').doc(user.uid).delete();
+      
+      // 2. 嘗試刪除 Firebase Auth 中的帳號 (注意：此操作可能需要最近的登入憑證)
       await user.delete();
+      
+      // 3. 清理本地快取
       await _localPetService.clearAll();
+      debugPrint('帳號已成功刪除');
+    } catch (e) {
+      debugPrint("刪除帳號失敗: $e");
+      rethrow;
+    }
+  }
+
+  // 強制重置導引狀態 (用於測試)
+  Future<void> resetOnboardingStatus() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _db.collection('Users').doc(user.uid).update({
+        'has_completed_onboarding': false,
+        'onboarding_answers': FieldValue.delete(),
+      });
     }
   }
 
@@ -193,5 +215,16 @@ class AuthService {
     await _db.collection('Users').doc(user.uid).update({
       'points': FieldValue.increment(amount),
     });
+  }
+
+  // 更新新手導引狀態
+  Future<void> updateOnboardingStatus(bool completed, Map<String, dynamic> answers) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _db.collection('Users').doc(user.uid).update({
+        'has_completed_onboarding': completed,
+        'onboarding_answers': answers,
+      });
+    }
   }
 }
