@@ -31,9 +31,15 @@ class PromptManager {
     AiValidator.validateRequest(request);
 
     // ── 判斷是否啟用安全模式 (低資訊或免費版) ────────────────────────
-    // 規則：免費版、或是故事內容低於 300 字，自動啟用安全版回應引擎
+    // 規則整理：
+    // 1. 故事內容 < 300 字 -> 安全版
+    // 2. 出現急症/紅旗詞 (無論字數) -> 安全版
+    // 3. 資訊充足 (>= 300 字) 且無紅旗詞 -> 一般版 (無論免費或付費版)
     final bool isLowInfo = request.story.trim().length < 300;
-    final bool useSafeMode = request.inputMode == 'free' || isLowInfo;
+    final bool hasRedFlags = _detectRedFlags(request.story) || 
+                             request.questions.any((q) => _detectRedFlags(q));
+                             
+    final bool useSafeMode = isLowInfo || hasRedFlags;
 
     final String systemContent = useSafeMode 
         ? AiPrompts.safeSystemInstruction 
@@ -107,5 +113,19 @@ class PromptManager {
     );
 
     return buildMessages(request);
+  }
+
+  // ── 紅旗詞偵測邏輯 ──────────────────────────────────────────
+  
+  static final List<String> _redFlagKeywords = [
+    '呼吸急促', '喘', '嘔吐', '腹瀉', '抽搐', '昏迷', '無法站立', 
+    '出血', '血便', '血尿', '疼痛', '嗜睡', '拒食', '發紺', '站不穩'
+  ];
+
+  static bool _detectRedFlags(String text) {
+    for (final keyword in _redFlagKeywords) {
+      if (text.contains(keyword)) return true;
+    }
+    return false;
   }
 }
