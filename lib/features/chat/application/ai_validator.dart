@@ -236,6 +236,13 @@ class AiValidator {
     final sa = json['safety_alert'];
     if (sa is! Map<String, dynamic>) throw AiValidationException('safety_alert must be a object');
     _checkRequiredKeys(sa, ['has_red_flags', 'message'], 'safety_alert');
+    
+    final bool hasRedFlags = sa['has_red_flags'] ?? false;
+    if (hasRedFlags) {
+      if (sa['red_flags'] is! List || (sa['red_flags'] as List).isEmpty) {
+        throw AiValidationException('red_flags must not be empty when has_red_flags is true');
+      }
+    }
 
     // 陣列長度驗證
     if (json['knowledge_tips'] is! List || (json['knowledge_tips'] as List).isEmpty) {

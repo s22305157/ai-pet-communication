@@ -7,7 +7,7 @@ class ChatUiTexts {
   // ── 1. 頂部提示 ───────────────────────────────────────────
   static const String safeModeTitle = "安全陪伴模式已開啟";
   static const String safeModeSubtitle = 
-      "目前會先依據你提供的文字資訊，做保守推測與照護提醒。若毛孩看起來不舒服，請優先尋求獸醫協助。";
+      "目前會先依據你提供的文字資訊，做保守推測與照護提醒。這不是醫療診斷，也不是影像判讀。若毛孩看起來不舒服，請優先尋求獸醫協助。";
 
   // ── 2. 區塊標題與副標題 ──────────────────────────────────────
   
@@ -40,7 +40,7 @@ class ChatUiTexts {
   static const String footerNote = "以上內容是根據文字資訊做出的安全推測，不是醫療診斷，也不是影像判讀。";
 
   // ── 6. 按鈕文案 ───────────────────────────────────────────
-  static const String btnAddInfo = "補充更多資訊";
+  static const String btnAddInfo = "補充觀察資訊";
   static const String btnReAnalyze = "重新分析";
   static const String btnShowSafetyAlert = "查看安全提醒";
 }

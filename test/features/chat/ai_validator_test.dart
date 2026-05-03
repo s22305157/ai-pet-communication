@@ -103,5 +103,26 @@ void main() {
       const raw = '{"version": "1.0", "mode": "safe_default"}';
       expect(() => AiValidator.validateSafeResponse(raw), throwsA(isA<AiValidationException>()));
     });
+
+    test('當 has_red_flags 為 true 但 red_flags 為空時應拋出 AiValidationException', () {
+      const raw = '''
+{
+  "version": "1.0",
+  "mode": "safe_default",
+  "disclaimer": "D",
+  "pet_voice": {"text": "T", "tone": "gentle", "is_inference": true},
+  "knowledge_tips": ["K"],
+  "safety_alert": {
+    "has_red_flags": true,
+    "message": "M",
+    "red_flags": []
+  },
+  "next_steps": ["N"],
+  "confidence": 0.5,
+  "needs_more_info": false
+}
+''';
+      expect(() => AiValidator.validateSafeResponse(raw), throwsA(isA<AiValidationException>()));
+    });
   });
 }

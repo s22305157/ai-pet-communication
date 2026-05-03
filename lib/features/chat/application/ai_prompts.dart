@@ -209,7 +209,7 @@ I. 最終檢查
   "safety_alert": {
     "has_red_flags": false,
     "message": "Urgent advice if red flags are present, otherwise a reassuring safety note",
-    "red_flags": []
+    "red_flags": [] // 若 has_red_flags 為 true，此欄位必填且不可為空
   },
   "next_steps": ["Recommended observations or follow-up actions"],
   "confidence": 0.0,
