@@ -38,63 +38,66 @@ class PetService {
   }
 
   // 根據 UID 監聽寵物列表 (自動切換本地/雲端 + 自動遷移 + 錯誤降級)
-  Stream<List<PetModel>> watchPetsByOwner(String uid) {
-    return _authService.getUserStream().asyncExpand((user) async* {
-      if (user == null) {
-        yield [];
-      } else if (user.membershipType == 'free') {
-        yield* _localService.watchPets();
-      } else {
-        // 付費帳戶 (Plus/Pro)：先嘗試雲端，失敗則降級本地
-        _migrateIfNeeded(uid);
-        
-        final controller = StreamController<List<PetModel>>();
-        StreamSubscription? cloudSub;
-        StreamSubscription? localSub;
+  Stream<List<PetModel>> watchPetsByOwner(String uid) async* {
+    final user = await _authService.getUserData();
+    
+    if (user == null) {
+      yield [];
+      return;
+    }
 
-        void startLocalFallback() {
-          if (localSub != null) return;
-          isCloudActive.value = false;
-          localSub = _localService.watchPets().listen(
-            (data) {
-              if (!controller.isClosed) controller.add(data);
-            },
-            onError: (e) {
-              if (!controller.isClosed) controller.addError(e);
-            },
-          );
-        }
+    if (user.membershipType == 'free') {
+      yield* _localService.watchPets();
+    } else {
+      // 付費帳戶 (Plus/Pro)：先嘗試雲端，失敗則降級本地
+      _migrateIfNeeded(uid);
+      
+      final controller = StreamController<List<PetModel>>();
+      StreamSubscription? cloudSub;
+      StreamSubscription? localSub;
 
-        controller.onListen = () {
-          isCloudActive.value = true;
-          cloudSub = _db
-              .collection('pets')
-              .where('owner_id', isEqualTo: uid)
-              .snapshots()
-              .listen(
-            (snapshot) {
-              isCloudActive.value = true;
-              if (!controller.isClosed) {
-                controller.add(snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList());
-              }
-            },
-            onError: (error) {
-              debugPrint('雲端監聽錯誤: $error。啟動本地降級串流。');
-              startLocalFallback();
-            },
-            cancelOnError: false,
-          );
-        };
-
-        controller.onCancel = () {
-          cloudSub?.cancel();
-          localSub?.cancel();
-          controller.close();
-        };
-
-        yield* controller.stream;
+      void startLocalFallback() {
+        if (localSub != null) return;
+        isCloudActive.value = false;
+        localSub = _localService.watchPets().listen(
+          (data) {
+            if (!controller.isClosed) controller.add(data);
+          },
+          onError: (e) {
+            if (!controller.isClosed) controller.addError(e);
+          },
+        );
       }
-    });
+
+      controller.onListen = () {
+        isCloudActive.value = true;
+        cloudSub = _db
+            .collection('pets')
+            .where('owner_id', isEqualTo: uid)
+            .snapshots()
+            .listen(
+          (snapshot) {
+            isCloudActive.value = true;
+            if (!controller.isClosed) {
+              controller.add(snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList());
+            }
+          },
+          onError: (error) {
+            debugPrint('雲端監聽錯誤: $error。啟動本地降級串流。');
+            startLocalFallback();
+          },
+          cancelOnError: false,
+        );
+      };
+
+      controller.onCancel = () {
+        cloudSub?.cancel();
+        localSub?.cancel();
+        controller.close();
+      };
+
+      yield* controller.stream;
+    }
   }
 
   // 內部遷移邏輯：將本地資料推送到雲端 (使用 petId 進行唯一性檢查)

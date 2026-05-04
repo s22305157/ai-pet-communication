@@ -1,79 +1,89 @@
-class UserModel {
-  static String getNumericId(String? uid) {
-    if (uid == null || uid.isEmpty) return '-';
-    // Use a deterministic hash to create a numeric ID (Consistent with ProfileScreen)
-    int hash = 0;
-    for (int i = 0; i < uid.length; i++) {
-      hash = uid.codeUnitAt(i) + ((hash << 5) - hash);
-    }
-    return hash.abs().toString().padLeft(10, '0').substring(0, 10);
-  }
+import 'package:cloud_firestore/cloud_firestore.dart';
 
+class UserModel {
   final String uid;
   final String email;
   final String displayName;
-  final String? photoURL;
+  final String? photoUrl;
+  
+  // 向後相容別名 (Firebase 使用 photoURL)
+  String? get photoURL => photoUrl;
+  
   final int points;
-  final String membershipType;
+  final String membershipTier;
+
+  // 向後相容別名 (舊代碼使用 membershipType)
+  String get membershipType => membershipTier;
+
   final bool hasCompletedOnboarding;
-  final Map<String, dynamic>? onboardingAnswers;
+  final DateTime? createdAt;
+  final DateTime? lastLoginAt;
 
   UserModel({
     required this.uid,
     required this.email,
     required this.displayName,
-    this.photoURL,
+    this.photoUrl,
     this.points = 0,
-    this.membershipType = 'free',
+    this.membershipTier = 'free',
     this.hasCompletedOnboarding = false,
-    this.onboardingAnswers,
+    this.createdAt,
+    this.lastLoginAt,
   });
+
+  factory UserModel.fromMap(Map<String, dynamic> map, [String? id]) {
+    return UserModel(
+      uid: id ?? map['uid'] ?? '',
+      email: map['email'] ?? '',
+      displayName: map['displayName'] ?? '',
+      photoUrl: map['photoUrl'] ?? map['photoURL'],
+      points: map['points'] ?? 0,
+      membershipTier: map['membershipTier'] ?? map['membershipType'] ?? 'free',
+      hasCompletedOnboarding: map['hasCompletedOnboarding'] ?? false,
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
+      lastLoginAt: map['lastLoginAt'] != null ? (map['lastLoginAt'] as Timestamp).toDate() : null,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
       'email': email,
-      'display_name': displayName,
-      'photo_url': photoURL,
+      'displayName': displayName,
+      'photoUrl': photoUrl,
       'points': points,
-      'membership_type': membershipType,
-      'has_completed_onboarding': hasCompletedOnboarding,
-      'onboarding_answers': onboardingAnswers,
+      'membershipTier': membershipTier,
+      'hasCompletedOnboarding': hasCompletedOnboarding,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : FieldValue.serverTimestamp(),
     };
   }
 
-  factory UserModel.fromMap(Map<String, dynamic> map) {
+  UserModel copyWith({
+    String? displayName,
+    String? photoUrl,
+    int? points,
+    String? membershipTier,
+    bool? hasCompletedOnboarding,
+    DateTime? lastLoginAt,
+  }) {
     return UserModel(
-      uid: map['uid'] ?? '',
-      email: map['email'] ?? '',
-      displayName: map['display_name'] ?? '',
-      photoURL: map['photo_url'],
-      points: (map['points'] ?? 0).toInt(),
-      membershipType: map['membership_type'] ?? 'free',
-      hasCompletedOnboarding: map['has_completed_onboarding'] ?? false,
-      onboardingAnswers: map['onboarding_answers'] as Map<String, dynamic>?,
+      uid: uid,
+      email: email,
+      displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
+      points: points ?? this.points,
+      membershipTier: membershipTier ?? this.membershipTier,
+      hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+      createdAt: createdAt,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
     );
   }
 
-  UserModel copyWith({
-    String? uid,
-    String? email,
-    String? displayName,
-    String? photoURL,
-    int? points,
-    String? membershipType,
-    bool? hasCompletedOnboarding,
-    Map<String, dynamic>? onboardingAnswers,
-  }) {
-    return UserModel(
-      uid: uid ?? this.uid,
-      email: email ?? this.email,
-      displayName: displayName ?? this.displayName,
-      photoURL: photoURL ?? this.photoURL,
-      points: points ?? this.points,
-      membershipType: membershipType ?? this.membershipType,
-      hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
-      onboardingAnswers: onboardingAnswers ?? this.onboardingAnswers,
-    );
+  // 將 UID 轉換為純數字顯示 (僅用於顯示)
+  static String getNumericId(String? uid) {
+    if (uid == null || uid.isEmpty) return '---';
+    // 簡單的哈希轉換為 8 位數字
+    return uid.hashCode.abs().toString().padLeft(8, '0').substring(0, 8);
   }
 }

@@ -15,7 +15,7 @@ import '../../features/readings/application/reading_service.dart';
 import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
-import '../../features/chat/presentation/chat_screen.dart';
+import '../../features/chat/presentation/pet_communication_input_screen.dart';
 import '../../services/ad_service.dart';
 import '../../services/error_service.dart';
 import '../../services/auth_service.dart';
@@ -571,7 +571,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     
     if (user == null) return;
 
-    final type = user.membershipType.toLowerCase();
+    final type = user.membershipType?.toLowerCase() ?? 'free';
     
     if (type == 'pro') {
       // Pro 用戶：無限次使用
@@ -651,18 +651,16 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     // 只有在扣點或是非 Pro 用戶時顯示，增加一點等待感
     final authService = AuthService();
     final user = await authService.getUserData();
-    if (user != null && user.membershipType.toLowerCase() != 'pro') {
+    if (user != null && (user.membershipType?.toLowerCase() ?? 'free') != 'pro') {
       await AdService().showInterstitialAd();
     }
 
-    if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ChatScreen(pet: widget.pet),
+          builder: (context) => PetCommunicationInputScreen(pet: widget.pet),
         ),
       );
-    }
   }
 
   void _showUpgradeDialog(BuildContext context, {required String currentTier}) {

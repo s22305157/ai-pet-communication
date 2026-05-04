@@ -3,8 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../constants.dart';
 import '../../models/onboarding_model.dart';
 import '../../services/onboarding_service.dart';
-import '../../services/auth_service.dart'; // Corrected path
-import '../../login_screen.dart';
+import '../../services/auth_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});

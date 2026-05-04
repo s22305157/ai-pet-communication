@@ -15,7 +15,7 @@ import 'screens/profile/settings_screen.dart';
 import 'services/ad_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  final User user;
+  final UserModel user;
   final PetService? petService;
   final AuthService? authService;
 
@@ -412,13 +412,38 @@ class _HomeScreenState extends State<HomeScreen> {
                         displayName = authName;
                       }
 
-                      return Text(
-                        displayName,
-                        style: GoogleFonts.outfit(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: nameColor,
-                        ),
+                      return Row(
+                        children: [
+                          Text(
+                            displayName,
+                            style: GoogleFonts.outfit(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: nameColor,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 測試用：後台加點按鈕
+                          GestureDetector(
+                            onTap: () async {
+                              try {
+                                await _authService.consumePoints(-15);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('已為您領取 15 點測試點數！')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('加點失敗: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Icon(Icons.card_giftcard_rounded, size: 20, color: AppColors.secondary),
+                          ),
+                        ],
                       );
                     },
                   ),

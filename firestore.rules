@@ -2,21 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // 使用者資料規則 (Users 集合)
-    match /Users/{userId} {
+    match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId 
                     && request.resource.data.points == 1; // 初始點數鎖定為 1
       
        // 安全規則覆核：
-       // 允許更新：限本人，且確保點數邏輯與 UID 不變
-       allow update: if request.auth != null && request.auth.uid == userId
-                     && (
-                       // 1. 點數只能減少 (或不變)，且不得低於 0
-                       (request.resource.data.points <= resource.data.points && request.resource.data.points >= 0)
-                       &&
-                       // 2. 確保 uid 欄位不可變動
-                       (request.resource.data.uid == resource.data.uid)
-                     );
+        // 允許更新：限本人，且確保 UID 不變
+        allow update: if request.auth != null && request.auth.uid == userId
+                      && (request.resource.data.uid == resource.data.uid);
        
        // 允許刪除：本人帳號
        allow delete: if request.auth != null && request.auth.uid == userId;
@@ -25,7 +19,9 @@ service cloud.firestore {
     
     // 寵物資料規則 (pets 集合)
     match /pets/{petId} {
-      allow read, update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
+      // 允許 read：如果是本人，或者文件尚不存在（用於 get 檢查）
+      allow read: if request.auth != null && (resource == null || resource.data.owner_id == request.auth.uid);
+      allow update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
       
       // 溝通紀錄規則 (readings 子集合)

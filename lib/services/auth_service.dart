@@ -1,230 +1,143 @@
-import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 import '../models/user_model.dart';
-import 'local_pet_service.dart';
-import 'subscription_service.dart';
 
 class AuthService {
-  final FirebaseAuth _auth;
-  final FirebaseFirestore _db;
-  final LocalPetService _localPetService;
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
 
-  AuthService({
-    FirebaseAuth? auth,
-    FirebaseFirestore? firestore,
-    LocalPetService? localService,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _db = firestore ?? FirebaseFirestore.instance,
-        _localPetService = localService ?? LocalPetService() {
-    if (kIsWeb) {
-      _auth.setPersistence(Persistence.LOCAL);
-    }
-  }
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // 獲取當前用戶數據流 (即時監聽 Firestore)
+  final BehaviorSubject<UserModel?> _userSubject = BehaviorSubject<UserModel?>();
+
   Stream<UserModel?> getUserStream() {
-    late StreamController<UserModel?> controller;
-    StreamSubscription<User?>? authSub;
-    StreamSubscription<DocumentSnapshot>? docSub;
-
-    controller = StreamController<UserModel?>.broadcast(
-      onListen: () {
-        authSub = _auth.authStateChanges().listen((user) {
-          docSub?.cancel();
-          if (user == null) {
-            controller.add(null);
-          } else {
-            docSub = _db.collection('Users').doc(user.uid).snapshots().listen((snapshot) {
-              if (snapshot.exists && snapshot.data() != null) {
-                controller.add(UserModel.fromMap(snapshot.data() as Map<String, dynamic>));
-              } else {
-                controller.add(null);
-              }
-            });
+    if (!_userSubject.hasListener) {
+      _auth.authStateChanges().listen((User? user) async {
+        if (user == null) {
+          _userSubject.add(null);
+        } else {
+          try {
+            final doc = await _db.collection('users').doc(user.uid).get();
+            if (doc.exists) {
+              _userSubject.add(UserModel.fromMap(doc.data()!, user.uid));
+            } else {
+              final newUser = UserModel(
+                uid: user.uid,
+                email: user.email ?? '',
+                displayName: user.displayName ?? '新朋友',
+                photoUrl: user.photoURL,
+                points: 1, // 符合安全規則：初始點數為 1
+                createdAt: DateTime.now(),
+                lastLoginAt: DateTime.now(),
+              );
+              await _db.collection('users').doc(user.uid).set(newUser.toMap());
+              _userSubject.add(newUser);
+            }
+          } catch (e) {
+            _userSubject.add(null);
           }
-        });
-      },
-      onCancel: () {
-        authSub?.cancel();
-        docSub?.cancel();
-      },
-    );
-
-    return controller.stream;
+        }
+      });
+    }
+    return _userSubject.stream;
   }
 
-  // 獲取當前用戶數據 (單次)
-  Future<UserModel?> getUserData() async {
-    final user = _auth.currentUser;
-    if (user == null) return null;
-    
-    final doc = await _db.collection('Users').doc(user.uid).get();
-    if (doc.exists) {
-      return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+  Future<UserModel?> signInWithGoogle() async {
+    try {
+      GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+      User? user = userCredential.user;
+
+      if (user != null) {
+        final doc = await _db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+          final newUser = UserModel(
+            uid: user.uid,
+            email: user.email ?? '',
+            displayName: user.displayName ?? '新朋友',
+            photoUrl: user.photoURL,
+            points: 1, // 符合安全規則：初始點數為 1
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+          );
+          await _db.collection('users').doc(user.uid).set(newUser.toMap());
+          return newUser;
+        } else {
+          await _db.collection('users').doc(user.uid).update({
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          });
+          return UserModel.fromMap(doc.data()!, user.uid);
+        }
+      }
+    } catch (e) {
+      rethrow;
     }
     return null;
   }
 
-  // 檢查是否為 Pro 以上用戶 (SSOT)
-  Future<bool> isProUser() async {
-    final user = await getUserData();
-    if (user == null) return false;
-    final type = user.membershipType.toLowerCase();
-    return type == 'pro' || type == 'plus';
-  }
-
-  // 執行 Google 登入
-  Future<UserModel?> signInWithGoogle() async {
-    try {
-      UserCredential userCredential;
-      if (kIsWeb) {
-        GoogleAuthProvider authProvider = GoogleAuthProvider();
-        userCredential = await _auth.signInWithPopup(authProvider);
-      } else {
-        await GoogleSignIn.instance.initialize();
-        final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
-        if (googleUser == null) return null;
-        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
-        userCredential = await _auth.signInWithCredential(credential);
-      }
-
-      User? user = userCredential.user;
-      if (user != null) {
-        final userModel = await _initializeUser(user);
-        await syncSubscriptionStatus(); // 同步訂閱狀態
-        return userModel;
-      }
-      return null;
-    } catch (e) {
-      debugPrint("登入錯誤: $e");
-      rethrow;
-    }
-  }
-
-  // 初始化用戶文檔
-  Future<UserModel> _initializeUser(User user) async {
-    DocumentReference userRef = _db.collection('Users').doc(user.uid);
-    DocumentSnapshot doc = await userRef.get();
-
-    if (!doc.exists) {
-      final newUser = UserModel(
-        uid: user.uid,
-        email: user.email ?? '',
-        displayName: user.displayName ?? '毛小孩主人',
-        photoURL: user.photoURL,
-        points: 1,
-        membershipType: 'free',
-      );
-      await userRef.set(newUser.toMap());
-      return newUser;
-    } else {
-      return UserModel.fromMap(doc.data() as Map<String, dynamic>);
-    }
-  }
-
-  // 登出並清理本地資料
   Future<void> signOut() async {
-    await SubscriptionService().logOut(); // 登出 RevenueCat
-    await _localPetService.clearAll(); // 清理 Hive
     await _auth.signOut();
-    if (!kIsWeb) {
-      await GoogleSignIn.instance.signOut();
-    }
   }
 
-  // 刪除帳號 (增加更強的錯誤處理與權限檢查)
+  Future<UserModel?> getUserData() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+    final doc = await _db.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      return UserModel.fromMap(doc.data()!, user.uid);
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------
+  // 補齊缺失的功能方法
+  // ---------------------------------------------------------
+
+  Future<void> addPoints(int points) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.collection('users').doc(user.uid).update({
+      'points': FieldValue.increment(points),
+    });
+  }
+
+  Future<void> consumePoints(int points) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.collection('users').doc(user.uid).update({
+      'points': FieldValue.increment(-points),
+    });
+  }
+
+  Future<void> updateOnboardingStatus(bool status, Map<String, dynamic> answers) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.collection('users').doc(user.uid).update({
+      'hasCompletedOnboarding': status,
+      'onboardingAnswers': answers,
+    });
+  }
+
+  Future<void> updateMembership(String tier) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _db.collection('users').doc(user.uid).update({
+      'membershipTier': tier,
+    });
+  }
+
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('用戶未登入，無法刪除');
-    
-    try {
-      // 1. 嘗試刪除 Firestore 中的用戶文檔
-      await _db.collection('Users').doc(user.uid).delete();
-      
-      // 2. 嘗試刪除 Firebase Auth 中的帳號 (注意：此操作可能需要最近的登入憑證)
-      await user.delete();
-      
-      // 3. 清理本地快取
-      await _localPetService.clearAll();
-      debugPrint('帳號已成功刪除');
-    } catch (e) {
-      debugPrint("刪除帳號失敗: $e");
-      rethrow;
-    }
-  }
-
-  // 強制重置導引狀態 (用於測試)
-  Future<void> resetOnboardingStatus() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _db.collection('Users').doc(user.uid).update({
-        'has_completed_onboarding': false,
-        'onboarding_answers': FieldValue.delete(),
-      });
-    }
-  }
-
-  // 更新會員等級 (測試/升級用)
-  Future<void> updateMembership(String type) async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _db.collection('Users').doc(user.uid).update({'membership_type': type});
-    }
-  }
-
-  // 同步訂閱狀態至 Firestore (整合 RevenueCat)
-  Future<void> syncSubscriptionStatus() async {
-    final user = _auth.currentUser;
     if (user == null) return;
-
-    final subscriptionService = SubscriptionService();
-    // 登入 RevenueCat 以確保關聯正確
-    await subscriptionService.logIn(user.uid);
-    
-    final realStatus = await subscriptionService.checkEntitlementStatus();
-    
-    final doc = await _db.collection('Users').doc(user.uid).get();
-    if (doc.exists) {
-      final currentType = doc.data()?['membership_type'] ?? 'free';
-      if (currentType != realStatus) {
-        await updateMembership(realStatus);
-        debugPrint('AuthService: 訂閱狀態已從 $currentType 同步為 $realStatus');
-      }
-    }
+    // 先刪除 Firestore 資料
+    await _db.collection('users').doc(user.uid).delete();
+    // 再刪除 Auth 帳號
+    await user.delete();
   }
 
-  // 消耗點數
-  Future<void> consumePoints(int amount) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    
-    await _db.collection('Users').doc(user.uid).update({
-      'points': FieldValue.increment(-amount),
-    });
-  }
-
-  // 增加點數
-  Future<void> addPoints(int amount) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    
-    await _db.collection('Users').doc(user.uid).update({
-      'points': FieldValue.increment(amount),
-    });
-  }
-
-  // 更新新手導引狀態
-  Future<void> updateOnboardingStatus(bool completed, Map<String, dynamic> answers) async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await _db.collection('Users').doc(user.uid).update({
-        'has_completed_onboarding': completed,
-        'onboarding_answers': answers,
-      });
-    }
-  }
+  UserModel? get currentUser => _userSubject.valueOrNull;
 }

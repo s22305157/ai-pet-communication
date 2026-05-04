@@ -4,7 +4,6 @@ import 'package:animations/animations.dart';
 import 'constants.dart';
 import 'services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_screen.dart';
 import 'services/error_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -75,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             // 標誌預留區（暫時使用 Icon 替代，直到本地資源準備就緒）
                             // 提示：請確保 assets/images/logo.png 已正確放置。
                             Transform.translate(
-                              offset: const Offset(10, 0), // 向右微調 10 單位以補償視覺偏差
+                              offset: Offset.zero, // 移除原本的視覺補償位移，因為純圖標已對稱
                               child: Container(
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
@@ -88,14 +87,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ],
                                 ),
                                 child: Image.asset(
-                                  'assets/images/logo.png',
-                                  width: 220,
-                                  height: 220,
+                                  'assets/logo_pure.png',
+                                  width: 140,
+                                  height: 140,
                                   fit: BoxFit.contain,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 0),
+                            const SizedBox(height: 12),
                             ShaderMask(
                               shaderCallback: (bounds) => const LinearGradient(
                                 colors: [AppColors.textPrimary, AppColors.accent],

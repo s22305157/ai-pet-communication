@@ -1,4 +1,4 @@
-name: ai_pet_communicator
+name: ai_pet_communication
 description: "PAWLINK - 基於 AI 技術的寵物溝通與管理應用程式。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.7
+version: 0.0.8
 
 environment:
   sdk: ^3.11.5
@@ -37,7 +37,7 @@ dependencies:
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
   cloud_firestore: ^6.3.0
-  google_sign_in: ^7.2.0
+
   google_fonts: ^6.2.1
   animations: ^2.0.11
   image_picker: ^1.2.1
@@ -50,6 +50,7 @@ dependencies:
   purchases_flutter: ^8.0.0
   google_mobile_ads: ^5.2.0
   shared_preferences: ^2.3.2
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:
@@ -79,8 +80,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images/logo.png
-  #   - images/a_dot_ham.jpeg
+    - assets/logo.png
+    - assets/logo_pure.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
