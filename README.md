@@ -1,17 +1,62 @@
-# ai_pet_communicator
+# PAWLINK (v0.1.0)
 
-A new Flutter project.
+> **基於 AI 技術的專業寵物溝通與關係心理學管理平台**
+>
+> PAWLINK 是一款融合深層心理共情、科學性超感知覺（ESP）以及行為生理學觀察的寵物關係諮詢中介應用。透過精心調研的「心理派」認知理論與健全的安全紅線規約，為飼主與寵物搭建起高共情、高品質的心靈橋樑。
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🌟 核心特色 (Core Features)
 
-A few resources to get you started if this is your first Flutter project:
+- 🧠 **科學化認知框架 (Scientific Cognition)**
+  - 核心架構奠基於阿沙吉歐利（Assagioli）蛋形意識結構與 Theta 腦波共振模型。
+  - 將直覺感知從玄學、命理或超自然神祕主義中剝離，建立在「心理共情」與「主觀移情共振」的科學實踐基礎上。
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- ⚡ **感知分級機制 (Tier-based Perception)**
+  - **[Free 模式]**：精準的文字共情中介。屏蔽照片物理細節，將回覆聚焦於飼主的文字輸入，提供溫暖的心靈轉譯。
+  - **[Plus/Pro 模式]**：深度多模態視覺感知。能捕捉照片中動物的眼神、肢體語言與微細表情，並將其優雅地轉譯為直覺感應殘像。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- 🛡️ **安全與倫理紅線 (Safety & Tier Protocols) [S]**
+  - **醫療診斷屏蔽**：絕不給予任何疾病診斷名詞，生理不適感轉譯為主觀感受（如腹部緊縮感），並強制引導尋求專業獸醫物理檢查。
+  - **急症重定向 (Emergency Redirect)**：自動識別大出血、呼吸困難等急症關鍵字，即時發出就醫警告。
+  - **走失協尋防線**：將走失協尋定位為「安撫恐懼與穩定情緒」，嚴禁給出絕對性生死斷言、嫌疑人指控或百分之百尋回保證。
+  - **超自然過濾**：嚴格過濾、篩除任何前世、輪迴、鬼神、召喚外靈等宗教迷信言論。
+
+---
+
+## 🚀 知識庫與版本更新 (Knowledge Base Updates)
+
+### **v0.1.0 (當前版本) — 核心知識庫深度更新與感知升級**
+- 📈 **知識庫深度擴充 (Core KB Upgrades)**：
+  - 導入了高層潛意識激活、EEG 腦波層次（Alpha/Theta/Beta 波）轉換理論。
+  - 整合了 **4 步意念傳送 SOP**（靜心口語 ➔ 文字投影 ➔ 情緒浸泡 ➔ 畫面轉譯），強化潛意識與直覺的放鬆「遇見」狀態。
+  - 增補了抗拒溝通處理 SOP 與體感熱能能量淨化等高共情心靈防護機制。
+- 🔮 **感知與翻譯架構優化**：
+  - 加固了對外溝通防線，所有新引進的感應技術與文獻理論對外統一口徑為 **「PAWLINK 核心知識庫的定期升級與功能更新 (Knowledge Base Updates)」**。
+
+---
+
+## 🛠️ 開發與建置指引 (Getting Started)
+
+此專案為 Flutter 開發的跨平台應用程式。
+
+### 依賴安裝
+```bash
+flutter pub get
+```
+
+### 運行開發伺服器 / 本地測試
+```bash
+flutter run
+```
+
+### 自動化構建與生成
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+---
+
+## 🔒 授權與隱私 (Security & Licensing)
+
+PAWLINK 恪守最嚴格的寵物醫療健康隱私與資料加密規範。所有本地資料（如 Hive Cache）與雲端數據均進行安全隔離與去事實化包裝。
