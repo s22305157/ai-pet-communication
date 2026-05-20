@@ -1,8 +1,8 @@
-import 'package:ai_pet_communicator/models/pet_model.dart';
-import 'package:ai_pet_communicator/services/pet_service.dart';
-import 'package:ai_pet_communicator/services/auth_service.dart';
-import 'package:ai_pet_communicator/services/local_pet_service.dart';
-import 'package:ai_pet_communicator/models/user_model.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,7 +55,7 @@ void main() {
         uid: 'user123',
         email: 'test@test.com',
         displayName: 'Tester',
-        membershipType: 'pro',
+        membershipTier: 'pro',
         points: 10,
       );
       
@@ -94,7 +94,7 @@ void main() {
         uid: 'user123',
         email: 'test@test.com',
         displayName: 'Tester',
-        membershipType: 'free',
+        membershipTier: 'free',
         points: 10,
       );
       

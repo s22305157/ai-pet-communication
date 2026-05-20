@@ -1,29 +1,40 @@
-import 'package:ai_pet_communicator/home_screen.dart';
-import 'package:ai_pet_communicator/models/pet_model.dart';
-import 'package:ai_pet_communicator/services/auth_service.dart';
-import 'package:ai_pet_communicator/services/pet_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ai_pet_communication/home_screen.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
+import 'package:ai_pet_communication/services/ad_service.dart';
+import 'package:ai_pet_communication/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockUser extends Mock implements User {}
 class MockPetService extends Mock implements PetService {}
 class MockAuthService extends Mock implements AuthService {}
+class MockAdService extends Mock implements AdService {}
 
 void main() {
-  late MockUser mockUser;
+  late UserModel userModel;
   late MockPetService mockPetService;
   late MockAuthService mockAuthService;
+  late MockAdService mockAdService;
 
   setUp(() {
-    mockUser = MockUser();
+    getIt.reset();
+    getIt.allowReassignment = true;
+
+    userModel = UserModel(
+      uid: 'user123',
+      email: 'test@example.com',
+      displayName: 'Tester',
+      points: 10,
+      membershipTier: 'free',
+    );
+    
     mockPetService = MockPetService();
     mockAuthService = MockAuthService();
+    mockAdService = MockAdService();
 
-    when(() => mockUser.uid).thenReturn('user123');
-    when(() => mockUser.displayName).thenReturn('Tester');
-    
     // Mock PetService ValueNotifiers
     when(() => mockPetService.isCloudActive).thenReturn(ValueNotifier<bool>(true));
     when(() => mockPetService.isSyncing).thenReturn(ValueNotifier<bool>(false));
@@ -49,6 +60,15 @@ void main() {
 
     // Mock auth stream for sync indicator
     when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(null));
+
+    // Register mocks in getIt
+    getIt.registerSingleton<PetService>(mockPetService);
+    getIt.registerSingleton<AuthService>(mockAuthService);
+    getIt.registerSingleton<AdService>(mockAdService);
+  });
+
+  tearDown(() {
+    getIt.reset();
   });
 
   testWidgets('HomeScreen shows pet list and sync indicator', (WidgetTester tester) async {
@@ -56,9 +76,7 @@ void main() {
       MaterialApp(
         theme: ThemeData(splashFactory: NoSplash.splashFactory),
         home: HomeScreen(
-          user: mockUser,
-          petService: mockPetService,
-          authService: mockAuthService,
+          user: userModel,
         ),
       ),
     );

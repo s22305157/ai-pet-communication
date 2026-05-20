@@ -1,5 +1,5 @@
-import 'package:ai_pet_communicator/services/auth_service.dart';
-import 'package:ai_pet_communicator/services/local_pet_service.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,7 +35,7 @@ void main() {
     when(() => mockAuth.currentUser).thenReturn(mockUser);
     when(() => mockUser.uid).thenReturn(uid);
     
-    await fakeFirestore.collection('Users').doc(uid).set({
+    await fakeFirestore.collection('users').doc(uid).set({
       'uid': uid,
       'points': 10,
     });
@@ -44,7 +44,7 @@ void main() {
     await authService.consumePoints(1);
 
     // Verify
-    final doc = await fakeFirestore.collection('Users').doc(uid).get();
+    final doc = await fakeFirestore.collection('users').doc(uid).get();
     expect(doc.data()?['points'], 9);
   });
 
@@ -56,7 +56,7 @@ void main() {
     await authService.consumePoints(1);
     
     // Verify (No crash, no collection created)
-    final collections = await fakeFirestore.collection('Users').get();
+    final collections = await fakeFirestore.collection('users').get();
     expect(collections.docs.isEmpty, true);
   });
 }

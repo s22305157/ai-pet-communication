@@ -1,15 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:ai_pet_communicator/models/pet_model.dart';
-import 'package:ai_pet_communicator/screens/pets/pet_detail_screen.dart';
-import 'package:ai_pet_communicator/screens/pets/widgets/reading_list_tile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/presentation/pet_detail_screen.dart';
+import 'package:ai_pet_communication/features/pet/presentation/widgets/reading_list_tile.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/services/ad_service.dart';
+import 'package:ai_pet_communication/features/readings/data/readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/data/firestore_readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
+import 'package:ai_pet_communication/injection.dart';
+
+class MockPetService extends Mock implements PetService {}
+class MockAuthService extends Mock implements AuthService {}
+class MockAdService extends Mock implements AdService {}
 
 void main() {
   late FakeFirebaseFirestore firestore;
 
   setUp(() {
+    getIt.reset();
+    getIt.allowReassignment = true;
+
     firestore = FakeFirebaseFirestore();
+
+    // Register our real firestore and repositories/services
+    getIt.registerSingleton<FirebaseFirestore>(firestore);
+    getIt.registerSingleton<ReadingsRepository>(FirestoreReadingsRepository(firestore));
+    getIt.registerSingleton<ReadingService>(ReadingService(getIt<ReadingsRepository>()));
+
+    // Register mock PetService
+    final mockPetService = MockPetService();
+    when(() => mockPetService.isCloudActive).thenReturn(ValueNotifier<bool>(true));
+    getIt.registerSingleton<PetService>(mockPetService);
+
+    // Register mock AuthService
+    final mockAuthService = MockAuthService();
+    getIt.registerSingleton<AuthService>(mockAuthService);
+
+    // Register mock AdService
+    final mockAdService = MockAdService();
+    getIt.registerSingleton<AdService>(mockAdService);
+  });
+
+  tearDown(() {
+    getIt.reset();
   });
 
   Widget createWidgetUnderTest() {
@@ -30,7 +68,6 @@ void main() {
           personality: 'Lazy',
           avatarUrl: '',
         ),
-        firestore: firestore,
       ),
     );
   }

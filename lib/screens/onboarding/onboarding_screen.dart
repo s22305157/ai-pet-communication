@@ -4,6 +4,7 @@ import '../../constants.dart';
 import '../../models/onboarding_model.dart';
 import '../../services/onboarding_service.dart';
 import '../../services/auth_service.dart';
+import '../../injection.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -14,7 +15,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
-  final OnboardingService _onboardingService = OnboardingService();
+  late final OnboardingService _onboardingService = getIt<OnboardingService>();
   
   int _currentPage = 0;
   final Map<String, dynamic> _answers = {};
@@ -350,7 +351,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       // 儲存答案並完成 (同步至雲端帳號)
       try {
-        await AuthService().updateOnboardingStatus(true, _answers);
+        await getIt<AuthService>().updateOnboardingStatus(true, _answers);
         
         // 同時也存一份在本地作為備份 (選用)
         List<OnboardingAnswer> answerList = _answers.entries

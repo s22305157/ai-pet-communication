@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:ai_pet_communicator/models/pet_model.dart';
-import 'package:ai_pet_communicator/services/pet_service.dart';
-import 'package:ai_pet_communicator/services/auth_service.dart';
-import 'package:ai_pet_communicator/services/local_pet_service.dart';
-import 'package:ai_pet_communicator/models/user_model.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,12 +43,10 @@ void main() {
       uid: 'user123',
       email: 'test@test.com',
       displayName: 'Tester',
-      membershipType: 'pro',
+      membershipTier: 'pro',
     );
 
-    // Mock auth stream
-    final authController = StreamController<UserModel?>();
-    when(() => mockAuthService.getUserStream()).thenAnswer((_) => authController.stream);
+    when(() => mockAuthService.getUserData()).thenAnswer((_) async => user);
     
     // Mock cloud setup
     final mockCollection = MockCollectionReference();
@@ -70,10 +68,13 @@ void main() {
     // Start watching
     final resultStream = petService.watchPetsByOwner('user123');
     final results = <List<PetModel>>[];
-    final subscription = resultStream.listen((data) => results.add(data));
+    final subscription = resultStream.listen(
+      (data) {
+        results.add(data);
+      },
+    );
 
-    // 1. Emit user
-    authController.add(user);
+    // 1. Wait a bit for initialization
     await Future.delayed(Duration(milliseconds: 100));
 
     // 2. Emit cloud error
@@ -89,7 +90,6 @@ void main() {
     expect(petService.isCloudActive.value, false);
 
     await subscription.cancel();
-    await authController.close();
     await cloudController.close();
     await localController.close();
   });

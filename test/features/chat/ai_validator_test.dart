@@ -1,7 +1,7 @@
 // test/features/chat/ai_validator_test.dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ai_pet_communicator/features/chat/application/ai_validator.dart';
-import 'package:ai_pet_communicator/features/chat/domain/ai_response_model.dart';
+import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 
 void main() {
   group('AiValidator - Response Validation', () {

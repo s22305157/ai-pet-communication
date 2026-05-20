@@ -1,7 +1,7 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:ai_pet_communicator/features/readings/domain/reading.dart';
-import 'package:ai_pet_communicator/features/readings/data/firestore_readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
+import 'package:ai_pet_communication/features/readings/data/firestore_readings_repository.dart';
 
 void main() {
   late FakeFirebaseFirestore firestore;

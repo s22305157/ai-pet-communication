@@ -7,10 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../constants.dart';
-import '../../models/pet_model.dart';
-import '../../services/pet_service.dart';
-import '../../services/error_service.dart';
+import '../../../../constants.dart';
+import '../domain/models/pet_model.dart';
+import '../application/pet_service.dart';
+import '../../../../services/error_service.dart';
+import '../../../../injection.dart';
 
 class PetFormSheet extends StatefulWidget {
   final PetModel? existingPet;
@@ -23,7 +24,7 @@ class PetFormSheet extends StatefulWidget {
 
 class _PetFormSheetState extends State<PetFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _petService = PetService();
+  final _petService = getIt<PetService>();
   final _picker = ImagePicker();
   bool _isSaving = false;
   bool _isUploadingAvatar = false;

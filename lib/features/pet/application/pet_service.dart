@@ -4,10 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import '../models/pet_model.dart';
-import 'local_pet_service.dart';
-import 'auth_service.dart';
-import '../models/user_model.dart';
+import '../domain/models/pet_model.dart';
+import '../data/local_pet_service.dart';
+import '../../../services/auth_service.dart';
+import '../../../models/user_model.dart';
+import '../../../injection.dart';
 
 class PetService {
   final FirebaseFirestore _db;
@@ -26,10 +27,10 @@ class PetService {
     FirebaseStorage? storage,
     LocalPetService? localService,
     AuthService? authService,
-  })  : _db = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance,
-        _localService = localService ?? LocalPetService(),
-        _authService = authService ?? AuthService();
+  })  : _db = firestore ?? getIt<FirebaseFirestore>(),
+        _storage = storage ?? getIt<FirebaseStorage>(),
+        _localService = localService ?? getIt<LocalPetService>(),
+        _authService = authService ?? getIt<AuthService>();
 
   // 判斷是否應使用雲端儲存 (Pro 以上版本)
   Future<bool> _shouldUseCloud() async {

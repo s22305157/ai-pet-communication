@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ai_pet_communicator/models/pet_model.dart';
-import 'package:ai_pet_communicator/models/user_model.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
 
 void main() {
   group('PetModel Tests', () {

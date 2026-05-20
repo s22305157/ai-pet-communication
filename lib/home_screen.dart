@@ -4,26 +4,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'services/auth_service.dart';
-import 'services/pet_service.dart';
-import 'models/pet_model.dart';
-import 'screens/pets/pet_form_sheet.dart';
-import 'screens/pets/pet_detail_screen.dart';
+import 'features/pet/application/pet_service.dart';
+import 'features/pet/domain/models/pet_model.dart';
+import 'features/pet/presentation/pet_form_sheet.dart';
+import 'features/pet/presentation/pet_detail_screen.dart';
 import 'widgets/pet_avatar.dart';
 import 'screens/profile/profile_screen.dart';
 import 'models/user_model.dart';
 import 'screens/profile/settings_screen.dart';
 import 'services/ad_service.dart';
+import 'injection.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel user;
-  final PetService? petService;
-  final AuthService? authService;
 
   const HomeScreen({
     super.key,
     required this.user,
-    this.petService,
-    this.authService,
   });
 
   @override
@@ -31,8 +28,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final PetService _petService = widget.petService ?? PetService();
-  late final AuthService _authService = widget.authService ?? AuthService();
+  late final PetService _petService = getIt<PetService>();
+  late final AuthService _authService = getIt<AuthService>();
   
   late final String _uid = widget.user.uid;
   Stream<List<PetModel>>? _petsStream;
@@ -537,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final points = user?.points ?? 0;
 
                   return GestureDetector(
-                    onTap: () => AdService().watchAdForPoints(context),
+                    onTap: () => getIt<AdService>().watchAdForPoints(context),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(

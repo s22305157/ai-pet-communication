@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
+import '../../injection.dart';
 import 'account_info_screen.dart';
 import 'settings_screen.dart';
 
@@ -32,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final AuthService authService = AuthService();
+    final authService = getIt<AuthService>();
 
     return Scaffold(
       backgroundColor: AppColors.background,

@@ -5,15 +5,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../constants.dart';
-import '../../../models/pet_model.dart';
+import '../../pet/domain/models/pet_model.dart';
+import '../../../injection.dart';
 import '../application/prompt_manager.dart';
 import '../application/chat_controller.dart';
 import '../domain/ai_request_model.dart';
-import '../data/chat_service.dart';
-import '../../readings/application/reading_service.dart';
-import '../../readings/data/firestore_readings_repository.dart';
 import 'chat_ui_texts.dart';
 import 'communication_result_screen.dart';
 
@@ -79,11 +76,8 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
     setState(() => _isLoading = true);
 
     try {
-      // 1. 準備依賴 (未來應使用 DI)
-      final chatService = ChatService();
-      final readingsRepo = FirestoreReadingsRepository(FirebaseFirestore.instance);
-      final readingService = ReadingService(readingsRepo);
-      final controller = ChatController(chatService, readingService);
+      // 1. 準備依賴 (使用 DI)
+      final controller = getIt<ChatController>();
 
       // 2. 建立 Request Model
       // 注意：這裡假設 OwnerProfile 已由其他地方提供或有預設值

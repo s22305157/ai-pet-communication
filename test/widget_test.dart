@@ -1,30 +1,37 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:ai_pet_communication/main.dart';
+import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
+import 'package:ai_pet_communication/injection.dart';
 
-import 'package:ai_pet_communicator/main.dart';
+class MockAuthService extends Mock implements AuthService {}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  late MockAuthService mockAuthService;
+
+  setUp(() {
+    getIt.reset();
+    getIt.allowReassignment = true;
+    setupDependencies();
+    mockAuthService = MockAuthService();
+    getIt.registerSingleton<AuthService>(mockAuthService);
+  });
+
+  tearDown(() {
+    getIt.reset();
+  });
+
+  testWidgets('App smoke test - Shows login screen when user is not logged in', (WidgetTester tester) async {
+    when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(null));
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify that the login screen is displayed (e.g. searching for PAWLINK text)
+    expect(find.text('PAWLINK'), findsOneWidget);
+    expect(find.text('AI Pet Communicator'), findsOneWidget);
   });
 }

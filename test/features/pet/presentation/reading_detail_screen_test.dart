@@ -1,14 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:ai_pet_communicator/features/readings/domain/reading.dart';
-import 'package:ai_pet_communicator/screens/pets/reading_detail_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
+import 'package:ai_pet_communication/features/pet/presentation/reading_detail_screen.dart';
+import 'package:ai_pet_communication/features/readings/data/readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/data/firestore_readings_repository.dart';
+import 'package:ai_pet_communication/injection.dart';
 
 void main() {
   late FakeFirebaseFirestore firestore;
 
   setUp(() {
+    getIt.reset();
+    getIt.allowReassignment = true;
+
     firestore = FakeFirebaseFirestore();
+
+    getIt.registerSingleton<FirebaseFirestore>(firestore);
+    getIt.registerSingleton<ReadingsRepository>(FirestoreReadingsRepository(firestore));
+  });
+
+  tearDown(() {
+    getIt.reset();
   });
 
   Widget createWidgetUnderTest({Reading? reading, String petId = 'p1', String readingId = 'r1'}) {
@@ -21,7 +35,6 @@ void main() {
         reading: reading,
         petId: petId,
         readingId: readingId,
-        firestore: firestore,
       ),
     );
   }

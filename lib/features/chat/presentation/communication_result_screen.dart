@@ -6,7 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants.dart';
-import '../../../models/pet_model.dart';
+import '../../pet/domain/models/pet_model.dart';
 import '../domain/ai_response_model.dart';
 import '../domain/ai_safe_response_model.dart';
 import 'chat_ui_texts.dart';

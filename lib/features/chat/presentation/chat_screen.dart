@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../constants.dart';
-import '../../../models/pet_model.dart';
+import '../../pet/domain/models/pet_model.dart';
+import '../../../injection.dart';
 import '../application/chat_controller.dart';
-import '../data/chat_service.dart';
-import '../../readings/application/reading_service.dart';
-import '../../readings/data/firestore_readings_repository.dart';
 import '../../../widgets/pet_avatar.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -27,11 +24,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // 手動注入依賴 (未來可考慮使用 Provider/GetIt 等 DI 工具)
-    final chatService = ChatService();
-    final readingsRepo = FirestoreReadingsRepository(FirebaseFirestore.instance);
-    final readingService = ReadingService(readingsRepo);
-    _controller = ChatController(chatService, readingService);
+    _controller = getIt<ChatController>();
 
     // 初始歡迎訊息
     _messages.add({

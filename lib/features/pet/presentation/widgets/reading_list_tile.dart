@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../../constants.dart';
-import '../../../features/readings/domain/reading.dart';
+import '../../../../../constants.dart';
+import '../../../../../features/readings/domain/reading.dart';
 
 class ReadingListTile extends StatelessWidget {
   final Reading reading;

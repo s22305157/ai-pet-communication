@@ -6,11 +6,28 @@ import '../models/user_model.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
-  factory AuthService() => _instance;
-  AuthService._internal();
+  factory AuthService({
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    dynamic localService,
+  }) {
+    if (auth != null || firestore != null) {
+      return AuthService._test(auth, firestore);
+    }
+    return _instance;
+  }
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  AuthService._internal()
+      : _customAuth = null,
+        _customDb = null;
+
+  AuthService._test(this._customAuth, this._customDb);
+
+  final FirebaseAuth? _customAuth;
+  final FirebaseFirestore? _customDb;
+
+  FirebaseAuth get _auth => _customAuth ?? FirebaseAuth.instance;
+  FirebaseFirestore get _db => _customDb ?? FirebaseFirestore.instance;
 
   final BehaviorSubject<UserModel?> _userSubject = BehaviorSubject<UserModel?>();
 

@@ -6,26 +6,27 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
-import '../../../constants.dart';
-import '../../models/pet_model.dart';
-import '../../services/pet_service.dart';
-import '../../features/readings/data/firestore_readings_repository.dart';
-import '../../features/readings/domain/reading.dart';
-import '../../features/readings/application/reading_service.dart';
+import '../../../../constants.dart';
+import '../domain/models/pet_model.dart';
+import '../application/pet_service.dart';
+import '../../../../features/readings/data/firestore_readings_repository.dart';
+import '../../../../features/readings/domain/reading.dart';
+import '../../../../features/readings/application/reading_service.dart';
 import 'widgets/reading_list_tile.dart';
 import 'reading_detail_screen.dart';
 import 'pet_form_sheet.dart';
-import '../../features/chat/presentation/pet_communication_input_screen.dart';
-import '../../services/ad_service.dart';
-import '../../services/error_service.dart';
-import '../../services/auth_service.dart';
-import '../../screens/profile/settings_screen.dart';
+import '../../../../features/chat/presentation/pet_communication_input_screen.dart';
+import '../../../../services/ad_service.dart';
+import '../../../../services/error_service.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../screens/profile/settings_screen.dart';
+import '../../../../injection.dart';
+import '../../../../features/readings/data/readings_repository.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
-  final FirebaseFirestore? firestore;
 
-  const PetDetailScreen({super.key, required this.pet, this.firestore});
+  const PetDetailScreen({super.key, required this.pet});
 
   @override
   State<PetDetailScreen> createState() => _PetDetailScreenState();
@@ -33,8 +34,8 @@ class PetDetailScreen extends StatefulWidget {
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
   late PetModel _currentPet;
-  late final PetService _petService = PetService();
-  late final FirestoreReadingsRepository _readingsRepository = FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance);
+  late final PetService _petService = getIt<PetService>();
+  late final ReadingsRepository _readingsRepository = getIt<ReadingsRepository>();
   final ImagePicker _picker = ImagePicker();
 
   bool _isUploading = false;
@@ -487,15 +488,12 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                                     reading: reading,
                                     petId: _currentPet.petId,
                                     readingId: reading.id,
-                                    firestore: widget.firestore,
                                   ),
                                 ),
                               );
                             },
                             onDelete: () async {
-                              final readingService = ReadingService(
-                                FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance),
-                              );
+                              final readingService = getIt<ReadingService>();
                               await readingService.deleteReading(_currentPet.petId, reading.id);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -566,7 +564,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   }
 
   Future<void> _handleStartCommunication(BuildContext context) async {
-    final authService = AuthService();
+    final authService = getIt<AuthService>();
     final user = await authService.getUserData();
     
     if (user == null) return;
@@ -618,7 +616,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               onPressed: isProcessing ? null : () async {
                 setDialogState(() => isProcessing = true);
                 try {
-                  final authService = AuthService();
+                  final authService = getIt<AuthService>();
                   await authService.consumePoints(1);
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -649,10 +647,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   Future<void> _navigateToAI(BuildContext context, {bool pointDeducted = false}) async {
     // 插頁式廣告：等待感應的間隙 (不干擾原則)
     // 只有在扣點或是非 Pro 用戶時顯示，增加一點等待感
-    final authService = AuthService();
+    final authService = getIt<AuthService>();
     final user = await authService.getUserData();
     if (user != null && (user.membershipType?.toLowerCase() ?? 'free') != 'pro') {
-      await AdService().showInterstitialAd();
+      await getIt<AdService>().showInterstitialAd();
     }
 
       Navigator.push(
@@ -736,7 +734,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              AdService().watchAdForPoints(context);
+              getIt<AdService>().watchAdForPoints(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,

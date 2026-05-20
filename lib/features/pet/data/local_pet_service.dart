@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
-import '../models/pet_model.dart';
+import '../domain/models/pet_model.dart';
 
 class LocalPetService {
   final Box _box = Hive.box('local_pets');

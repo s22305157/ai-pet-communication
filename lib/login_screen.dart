@@ -5,6 +5,7 @@ import 'constants.dart';
 import 'services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/error_service.dart';
+import 'injection.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -165,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           });
           
           try {
-            var user = await AuthService().signInWithGoogle();
+            var user = await getIt<AuthService>().signInWithGoogle();
             if (user != null) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

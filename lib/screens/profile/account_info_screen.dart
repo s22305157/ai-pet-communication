@@ -4,13 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../injection.dart';
 
 class AccountInfoScreen extends StatelessWidget {
   const AccountInfoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
+    final authService = getIt<AuthService>();
 
     return Scaffold(
       backgroundColor: AppColors.background,

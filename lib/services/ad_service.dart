@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'auth_service.dart';
+import '../injection.dart';
 
 class AdService {
   static final AdService _instance = AdService._internal();
@@ -146,7 +147,7 @@ class AdService {
     await showRewardedAd(
       onReward: (reward) async {
         try {
-          final authService = AuthService();
+          final authService = getIt<AuthService>();
           await authService.addPoints(1); // 增加 1 點
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

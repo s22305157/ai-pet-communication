@@ -9,13 +9,16 @@ import 'login_screen.dart';
 import 'home_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'models/user_model.dart';
+import 'injection.dart';
 
 void main() async {
   print('DEBUG: >>> PAWLINK Final Startup Initiated <<<');
   
   try {
     WidgetsFlutterBinding.ensureInitialized();
+    setupDependencies();
     print('DEBUG: [1] WidgetsBinding Initialized');
+
     
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -27,12 +30,12 @@ void main() async {
     print('DEBUG: [3] Hive initialized');
 
     try {
-      await SubscriptionService().initialize();
+      await getIt<SubscriptionService>().initialize();
       print('DEBUG: [4a] Subscription Service initialized');
     } catch (e) { print('DEBUG: [!] Subscription Error: $e'); }
     
     try {
-      await AdService().initialize();
+      await getIt<AdService>().initialize();
       print('DEBUG: [4b] Ad Service initialized');
     } catch (e) { print('DEBUG: [!] Ad Error: $e'); }
 
@@ -67,7 +70,7 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
+    final authService = getIt<AuthService>();
 
     return StreamBuilder<UserModel?>(
       stream: authService.getUserStream(),

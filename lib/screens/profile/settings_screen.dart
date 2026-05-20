@@ -5,13 +5,14 @@ import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../services/error_service.dart';
+import '../../injection.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final AuthService authService = AuthService();
+    final authService = getIt<AuthService>();
 
     return Scaffold(
       backgroundColor: AppColors.background,

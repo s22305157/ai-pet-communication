@@ -1,23 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../constants.dart';
-import '../../features/readings/domain/reading.dart';
-import '../../features/readings/data/firestore_readings_repository.dart';
+import '../../../../constants.dart';
+import '../../../../features/readings/domain/reading.dart';
+import '../../../../features/readings/data/readings_repository.dart';
+import '../../../../injection.dart';
 
 class ReadingDetailScreen extends StatefulWidget {
   final Reading? reading;
   final String petId;
   final String readingId;
-  final FirebaseFirestore? firestore;
 
   const ReadingDetailScreen({
     super.key,
     this.reading,
     required this.petId,
     required this.readingId,
-    this.firestore,
   });
 
   @override
@@ -28,12 +26,11 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
   Reading? _currentReading;
   bool _isLoading = false;
   String? _errorMessage;
-  late final FirestoreReadingsRepository _repository;
+  late final ReadingsRepository _repository = getIt<ReadingsRepository>();
 
   @override
   void initState() {
     super.initState();
-    _repository = FirestoreReadingsRepository(widget.firestore ?? FirebaseFirestore.instance);
     _currentReading = widget.reading;
     
     if (_currentReading == null) {
