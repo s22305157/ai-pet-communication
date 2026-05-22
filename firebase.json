@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/cors-proxy",
+        "function": "corsProxy"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -15,5 +19,15 @@
   },
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "functions": {
+    "codebase": "default",
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firestore-debug.log"
+    ]
   }
 }
