@@ -362,6 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : tier == 'plus'
                             ? Colors.blue
                             : Colors.grey.shade400;
+                    final photoUrl = userSnap.data?.photoURL ?? widget.user.photoURL;
                     return Hero(
                       tag: 'profile_avatar',
                       child: Container(
@@ -370,15 +371,37 @@ class _HomeScreenState extends State<HomeScreen> {
                           shape: BoxShape.circle,
                           border: Border.all(color: borderColor, width: 2.5),
                         ),
-                        child: CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.surface,
-                          backgroundImage: widget.user.photoURL != null
-                              ? NetworkImage(widget.user.photoURL!)
-                              : null,
-                          child: widget.user.photoURL == null
-                              ? Icon(Icons.person_rounded, color: borderColor, size: 26)
-                              : null,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surface,
+                          ),
+                          child: ClipOval(
+                            child: photoUrl != null && photoUrl.isNotEmpty
+                                ? Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(Icons.person_rounded, color: borderColor, size: 26);
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: borderColor,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Icon(Icons.person_rounded, color: borderColor, size: 26),
+                          ),
                         ),
                       ),
                     );

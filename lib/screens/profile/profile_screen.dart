@@ -78,13 +78,43 @@ class ProfileScreen extends StatelessWidget {
                         width: 3,
                       ),
                     ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: AppColors.surface,
-                      backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                      child: user?.photoURL == null 
-                          ? const Icon(Icons.person_rounded, size: 50, color: AppColors.primary)
-                          : null,
+                    child: Builder(
+                      builder: (context) {
+                        final photoUrl = userModel?.photoURL ?? user?.photoURL;
+                        final tierColor = _getTierColor(userModel?.membershipType);
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surface,
+                          ),
+                          child: ClipOval(
+                            child: photoUrl != null && photoUrl.isNotEmpty
+                                ? Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(Icons.person_rounded, size: 50, color: tierColor);
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: tierColor,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Icon(Icons.person_rounded, size: 50, color: tierColor),
+                          ),
+                        );
+                      }
                     ),
                   ),
                 ),
