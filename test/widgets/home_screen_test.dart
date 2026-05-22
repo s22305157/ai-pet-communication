@@ -7,17 +7,20 @@ import 'package:ai_pet_communication/services/ad_service.dart';
 import 'package:ai_pet_communication/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ai_pet_communication/services/membership_action_handler.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockPetService extends Mock implements PetService {}
 class MockAuthService extends Mock implements AuthService {}
 class MockAdService extends Mock implements AdService {}
+class MockMembershipActionHandler extends Mock implements MembershipActionHandler {}
 
 void main() {
   late UserModel userModel;
   late MockPetService mockPetService;
   late MockAuthService mockAuthService;
   late MockAdService mockAdService;
+  late MockMembershipActionHandler mockMembershipHandler;
 
   setUp(() {
     getIt.reset();
@@ -28,12 +31,13 @@ void main() {
       email: 'test@example.com',
       displayName: 'Tester',
       points: 10,
-      membershipTier: 'free',
+      membershipTier: 'pro',
     );
     
     mockPetService = MockPetService();
     mockAuthService = MockAuthService();
     mockAdService = MockAdService();
+    mockMembershipHandler = MockMembershipActionHandler();
 
     // Mock PetService ValueNotifiers
     when(() => mockPetService.isCloudActive).thenReturn(ValueNotifier<bool>(true));
@@ -59,12 +63,13 @@ void main() {
     );
 
     // Mock auth stream for sync indicator
-    when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(null));
+    when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(userModel));
 
     // Register mocks in getIt
     getIt.registerSingleton<PetService>(mockPetService);
     getIt.registerSingleton<AuthService>(mockAuthService);
     getIt.registerSingleton<AdService>(mockAdService);
+    getIt.registerSingleton<MembershipActionHandler>(mockMembershipHandler);
   });
 
   tearDown(() {
@@ -77,6 +82,10 @@ void main() {
         theme: ThemeData(splashFactory: NoSplash.splashFactory),
         home: HomeScreen(
           user: userModel,
+          authService: mockAuthService,
+          petService: mockPetService,
+          adService: mockAdService,
+          membershipHandler: mockMembershipHandler,
         ),
       ),
     );

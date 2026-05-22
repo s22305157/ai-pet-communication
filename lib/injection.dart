@@ -14,6 +14,7 @@ import 'features/readings/data/readings_repository.dart';
 import 'features/readings/data/firestore_readings_repository.dart';
 import 'features/readings/application/reading_service.dart';
 import 'features/chat/application/chat_controller.dart';
+import 'services/membership_action_handler.dart';
 
 final getIt = GetIt.instance;
 
@@ -28,6 +29,9 @@ void setupDependencies() {
   getIt.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
   getIt.registerLazySingleton<AdService>(() => AdService());
   getIt.registerLazySingleton<OnboardingService>(() => OnboardingService());
+  getIt.registerLazySingleton<MembershipActionHandler>(
+    () => MembershipActionHandler(getIt<AuthService>(), getIt<AdService>()),
+  );
 
   getIt.registerLazySingleton<PetRemoteDataSource>(() => PetRemoteDataSource(
     firestore: getIt<FirebaseFirestore>(),
