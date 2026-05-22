@@ -5,7 +5,6 @@ import '../domain/models/pet_model.dart';
 import '../application/pet_service.dart';
 import '../../../../features/readings/data/readings_repository.dart';
 import '../../../../features/readings/application/reading_service.dart';
-import '../../../../features/chat/presentation/pet_communication_input_screen.dart';
 import '../../../../services/ad_service.dart';
 import '../../../../services/error_service.dart';
 import '../../../../services/auth_service.dart';
@@ -15,7 +14,7 @@ import '../../../../injection.dart';
 import 'widgets/pet_avatar_section.dart';
 import 'widgets/pet_info_card.dart';
 import 'widgets/pet_readings_section.dart';
-import 'pet_form_sheet.dart';
+import 'controllers/pet_detail_controller.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
@@ -42,22 +41,40 @@ class PetDetailScreen extends StatefulWidget {
 }
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
-  late PetModel _currentPet;
   late final PetService _petService = widget.petService ?? getIt<PetService>();
   late final ReadingsRepository _readingsRepository = widget.readingsRepository ?? getIt<ReadingsRepository>();
   late final AuthService _authService = widget.authService ?? getIt<AuthService>();
   late final AdService _adService = widget.adService ?? getIt<AdService>();
   late final ReadingService _readingService = widget.readingService ?? getIt<ReadingService>();
-  late final MembershipActionHandler _membershipHandler = widget.membershipHandler ?? getIt<MembershipActionHandler>();
+
+  late final PetDetailController _controller;
 
   @override
   void initState() {
     super.initState();
-    _currentPet = widget.pet;
+    _controller = PetDetailController(
+      pet: widget.pet,
+      petService: _petService,
+      membershipHandler: widget.membershipHandler,
+    );
+    _controller.addListener(_onControllerChanged);
+  }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentPet = _controller.pet;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -78,46 +95,14 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             onSelected: (value) async {
               if (value == 'edit') {
-                await showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => PetFormSheet(
-                    existingPet: _currentPet,
-                    petService: _petService,
-                  ),
-                );
-                // 表單關閉後，從 PetService 重新獲取最新資料並刷新 UI
-                final refreshedPet = await _petService.getPet(_currentPet.petId);
-                if (refreshedPet != null && mounted) {
-                  setState(() {
-                    _currentPet = refreshedPet;
-                  });
-                }
+                await _controller.handleEdit(context);
               } else if (value == 'delete') {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    title: Text('刪除毛小孩', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                    content: Text('確定要刪除 ${_currentPet.name} 的資料嗎？\n(此動作無法復原)'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('刪除', style: TextStyle(color: Colors.redAccent)),
-                      ),
-                    ],
-                  ),
+                await _controller.handleDelete(
+                  context,
+                  onDeleted: () {
+                    if (mounted) Navigator.pop(context);
+                  },
                 );
-
-                if (confirm == true && mounted) {
-                  await _petService.deletePet(_currentPet.petId);
-                  if (mounted) Navigator.pop(context); // 返回首頁
-                }
               }
             },
             itemBuilder: (context) => [
@@ -151,36 +136,34 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           children: [
             const SizedBox(height: 20),
             PetAvatarSection(
-              pet: _currentPet,
+              pet: currentPet,
               petService: _petService,
               onPetUpdated: (updatedPet) {
-                setState(() {
-                  _currentPet = updatedPet;
-                });
+                _controller.updatePet(updatedPet);
               },
             ),
             const SizedBox(height: 16),
             Text(
-              _currentPet.name,
+              currentPet.name,
               style: GoogleFonts.outfit(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            if (_currentPet.species.isNotEmpty || _currentPet.breed.isNotEmpty)
+            if (currentPet.species.isNotEmpty || currentPet.breed.isNotEmpty)
               Text(
-                '${_currentPet.species}${_currentPet.breed.isNotEmpty ? ' · ${_currentPet.breed}' : ''}',
+                '${currentPet.species}${currentPet.breed.isNotEmpty ? ' · ${currentPet.breed}' : ''}',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   color: AppColors.textSecondary,
                 ),
               ),
             const SizedBox(height: 32),
-            PetInfoCard(pet: _currentPet),
+            PetInfoCard(pet: currentPet),
             const SizedBox(height: 32),
             PetReadingsSection(
-              pet: _currentPet,
+              pet: currentPet,
               readingsRepository: _readingsRepository,
               readingService: _readingService,
             ),
@@ -188,11 +171,11 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomAction(context),
+      bottomNavigationBar: _buildBottomAction(context, currentPet),
     );
   }
 
-  Widget _buildBottomAction(BuildContext context) {
+  Widget _buildBottomAction(BuildContext context, PetModel currentPet) {
     return Container(
       padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + MediaQuery.of(context).padding.bottom),
       decoration: BoxDecoration(
@@ -209,7 +192,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () => _handleStartCommunication(context),
+              onPressed: () => _controller.handleStartCommunication(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -222,7 +205,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                   const Icon(Icons.auto_awesome_rounded, color: Colors.white),
                   const SizedBox(width: 12),
                   Text(
-                    '開始與 ${_currentPet.name} 溝通',
+                    '開始與 ${currentPet.name} 溝通',
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 18,
@@ -236,24 +219,5 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _handleStartCommunication(BuildContext context) async {
-    await _membershipHandler.handleStartCommunication(
-      context,
-      _currentPet,
-      onAllowed: () => _navigateToAI(context),
-    );
-  }
-
-  Future<void> _navigateToAI(BuildContext context) async {
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PetCommunicationInputScreen(pet: _currentPet),
-        ),
-      );
-    }
   }
 }

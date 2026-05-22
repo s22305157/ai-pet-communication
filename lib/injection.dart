@@ -8,6 +8,11 @@ import 'features/pet/data/local_pet_service.dart';
 import 'features/pet/application/pet_service.dart';
 import 'features/pet/data/sources/pet_remote_data_source.dart';
 import 'features/pet/application/pet_sync_manager.dart';
+import 'features/pet/domain/repositories/pet_repository.dart';
+import 'features/pet/data/repositories/pet_repository_impl.dart';
+import 'features/pet/domain/repositories/avatar_upload_repository.dart';
+import 'features/pet/data/repositories/avatar_upload_repository_impl.dart';
+import 'features/pet/application/pet_stream_watcher.dart';
 import 'services/onboarding_service.dart';
 import 'features/chat/data/chat_service.dart';
 import 'features/readings/data/readings_repository.dart';
@@ -44,11 +49,28 @@ void setupDependencies() {
     remoteDataSource: getIt<PetRemoteDataSource>(),
   ));
 
-  getIt.registerLazySingleton<PetService>(() => PetService(
+  getIt.registerLazySingleton<PetRepository>(() => PetRepositoryImpl(
     remoteDataSource: getIt<PetRemoteDataSource>(),
-    syncManager: getIt<PetSyncManager>(),
     localService: getIt<LocalPetService>(),
     authService: getIt<AuthService>(),
+  ));
+
+  getIt.registerLazySingleton<AvatarUploadRepository>(() => AvatarUploadRepositoryImpl(
+    remoteDataSource: getIt<PetRemoteDataSource>(),
+  ));
+
+  getIt.registerLazySingleton<PetStreamWatcher>(() => PetStreamWatcher(
+    remoteDataSource: getIt<PetRemoteDataSource>(),
+    localService: getIt<LocalPetService>(),
+    authService: getIt<AuthService>(),
+    syncManager: getIt<PetSyncManager>(),
+  ));
+
+  getIt.registerLazySingleton<PetService>(() => PetService(
+    repository: getIt<PetRepository>(),
+    avatarUploadRepository: getIt<AvatarUploadRepository>(),
+    streamWatcher: getIt<PetStreamWatcher>(),
+    syncManager: getIt<PetSyncManager>(),
   ));
 
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────

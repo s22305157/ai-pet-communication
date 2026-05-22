@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'constants.dart';
 import 'features/pet/application/pet_service.dart';
 import 'features/pet/domain/models/pet_model.dart';
-import 'features/pet/presentation/pet_form_sheet.dart';
+import 'screens/home/controllers/home_controller.dart';
 import 'screens/home/widgets/home_top_bar.dart';
 import 'screens/home/widgets/home_pet_list.dart';
 import 'models/user_model.dart';
@@ -39,30 +39,31 @@ class _HomeScreenState extends State<HomeScreen> {
   late final MembershipActionHandler _membershipHandler = widget.membershipHandler ?? getIt<MembershipActionHandler>();
 
   late final String _uid = widget.user.uid;
-  Stream<List<PetModel>>? _petsStream;
+  late final HomeController _controller;
 
   @override
   void initState() {
     super.initState();
-    _petService.isCloudActive.addListener(_onCloudStatusChanged);
-    _petsStream = _petService.watchPetsByOwner(_uid);
-  }
-
-  void _onCloudStatusChanged() {
-    if (!_petService.isCloudActive.value && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('雲端連線失敗，目前已切換至本地模式。'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
+    _controller = HomeController(uid: _uid, petService: _petService);
+    _controller.setupCloudStatusListener(
+      context,
+      onFallback: () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('雲端連線失敗，目前已切換至本地模式。'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
-    _petService.isCloudActive.removeListener(_onCloudStatusChanged);
+    _controller.dispose();
     super.dispose();
   }
 
@@ -100,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: HomePetList(
                 uid: _uid,
-                petsStream: _petsStream,
+                petsStream: _controller.petsStream,
                 petService: _petService,
               ),
             ),
@@ -108,14 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => const PetFormSheet(),
-          );
-        },
+        onPressed: () => _controller.handleAddPet(context),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../domain/models/pet_model.dart';
 import '../data/local_pet_service.dart';
 import '../data/sources/pet_remote_data_source.dart';
@@ -17,11 +18,12 @@ class PetSyncManager {
 
   PetSyncManager({
     FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
     LocalPetService? localService,
     PetRemoteDataSource? remoteDataSource,
   })  : _db = firestore ?? FirebaseFirestore.instance,
         _localService = localService ?? LocalPetService(),
-        _remoteDataSource = remoteDataSource ?? PetRemoteDataSource(firestore: firestore);
+        _remoteDataSource = remoteDataSource ?? PetRemoteDataSource(firestore: firestore, storage: storage);
 
   // 內部遷移邏輯：將本地資料推送到雲端 (使用 petId 進行唯一性檢查)
   Future<void> migrateIfNeeded(String uid) async {
