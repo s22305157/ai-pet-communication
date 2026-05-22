@@ -6,6 +6,8 @@ import 'services/subscription_service.dart';
 import 'services/ad_service.dart';
 import 'features/pet/data/local_pet_service.dart';
 import 'features/pet/application/pet_service.dart';
+import 'features/pet/data/sources/pet_remote_data_source.dart';
+import 'features/pet/application/pet_sync_manager.dart';
 import 'services/onboarding_service.dart';
 import 'features/chat/data/chat_service.dart';
 import 'features/readings/data/readings_repository.dart';
@@ -27,9 +29,20 @@ void setupDependencies() {
   getIt.registerLazySingleton<AdService>(() => AdService());
   getIt.registerLazySingleton<OnboardingService>(() => OnboardingService());
 
-  getIt.registerLazySingleton<PetService>(() => PetService(
+  getIt.registerLazySingleton<PetRemoteDataSource>(() => PetRemoteDataSource(
     firestore: getIt<FirebaseFirestore>(),
     storage: getIt<FirebaseStorage>(),
+  ));
+
+  getIt.registerLazySingleton<PetSyncManager>(() => PetSyncManager(
+    firestore: getIt<FirebaseFirestore>(),
+    localService: getIt<LocalPetService>(),
+    remoteDataSource: getIt<PetRemoteDataSource>(),
+  ));
+
+  getIt.registerLazySingleton<PetService>(() => PetService(
+    remoteDataSource: getIt<PetRemoteDataSource>(),
+    syncManager: getIt<PetSyncManager>(),
     localService: getIt<LocalPetService>(),
     authService: getIt<AuthService>(),
   ));

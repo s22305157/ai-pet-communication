@@ -1,32 +1,38 @@
-import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
 import '../../../../constants.dart';
 import '../domain/models/pet_model.dart';
 import '../application/pet_service.dart';
-import '../../../../features/readings/data/firestore_readings_repository.dart';
-import '../../../../features/readings/domain/reading.dart';
+import '../../../../features/readings/data/readings_repository.dart';
 import '../../../../features/readings/application/reading_service.dart';
-import 'widgets/reading_list_tile.dart';
-import 'reading_detail_screen.dart';
-import 'pet_form_sheet.dart';
 import '../../../../features/chat/presentation/pet_communication_input_screen.dart';
 import '../../../../services/ad_service.dart';
 import '../../../../services/error_service.dart';
 import '../../../../services/auth_service.dart';
 import '../../../../screens/profile/settings_screen.dart';
 import '../../../../injection.dart';
-import '../../../../features/readings/data/readings_repository.dart';
+import 'widgets/pet_avatar_section.dart';
+import 'widgets/pet_info_card.dart';
+import 'widgets/pet_readings_section.dart';
+import 'pet_form_sheet.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
+  final PetService? petService;
+  final ReadingsRepository? readingsRepository;
+  final AuthService? authService;
+  final AdService? adService;
+  final ReadingService? readingService;
 
-  const PetDetailScreen({super.key, required this.pet});
+  const PetDetailScreen({
+    super.key,
+    required this.pet,
+    this.petService,
+    this.readingsRepository,
+    this.authService,
+    this.adService,
+    this.readingService,
+  });
 
   @override
   State<PetDetailScreen> createState() => _PetDetailScreenState();
@@ -34,168 +40,16 @@ class PetDetailScreen extends StatefulWidget {
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
   late PetModel _currentPet;
-  late final PetService _petService = getIt<PetService>();
-  late final ReadingsRepository _readingsRepository = getIt<ReadingsRepository>();
-  final ImagePicker _picker = ImagePicker();
-
-  bool _isUploading = false;
-
-  /// 圖片 bytes，優先用於顯示，避免 CORS 問題
-  /// - 初次進入頁面時：從 URL 抓取（_loadAvatarFromUrl）
-  /// - 用戶選取新圖片後：直接使用本機 bytes
-  Uint8List? _avatarBytes;
-  bool _isLoadingAvatar = false;
-  Stream<List<Reading>>? _readingsStream;
+  late final PetService _petService = widget.petService ?? getIt<PetService>();
+  late final ReadingsRepository _readingsRepository = widget.readingsRepository ?? getIt<ReadingsRepository>();
+  late final AuthService _authService = widget.authService ?? getIt<AuthService>();
+  late final AdService _adService = widget.adService ?? getIt<AdService>();
+  late final ReadingService _readingService = widget.readingService ?? getIt<ReadingService>();
 
   @override
   void initState() {
     super.initState();
     _currentPet = widget.pet;
-    _readingsStream = _readingsRepository.watchReadingsByPetId(_currentPet.petId);
-    // 若已有頭像 URL，進入頁面時先用 http 抓成 bytes
-    if (_currentPet.avatarUrl.isNotEmpty) {
-      _loadAvatarFromUrl(_currentPet.avatarUrl);
-    }
-  }
-
-  // ── 用 http 把遠端圖片抓成 bytes（繞過 CORS 限制）──────────────────────
-  Future<void> _loadAvatarFromUrl(String url) async {
-    setState(() => _isLoadingAvatar = true);
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _avatarBytes = response.bodyBytes;
-          _isLoadingAvatar = false;
-        });
-      } else {
-        if (mounted) setState(() => _isLoadingAvatar = false);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingAvatar = false);
-    }
-  }
-
-  // ── 選取並上傳新頭像 ─────────────────────────────────────────────────────
-  Future<void> _pickAndUploadAvatar() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      maxHeight: 800,
-      imageQuality: 85,
-    );
-    if (file == null) return;
-
-    // 立即讀取 bytes → 先更新 UI 預覽
-    final Uint8List bytes = await file.readAsBytes();
-    setState(() {
-      _avatarBytes = bytes;
-      _isUploading = true;
-    });
-
-    try {
-      final imageId = const Uuid().v4();
-
-      // 1. 上傳到 Firebase Storage
-      final url = await _petService.uploadPetAvatar(uid, imageId, bytes);
-
-      // 2. 更新 Firestore
-      final updatedPet = _currentPet.copyWith(avatarUrl: url);
-      await _petService.updatePet(updatedPet.petId, updatedPet);
-
-      if (mounted) {
-        setState(() {
-          _currentPet = updatedPet;
-          _isUploading = false;
-          // _avatarBytes 已更新，不需再 reload
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('頭像更新成功！'),
-            backgroundColor: AppColors.secondary,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isUploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('頭像上傳失敗: ${ErrorService.getErrorMessage(e)}'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
-  // ── UI Helpers ───────────────────────────────────────────────────────────
-  Widget _buildAvatarContent() {
-    if (_isUploading || _isLoadingAvatar) {
-      return const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          color: AppColors.primary,
-        ),
-      );
-    }
-    if (_avatarBytes != null) {
-      return Image.memory(
-        _avatarBytes!,
-        width: 120,
-        height: 120,
-        fit: BoxFit.cover,
-      );
-    }
-    return _buildInitialPlaceholder();
-  }
-
-  Widget _buildInitialPlaceholder() {
-    return Center(
-      child: Text(
-        _currentPet.name.isNotEmpty ? _currentPet.name[0] : '?',
-        style: GoogleFonts.outfit(
-          fontSize: 48,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: GoogleFonts.outfit(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value.isNotEmpty ? value : '-',
-              style: GoogleFonts.outfit(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -224,7 +78,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
-                  builder: (_) => PetFormSheet(existingPet: _currentPet),
+                  builder: (_) => PetFormSheet(
+                    existingPet: _currentPet,
+                    petService: _petService,
+                  ),
                 );
                 // 表單關閉後，從 PetService 重新獲取最新資料並刷新 UI
                 final refreshedPet = await _petService.getPet(_currentPet.petId);
@@ -289,57 +146,14 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // ── Avatar Section ──
-            Center(
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: (_isUploading || _isLoadingAvatar)
-                        ? null
-                        : _pickAndUploadAvatar,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      child: ClipOval(child: _buildAvatarContent()),
-                    ),
-                  ),
-                  // 相機按鈕
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: (_isUploading || _isLoadingAvatar)
-                          ? null
-                          : _pickAndUploadAvatar,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            PetAvatarSection(
+              pet: _currentPet,
+              petService: _petService,
+              onPetUpdated: (updatedPet) {
+                setState(() {
+                  _currentPet = updatedPet;
+                });
+              },
             ),
             const SizedBox(height: 16),
             Text(
@@ -352,162 +166,19 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             ),
             if (_currentPet.species.isNotEmpty || _currentPet.breed.isNotEmpty)
               Text(
-                '${_currentPet.species} ${_currentPet.breed.isNotEmpty ? '· ${_currentPet.breed}' : ''}',
+                '${_currentPet.species}${_currentPet.breed.isNotEmpty ? ' · ${_currentPet.breed}' : ''}',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   color: AppColors.textSecondary,
                 ),
               ),
-
             const SizedBox(height: 32),
-
-            // ── Info Card ──
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppStyles.borderRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow('性別', _currentPet.gender, Icons.pets),
-                  _buildInfoRow('生日', _currentPet.birthday, Icons.cake),
-                  _buildInfoRow('毛色', _currentPet.color, Icons.palette_outlined),
-                  _buildInfoRow('體重', '${_currentPet.weight} kg', Icons.monitor_weight_outlined),
-                  const Divider(height: 24),
-                  _buildInfoRow('個性', _currentPet.personality, Icons.favorite),
-                ],
-              ),
-            ),
-
+            PetInfoCard(pet: _currentPet),
             const SizedBox(height: 32),
-
-            // ── 溝通紀錄區（Placeholder）──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.history, color: AppColors.secondary),
-                      const SizedBox(width: 8),
-                      Text(
-                        '溝通紀錄',
-                        style: GoogleFonts.outfit(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  StreamBuilder<List<Reading>>(
-                    stream: _readingsStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: CircularProgressIndicator(color: AppColors.primary),
-                          ),
-                        );
-                      }
-                      
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            '無法載入紀錄',
-                            style: GoogleFonts.outfit(color: Colors.redAccent),
-                          ),
-                        );
-                      }
-
-                      final readings = snapshot.data ?? [];
-                      
-                      if (readings.isEmpty) {
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
-                            borderRadius:
-                                BorderRadius.circular(AppStyles.borderRadius),
-                            border: Border.all(
-                                color: AppColors.secondary.withOpacity(0.3)),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.chat_bubble_outline,
-                                  size: 48,
-                                  color: AppColors.secondary.withOpacity(0.5)),
-                              const SizedBox(height: 12),
-                              Text(
-                                '尚無溝通紀錄',
-                                style: GoogleFonts.outfit(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '未來會在這裡顯示您與 ${_currentPet.name} 的對話',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary.withOpacity(0.7),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: readings.length,
-                        itemBuilder: (context, index) {
-                          final reading = readings[index];
-                          return ReadingListTile(
-                            reading: reading,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => ReadingDetailScreen(
-                                    reading: reading,
-                                    petId: _currentPet.petId,
-                                    readingId: reading.id,
-                                  ),
-                                ),
-                              );
-                            },
-                            onDelete: () async {
-                              final readingService = getIt<ReadingService>();
-                              await readingService.deleteReading(_currentPet.petId, reading.id);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('紀錄已刪除')),
-                                );
-                              }
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
+            PetReadingsSection(
+              pet: _currentPet,
+              readingsRepository: _readingsRepository,
+              readingService: _readingService,
             ),
             const SizedBox(height: 40),
           ],
@@ -564,21 +235,16 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   }
 
   Future<void> _handleStartCommunication(BuildContext context) async {
-    final authService = getIt<AuthService>();
-    final user = await authService.getUserData();
-    
+    final user = await _authService.getUserData();
     if (user == null) return;
 
     final type = user.membershipType?.toLowerCase() ?? 'free';
     
     if (type == 'pro') {
-      // Pro 用戶：無限次使用
       _navigateToAI(context);
     } else if (type == 'plus') {
-      // Plus 用戶：可能有限制或推薦升級至 Pro
       _showUpgradeDialog(context, currentTier: 'plus');
     } else {
-      // Free 用戶
       if (user.points > 0) {
         _showPointConsumptionDialog(context);
       } else {
@@ -592,7 +258,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     
     showDialog(
       context: context,
-      barrierDismissible: false, // 防止點擊外部關閉
+      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -616,8 +282,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               onPressed: isProcessing ? null : () async {
                 setDialogState(() => isProcessing = true);
                 try {
-                  final authService = getIt<AuthService>();
-                  await authService.consumePoints(1);
+                  await _authService.consumePoints(1);
                   if (context.mounted) {
                     Navigator.pop(context);
                     _navigateToAI(context, pointDeducted: true);
@@ -645,20 +310,19 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   }
 
   Future<void> _navigateToAI(BuildContext context, {bool pointDeducted = false}) async {
-    // 插頁式廣告：等待感應的間隙 (不干擾原則)
-    // 只有在扣點或是非 Pro 用戶時顯示，增加一點等待感
-    final authService = getIt<AuthService>();
-    final user = await authService.getUserData();
+    final user = await _authService.getUserData();
     if (user != null && (user.membershipType?.toLowerCase() ?? 'free') != 'pro') {
-      await getIt<AdService>().showInterstitialAd();
+      await _adService.showInterstitialAd();
     }
 
+    if (context.mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PetCommunicationInputScreen(pet: widget.pet),
+          builder: (context) => PetCommunicationInputScreen(pet: _currentPet),
         ),
       );
+    }
   }
 
   void _showUpgradeDialog(BuildContext context, {required String currentTier}) {
@@ -734,7 +398,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              getIt<AdService>().watchAdForPoints(context);
+              _adService.watchAdForPoints(context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,

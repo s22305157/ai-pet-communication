@@ -10,12 +10,14 @@ class ReadingDetailScreen extends StatefulWidget {
   final Reading? reading;
   final String petId;
   final String readingId;
+  final ReadingsRepository? readingsRepository;
 
   const ReadingDetailScreen({
     super.key,
     this.reading,
     required this.petId,
     required this.readingId,
+    this.readingsRepository,
   });
 
   @override
@@ -26,7 +28,7 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
   Reading? _currentReading;
   bool _isLoading = false;
   String? _errorMessage;
-  late final ReadingsRepository _repository = getIt<ReadingsRepository>();
+  late final ReadingsRepository _repository = widget.readingsRepository ?? getIt<ReadingsRepository>();
 
   @override
   void initState() {

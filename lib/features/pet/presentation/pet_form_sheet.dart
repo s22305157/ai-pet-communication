@@ -15,8 +15,9 @@ import '../../../../injection.dart';
 
 class PetFormSheet extends StatefulWidget {
   final PetModel? existingPet;
+  final PetService? petService;
 
-  const PetFormSheet({super.key, this.existingPet});
+  const PetFormSheet({super.key, this.existingPet, this.petService});
 
   @override
   State<PetFormSheet> createState() => _PetFormSheetState();
@@ -24,7 +25,7 @@ class PetFormSheet extends StatefulWidget {
 
 class _PetFormSheetState extends State<PetFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _petService = getIt<PetService>();
+  late final _petService = widget.petService ?? getIt<PetService>();
   final _picker = ImagePicker();
   bool _isSaving = false;
   bool _isUploadingAvatar = false;
