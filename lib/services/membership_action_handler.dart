@@ -28,7 +28,7 @@ class MembershipActionHandler {
       return;
     }
 
-    final type = user.membershipType?.toLowerCase() ?? 'free';
+    final type = user.membershipType.toLowerCase();
 
     if (type == 'pro') {
       // Pro 會員：無限次溝通，不需要點數，但可能在某些情境展示專屬 Pro 體驗
@@ -153,7 +153,7 @@ class MembershipActionHandler {
                           
                           // 播放非 Pro 會員插頁廣告
                           final user = await _authService.getUserData();
-                          if (user != null && (user.membershipType?.toLowerCase() ?? 'free') != 'pro') {
+                          if (user != null && user.membershipType.toLowerCase() != 'pro') {
                             await _adService.showInterstitialAd();
                           }
                           
