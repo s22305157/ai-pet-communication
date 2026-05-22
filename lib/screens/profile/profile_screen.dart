@@ -8,6 +8,7 @@ import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../injection.dart';
+import '../../utils/web_helper.dart';
 import 'account_info_screen.dart';
 import 'settings_screen.dart';
 
@@ -92,7 +93,7 @@ class ProfileScreen extends StatelessWidget {
                           child: ClipOval(
                             child: photoUrl != null && photoUrl.isNotEmpty
                                 ? Image.network(
-                                    photoUrl,
+                                    WebHelper.getWebSafeUrl(photoUrl),
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Icon(Icons.person_rounded, size: 50, color: tierColor);

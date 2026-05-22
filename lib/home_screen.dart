@@ -14,6 +14,7 @@ import 'models/user_model.dart';
 import 'screens/profile/settings_screen.dart';
 import 'services/ad_service.dart';
 import 'injection.dart';
+import 'utils/web_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel user;
@@ -381,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: ClipOval(
                             child: photoUrl != null && photoUrl.isNotEmpty
                                 ? Image.network(
-                                    photoUrl,
+                                    WebHelper.getWebSafeUrl(photoUrl),
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Icon(Icons.person_rounded, color: borderColor, size: 26);
