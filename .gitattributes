@@ -1,0 +1,2 @@
+# Filter configuration for encrypting core_knowledge_base.md
+assets/ai_logic/knowledge/core_knowledge_base.md filter=kbcrypt
