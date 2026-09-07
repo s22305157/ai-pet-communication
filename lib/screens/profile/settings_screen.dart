@@ -66,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
                 _buildSettingTile(
                   icon: Icons.info_outline_rounded,
                   title: '版本號',
-                  trailing: const Text('0.1.3'),
+                  trailing: const Text('0.1.4'),
                 ),
                 _buildSettingTile(
                   icon: Icons.bug_report_outlined,
