@@ -45,9 +45,9 @@ class PetModel {
       'color': color,
       'weight': weight,
     };
-    
+
     if (isLocal) {
-      map['updated_at'] = DateTime.now().toIso8601String();
+      map['updated_at'] = (updatedAt ?? DateTime.now()).toIso8601String();
       if (createdAt == null) {
         map['created_at'] = DateTime.now().toIso8601String();
       } else {
@@ -59,7 +59,7 @@ class PetModel {
         map['created_at'] = FieldValue.serverTimestamp();
       }
     }
-    
+
     return map;
   }
 
@@ -104,6 +104,8 @@ class PetModel {
     String? avatarUrl,
     String? color,
     double? weight,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return PetModel(
       petId: petId ?? this.petId,
@@ -117,8 +119,8 @@ class PetModel {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       color: color ?? this.color,
       weight: weight ?? this.weight,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

@@ -3,6 +3,8 @@
 // PAWLINK - 寵物溝通輸入頁
 // ============================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants.dart';
@@ -13,24 +15,36 @@ import '../application/chat_controller.dart';
 import '../domain/ai_request_model.dart';
 import 'chat_ui_texts.dart';
 import 'communication_result_screen.dart';
+import '../../../services/credit_service.dart';
 
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
+  final String? creditReservationId;
 
-  const PetCommunicationInputScreen({super.key, required this.pet});
+  const PetCommunicationInputScreen({
+    super.key,
+    required this.pet,
+    this.creditReservationId,
+  });
 
   @override
-  State<PetCommunicationInputScreen> createState() => _PetCommunicationInputScreenState();
+  State<PetCommunicationInputScreen> createState() =>
+      _PetCommunicationInputScreenState();
 }
 
-class _PetCommunicationInputScreenState extends State<PetCommunicationInputScreen> {
+class _PetCommunicationInputScreenState
+    extends State<PetCommunicationInputScreen> {
   final TextEditingController _storyController = TextEditingController();
-  final List<TextEditingController> _questionControllers = 
-      List.generate(5, (_) => TextEditingController());
-  
+  final List<TextEditingController> _questionControllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
+
   bool _isLoading = false;
   bool _hasRedFlags = false;
   int _wordCount = 0;
+  bool _creditFinalized = false;
+  Future<void>? _releaseFuture;
 
   @override
   void initState() {
@@ -43,6 +57,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
 
   @override
   void dispose() {
+    if (!_creditFinalized && widget.creditReservationId != null) {
+      unawaited(
+        _releaseReservation().catchError((Object error) {
+          debugPrint('Credit release on screen close failed: $error');
+        }),
+      );
+    }
     _storyController.removeListener(_onTextChanged);
     _storyController.dispose();
     for (var controller in _questionControllers) {
@@ -54,22 +75,52 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
 
   void _onTextChanged() {
     final storyText = _storyController.text.trim();
-    final questionsText = _questionControllers.map((c) => c.text.trim()).join(' ');
-    
+    final questionsText = _questionControllers
+        .map((c) => c.text.trim())
+        .join(' ');
+
     setState(() {
       _wordCount = storyText.length;
-      _hasRedFlags = PromptManager.detectRedFlags(storyText) || 
-                     PromptManager.detectRedFlags(questionsText);
+      _hasRedFlags =
+          PromptManager.detectRedFlags(storyText) ||
+          PromptManager.detectRedFlags(questionsText);
     });
   }
 
   bool get _useSafeMode => _wordCount < 300 || _hasRedFlags;
 
+  CreditService get _creditService => getIt<CreditService>();
+
+  Future<void> _settleReservation() async {
+    final requestId = widget.creditReservationId;
+    if (requestId == null || _creditFinalized) return;
+    if (_releaseFuture != null) await _releaseFuture;
+    if (_creditFinalized) return;
+    await _creditService.settleCommunication(requestId);
+    _creditFinalized = true;
+  }
+
+  Future<void> _releaseReservation() {
+    final requestId = widget.creditReservationId;
+    if (requestId == null || _creditFinalized) return Future<void>.value();
+    return _releaseFuture ??= _performRelease(requestId);
+  }
+
+  Future<void> _performRelease(String requestId) async {
+    try {
+      await _creditService.releaseCommunication(requestId);
+      _creditFinalized = true;
+    } finally {
+      if (!_creditFinalized) _releaseFuture = null;
+    }
+  }
+
   Future<void> _handleSubmit() async {
+    if (_isLoading) return;
     if (_storyController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')));
       return;
     }
 
@@ -107,28 +158,93 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
       );
 
       // 3. 發送請求
-      final result = await controller.handleCommunication(widget.pet.petId!, request);
+      final outcome = await controller.handleCommunicationWithPersistence(
+        widget.pet.petId,
+        request,
+      );
+
+      // AI 已成功產生結果才結算；同一 request ID 重試不會重複扣點。
+      await _settleReservation();
+      await _showPersistenceWarning(controller, outcome);
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => CommunicationResultScreen(
-              result: result,
+              result: outcome.response,
               pet: widget.pet,
             ),
           ),
         );
       }
     } catch (e) {
+      Object? releaseError;
+      try {
+        await _releaseReservation();
+      } catch (error) {
+        releaseError = error;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('溝通失敗: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(
+              releaseError == null
+                  ? '溝通失敗，預留點數已退回: $e'
+                  : '溝通失敗，點數退回待重試，請稍後查看餘額: $e',
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
         );
+        // 預留已結束；重新開始時必須取得新的 request ID。
+        if (widget.creditReservationId != null) {
+          Navigator.pop(context);
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showPersistenceWarning(
+    ChatController controller,
+    CommunicationOutcome outcome,
+  ) async {
+    if (!mounted || outcome.persistenceFailure == null) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('紀錄尚未儲存'),
+        content: const Text('AI 回應已完成，但溝通紀錄儲存失敗。您可以立即重試，或先查看結果。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('先查看結果'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                await controller.retryPersistence(outcome);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('溝通紀錄已儲存')));
+                }
+              } catch (error) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('仍無法儲存，請稍後再試: $error')),
+                  );
+                }
+              }
+            },
+            child: const Text('重試儲存'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -136,7 +252,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('與 ${widget.pet.name} 溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          '與 ${widget.pet.name} 溝通',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -172,10 +291,14 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isSafe ? AppColors.secondary.withOpacity(0.1) : AppColors.primary.withOpacity(0.1),
+        color: isSafe
+            ? AppColors.secondary.withOpacity(0.1)
+            : AppColors.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSafe ? AppColors.secondary.withOpacity(0.3) : AppColors.primary.withOpacity(0.3),
+          color: isSafe
+              ? AppColors.secondary.withOpacity(0.3)
+              : AppColors.primary.withOpacity(0.3),
         ),
       ),
       child: Column(
@@ -200,8 +323,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
           ),
           const SizedBox(height: 8),
           Text(
-            isSafe ? ChatUiTexts.safeModeSubtitle : '當前資訊充足，AI 將結合毛孩檔案進行多維度的深度分析。',
-            style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary),
+            isSafe
+                ? ChatUiTexts.safeModeSubtitle
+                : '當前資訊充足，AI 將結合毛孩檔案進行多維度的深度分析。',
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -216,11 +344,18 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         children: [
           Text(
             title,
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           Text(
             subtitle,
-            style: GoogleFonts.outfit(fontSize: 14, color: AppColors.textSecondary),
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -233,7 +368,11 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -245,8 +384,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
             style: GoogleFonts.outfit(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: '描述毛孩最近的表現、食慾、心情或特別的事...',
-              hintStyle: GoogleFonts.outfit(color: AppColors.textSecondary.withOpacity(0.5)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              hintStyle: GoogleFonts.outfit(
+                color: AppColors.textSecondary.withOpacity(0.5),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
               contentPadding: const EdgeInsets.all(20),
             ),
           ),
@@ -259,15 +403,22 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
                   '$_wordCount 字',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    color: _wordCount >= 300 ? Colors.green : AppColors.textSecondary,
-                    fontWeight: _wordCount >= 300 ? FontWeight.bold : FontWeight.normal,
+                    color: _wordCount >= 300
+                        ? Colors.green
+                        : AppColors.textSecondary,
+                    fontWeight: _wordCount >= 300
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
                 if (_wordCount < 300) ...[
                   const SizedBox(width: 8),
                   Text(
                     '(滿 300 字開啟深度模式)',
-                    style: GoogleFonts.outfit(fontSize: 11, color: AppColors.textSecondary.withOpacity(0.7)),
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: AppColors.textSecondary.withOpacity(0.7),
+                    ),
                   ),
                 ],
               ],
@@ -286,8 +437,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         style: GoogleFonts.outfit(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: '問題 ${index + 1} (選填)',
-          hintStyle: GoogleFonts.outfit(color: AppColors.textSecondary.withOpacity(0.5)),
-          prefixIcon: Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.5)),
+          hintStyle: GoogleFonts.outfit(
+            color: AppColors.textSecondary.withOpacity(0.5),
+          ),
+          prefixIcon: Icon(
+            Icons.help_outline,
+            color: AppColors.primary.withOpacity(0.5),
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
@@ -298,7 +454,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -312,13 +471,19 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 2,
           shadowColor: AppColors.primary.withOpacity(0.3),
         ),
         child: Text(
           '發送溝通請求',
-          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -341,7 +506,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
               const SizedBox(height: 24),
               Text(
                 '連結感應中...',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

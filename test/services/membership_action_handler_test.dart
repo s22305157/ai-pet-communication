@@ -6,15 +6,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
 import 'package:ai_pet_communication/services/auth_service.dart';
 import 'package:ai_pet_communication/services/ad_service.dart';
+import 'package:ai_pet_communication/services/credit_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 
 class MockAuthService extends Mock implements AuthService {}
+
 class MockAdService extends Mock implements AdService {}
+
+class MockCreditService extends Mock implements CreditService {}
 
 void main() {
   late MockAuthService mockAuthService;
   late MockAdService mockAdService;
+  late MockCreditService mockCreditService;
   late MembershipActionHandler handler;
   late PetModel pet;
 
@@ -26,7 +31,12 @@ void main() {
   setUp(() {
     mockAuthService = MockAuthService();
     mockAdService = MockAdService();
-    handler = MembershipActionHandler(mockAuthService, mockAdService);
+    mockCreditService = MockCreditService();
+    handler = MembershipActionHandler(
+      mockAuthService,
+      mockAdService,
+      mockCreditService,
+    );
 
     pet = PetModel(
       petId: 'pet123',
@@ -66,7 +76,7 @@ void main() {
                   await handler.handleStartCommunication(
                     context,
                     pet,
-                    onAllowed: () => allowedCalled = true,
+                    onAllowed: (_) => allowedCalled = true,
                   );
                 },
                 child: const Text('Start'),
@@ -107,7 +117,7 @@ void main() {
                   await handler.handleStartCommunication(
                     context,
                     pet,
-                    onAllowed: () => allowedCalled = true,
+                    onAllowed: (_) => allowedCalled = true,
                   );
                 },
                 child: const Text('Start'),
@@ -126,7 +136,9 @@ void main() {
     expect(find.text('解鎖 Pro 方案'), findsOneWidget);
   });
 
-  testWidgets('Free 會員且擁有足夠點數：觸開扣點確認彈窗，確認扣點後扣除 1 PT 並執行插頁廣告與准入', (WidgetTester tester) async {
+  testWidgets('Free 會員且擁有足夠點數：觸開扣點確認彈窗，確認扣點後扣除 1 PT 並執行插頁廣告與准入', (
+    WidgetTester tester,
+  ) async {
     final freeUser = UserModel(
       uid: 'user123',
       email: 'free@example.com',
@@ -136,7 +148,18 @@ void main() {
     );
 
     when(() => mockAuthService.getUserData()).thenAnswer((_) async => freeUser);
-    when(() => mockAuthService.consumePoints(1)).thenAnswer((_) async => freeUser.copyWith(points: 4));
+    when(
+      () => mockCreditService.reserveCommunication(
+        requestId: any(named: 'requestId'),
+        petId: 'pet123',
+      ),
+    ).thenAnswer(
+      (_) async => const CreditReservation(
+        requestId: 'reservation-123456',
+        status: 'reserved',
+        pointsRemaining: 4,
+      ),
+    );
     when(() => mockAdService.showInterstitialAd()).thenAnswer((_) async => {});
 
     bool allowedCalled = false;
@@ -151,7 +174,10 @@ void main() {
                   await handler.handleStartCommunication(
                     context,
                     pet,
-                    onAllowed: () => allowedCalled = true,
+                    onAllowed: (requestId) {
+                      expect(requestId, 'reservation-123456');
+                      allowedCalled = true;
+                    },
                   );
                 },
                 child: const Text('Start'),
@@ -168,14 +194,22 @@ void main() {
     expect(allowedCalled, isFalse);
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('開始溝通'), findsOneWidget);
-    expect(find.text('本次與 Buddy 的溝通將消耗 1 PT 點數。\n升級會員可享優惠或無限次溝通！'), findsOneWidget);
+    expect(
+      find.text('本次與 Buddy 的溝通會先預留 1 PT。\n完成 AI 溝通後才結算；取消或失敗會退回。'),
+      findsOneWidget,
+    );
 
     // 點擊確認扣點
-    await tester.tap(find.text('確認扣點'));
+    await tester.tap(find.text('確認並預留'));
     await tester.pumpAndSettle();
 
     // 驗證是否扣點與播放廣告
-    verify(() => mockAuthService.consumePoints(1)).called(1);
+    verify(
+      () => mockCreditService.reserveCommunication(
+        requestId: any(named: 'requestId'),
+        petId: 'pet123',
+      ),
+    ).called(1);
     verify(() => mockAdService.showInterstitialAd()).called(1);
     expect(allowedCalled, isTrue);
   });
@@ -189,7 +223,9 @@ void main() {
       membershipTier: 'free',
     );
 
-    when(() => mockAuthService.getUserData()).thenAnswer((_) async => freeUser0);
+    when(
+      () => mockAuthService.getUserData(),
+    ).thenAnswer((_) async => freeUser0);
 
     bool allowedCalled = false;
 
@@ -203,7 +239,7 @@ void main() {
                   await handler.handleStartCommunication(
                     context,
                     pet,
-                    onAllowed: () => allowedCalled = true,
+                    onAllowed: (_) => allowedCalled = true,
                   );
                 },
                 child: const Text('Start'),
@@ -220,6 +256,6 @@ void main() {
     expect(allowedCalled, isFalse);
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('解鎖 Plus 方案'), findsOneWidget);
-    expect(find.text('觀看影片領點數'), findsOneWidget);
+    expect(find.text('觀看影片領點數'), findsNothing);
   });
 }

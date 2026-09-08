@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.1.1
+version: 0.1.2
 
 environment:
   sdk: ^3.11.5
@@ -37,6 +37,7 @@ dependencies:
   firebase_core: ^4.7.0
   firebase_auth: ^6.4.0
   cloud_firestore: ^6.3.0
+  cloud_functions: ^6.4.0
 
   google_fonts: ^6.2.1
   animations: ^2.0.11
@@ -68,6 +69,11 @@ dev_dependencies:
   hive_generator: ^2.0.1
   build_runner: ^2.4.13
   mocktail: ^1.0.5
+
+# firebase_core_web 3.11.0 uses a Dart 3.12-only JS interop extension despite
+# declaring an older SDK floor. Keep Functions 6.4 while this app uses Dart 3.11.
+dependency_overrides:
+  firebase_core_web: 3.10.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

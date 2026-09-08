@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uuid/uuid.dart';
 
 import '../features/pet/domain/models/pet_model.dart';
 import '../screens/profile/settings_screen.dart';
@@ -7,24 +8,33 @@ import '../constants.dart';
 import 'auth_service.dart';
 import 'ad_service.dart';
 import 'error_service.dart';
+import 'credit_service.dart';
+
+typedef CommunicationAllowed = void Function(String? creditReservationId);
 
 class MembershipActionHandler {
   final AuthService _authService;
   final AdService _adService;
+  final CreditService _creditService;
 
-  MembershipActionHandler(this._authService, this._adService);
+  MembershipActionHandler(
+    this._authService,
+    this._adService,
+    this._creditService,
+  );
 
   /// 處理開始與 AI 寵物溝通的完整入口決策 (含扣點、廣告、升級判定)
   Future<void> handleStartCommunication(
     BuildContext context,
     PetModel pet, {
-    required VoidCallback onAllowed,
+    required CommunicationAllowed onAllowed,
   }) async {
     final user = await _authService.getUserData();
+    if (!context.mounted) return;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先登入帳號')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先登入帳號')));
       return;
     }
 
@@ -32,7 +42,7 @@ class MembershipActionHandler {
 
     if (type == 'pro') {
       // Pro 會員：無限次溝通，不需要點數，但可能在某些情境展示專屬 Pro 體驗
-      onAllowed();
+      onAllowed(null);
     } else if (type == 'plus') {
       // Plus 會員：需升級至 Pro 才能享受無限次溝通，或者彈出升級提醒
       showUpgradeDialog(context, currentTier: 'plus');
@@ -41,7 +51,7 @@ class MembershipActionHandler {
       if (user.points > 0) {
         showPointConsumptionDialog(context, pet, onAllowed: onAllowed);
       } else {
-        // 沒有點數，引導升級或觀看影片領點數
+        // 沒有點數，引導升級
         showUpgradeDialog(context, currentTier: 'free');
       }
     }
@@ -73,24 +83,25 @@ class MembershipActionHandler {
           children: [
             Text(message, style: GoogleFonts.outfit()),
             const SizedBox(height: 16),
-            _buildFeatureItem(Icons.cloud_sync_rounded, currentTier == 'free' ? '雲端即時備份與同步' : '雲端最速同步優先權'),
+            _buildFeatureItem(
+              Icons.cloud_sync_rounded,
+              currentTier == 'free' ? '雲端即時備份與同步' : '雲端最速同步優先權',
+            ),
             _buildFeatureItem(Icons.devices_rounded, '跨裝置隨時隨地存取'),
-            _buildFeatureItem(Icons.auto_awesome_rounded, currentTier == 'free' ? 'AI 溝通點數加成' : '無限次 AI 寵物溝通'),
+            _buildFeatureItem(
+              Icons.auto_awesome_rounded,
+              currentTier == 'free' ? 'AI 溝通點數加成' : '無限次 AI 寵物溝通',
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
-          ),
-          if (currentTier == 'free')
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                showRewardedAdOption(context);
-              },
-              child: const Text('觀看影片領點數', style: TextStyle(color: AppColors.secondary)),
+            child: Text(
+              '稍後再說',
+              style: GoogleFonts.outfit(color: AppColors.textSecondary),
             ),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -101,10 +112,18 @@ class MembershipActionHandler {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: tierColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 0,
             ),
-            child: Text('了解 $targetTier 方案', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              '了解 $targetTier 方案',
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -115,7 +134,7 @@ class MembershipActionHandler {
   void showPointConsumptionDialog(
     BuildContext context,
     PetModel pet, {
-    required VoidCallback onAllowed,
+    required CommunicationAllowed onAllowed,
   }) {
     bool isProcessing = false;
 
@@ -124,12 +143,17 @@ class MembershipActionHandler {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text('開始溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            '開始溝通',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('本次與 ${pet.name} 的溝通將消耗 1 PT 點數。\n升級會員可享優惠或無限次溝通！'),
+              Text('本次與 ${pet.name} 的溝通會先預留 1 PT。\n完成 AI 溝通後才結算；取消或失敗會退回。'),
               if (isProcessing) ...[
                 const SizedBox(height: 20),
                 const CircularProgressIndicator(color: AppColors.primary),
@@ -139,80 +163,86 @@ class MembershipActionHandler {
           actions: [
             TextButton(
               onPressed: isProcessing ? null : () => Navigator.pop(ctx),
-              child: Text('稍後', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
+              child: Text(
+                '稍後',
+                style: GoogleFonts.outfit(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               onPressed: isProcessing
                   ? null
                   : () async {
                       setDialogState(() => isProcessing = true);
+                      String? reservationId;
                       try {
-                        await _authService.consumePoints(1);
-                        if (context.mounted) {
-                          Navigator.pop(ctx); // 關閉扣點彈窗
-                          
-                          // 播放非 Pro 會員插頁廣告
-                          final user = await _authService.getUserData();
-                          if (user != null && user.membershipType.toLowerCase() != 'pro') {
-                            await _adService.showInterstitialAd();
-                          }
-                          
-                          onAllowed(); // 允許進行溝通跳轉
+                        reservationId = const Uuid().v4();
+                        final reservation = await _creditService
+                            .reserveCommunication(
+                              requestId: reservationId,
+                              petId: pet.petId,
+                            );
+                        reservationId = reservation.requestId;
+                        if (!context.mounted) {
+                          await _creditService.releaseCommunication(
+                            reservationId,
+                          );
+                          return;
                         }
+                        Navigator.pop(ctx); // 關閉點數預留彈窗
+
+                        // 廣告失敗不應吞掉已取得的使用資格。
+                        try {
+                          await _adService.showInterstitialAd();
+                        } catch (_) {}
+
+                        if (!context.mounted) {
+                          await _creditService.releaseCommunication(
+                            reservationId,
+                          );
+                          return;
+                        }
+                        onAllowed(reservationId); // 允許進行溝通跳轉
                       } catch (e) {
-                        if (context.mounted) {
+                        if (reservationId != null) {
+                          try {
+                            await _creditService.releaseCommunication(
+                              reservationId,
+                            );
+                          } catch (_) {
+                            // 後端操作具冪等性；下次可使用同一 request ID 重試。
+                          }
+                        }
+                        if (ctx.mounted) {
                           setDialogState(() => isProcessing = false);
+                        }
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('扣點失敗: ${ErrorService.getErrorMessage(e)}')),
+                            SnackBar(
+                              content: Text(
+                                '點數預留失敗: ${ErrorService.getErrorMessage(e)}',
+                              ),
+                            ),
                           );
                         }
                       }
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
-              child: const Text('確認扣點', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                '確認並預留',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// 顯示看影片拿點數確認對話框
-  void showRewardedAdOption(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Row(
-          children: [
-            const Icon(Icons.video_collection_rounded, color: AppColors.secondary),
-            const SizedBox(width: 12),
-            Text('獲得點數', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text('觀看一段短片，即可免費獲得 1 PT 溝通點數！'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('稍後再說', style: GoogleFonts.outfit(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _adService.watchAdForPoints(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: const Text('觀看影片', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }

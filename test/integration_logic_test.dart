@@ -1,178 +1,50 @@
+import 'package:ai_pet_communication/features/pet/application/pet_sync_manager.dart';
+import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
+import 'package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
-import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
-import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
-import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
-class MockFirestore extends Mock implements FirebaseFirestore {}
-class MockStorage extends Mock implements FirebaseStorage {}
 class MockLocalPetService extends Mock implements LocalPetService {}
-class MockAuthService extends Mock implements AuthService {}
-class MockCollectionReference extends Mock implements CollectionReference<Map<String, dynamic>> {}
-class MockQuery extends Mock implements Query<Map<String, dynamic>> {}
-class MockQuerySnapshot extends Mock implements QuerySnapshot<Map<String, dynamic>> {}
-class MockQueryDocumentSnapshot extends Mock implements QueryDocumentSnapshot<Map<String, dynamic>> {}
+
+class MockPetRemoteDataSource extends Mock implements PetRemoteDataSource {}
+
+PetModel pet(DateTime updatedAt) => PetModel(
+  petId: 'pet-1',
+  ownerId: 'owner-a',
+  name: 'pet',
+  species: 'cat',
+  breed: '',
+  gender: '',
+  birthday: '',
+  personality: '',
+  avatarUrl: '',
+  updatedAt: updatedAt,
+);
 
 void main() {
-  late PetService petService;
-  late MockFirestore mockDb;
-  late MockStorage mockStorage;
-  late MockLocalPetService mockLocal;
-  late MockAuthService mockAuth;
-
-  setUp(() {
-    mockDb = MockFirestore();
-    mockStorage = MockStorage();
-    mockLocal = MockLocalPetService();
-    mockAuth = MockAuthService();
-    
-    // 設定預設 Mock 行為
-    final testUser = UserModel(
-      uid: 'user123',
-      email: 'test@example.com',
-      displayName: 'Test User',
-      membershipTier: 'pro',
-      points: 100,
+  group('PetSyncManager conflict resolution', () {
+    final manager = PetSyncManager(
+      localService: MockLocalPetService(),
+      remoteDataSource: MockPetRemoteDataSource(),
     );
-    registerFallbackValue(PetModel(
-      petId: 'dummy',
-      ownerId: 'dummy',
-      name: 'dummy',
-      species: 'dummy',
-      breed: 'dummy',
-      gender: 'dummy',
-      birthday: 'dummy',
-      personality: 'dummy',
-      avatarUrl: 'dummy',
-    ));
-    
-    when(() => mockAuth.getUserStream()).thenAnswer((_) => Stream.value(testUser));
-    when(() => mockAuth.getUserData()).thenAnswer((_) async => testUser);
-    when(() => mockLocal.updatePet(any(), any())).thenAnswer((_) async {});
-    when(() => mockLocal.deletePet(any())).thenAnswer((_) async {});
-    
-    petService = PetService(
-      firestore: mockDb,
-      storage: mockStorage,
-      localService: mockLocal,
-      authService: mockAuth,
-    );
-  });
 
-  group('PetService Migration & Conflict Resolution', () {
-    test('遷移時應正確解決衝突 (本地較新勝出)', () async {
-      final uid = 'user123';
-      final localPet = PetModel(
-        petId: 'local_id',
-        ownerId: uid,
-        name: '小乖',
-        species: '狗',
-        breed: '柴犬',
-        gender: '公',
-        birthday: '2023',
-        personality: '活潑',
-        avatarUrl: 'url_local',
-        updatedAt: DateTime(2024, 1, 2), // 較新的時間
+    test('newer local revision wins', () {
+      expect(
+        manager.resolveConflict(pet(DateTime(2026, 2)), pet(DateTime(2026, 1))),
+        true,
       );
-
-      final cloudPet = PetModel(
-        petId: 'cloud_id',
-        ownerId: uid,
-        name: '小乖',
-        species: '狗',
-        breed: '柴犬',
-        gender: '公',
-        birthday: '2023',
-        personality: '活潑',
-        avatarUrl: 'url_cloud',
-        updatedAt: DateTime(2024, 1, 1), // 較舊的時間
-      );
-
-      // 模擬本地有資料
-      when(() => mockLocal.getAllPets()).thenReturn([localPet]);
-
-      // 模擬雲端查詢與監聽
-      final mockCollection = MockCollectionReference();
-      final mockQuery = MockQuery();
-      final mockSnapshot = MockQuerySnapshot();
-      final mockDoc = MockQueryDocumentSnapshot();
-
-      when(() => mockDb.collection('pets')).thenReturn(mockCollection);
-      when(() => mockCollection.where('owner_id', isEqualTo: uid)).thenReturn(mockQuery);
-      when(() => mockQuery.where('name', isEqualTo: '小乖')).thenReturn(mockQuery);
-      when(() => mockQuery.get()).thenAnswer((_) async => mockSnapshot);
-      when(() => mockQuery.snapshots()).thenAnswer((_) => Stream.value(mockSnapshot)); // 補上這個
-      
-      when(() => mockSnapshot.docs).thenReturn([mockDoc]);
-      when(() => mockDoc.id).thenReturn('cloud_id');
-      when(() => mockDoc.exists).thenReturn(true);
-      // 手動模擬雲端資料，確保時間是舊的 (2024-01-01)
-      when(() => mockDoc.data()).thenReturn({
-        'pet_id': 'cloud_id',
-        'owner_id': uid,
-        'name': '小乖',
-        'species': '狗',
-        'updated_at': '2024-01-01T00:00:00.000',
-      });
-
-      // 模擬更新雲端
-      final mockDocRef = MockDocumentReference();
-      when(() => mockCollection.doc(any())).thenReturn(mockDocRef as DocumentReference<Map<String, dynamic>>);
-      when(() => mockDocRef.get()).thenAnswer((_) async => mockDoc as DocumentSnapshot<Map<String, dynamic>>);
-      when(() => mockDocRef.update(any())).thenAnswer((_) async {});
-
-      // 執行測試
-      await petService.watchPetsByOwner(uid).first;
-
-      // 驗證
-      verify(() => mockDocRef.update(any())).called(1);
     });
 
-    test('更新時應防止舊資料覆蓋新雲端資料 (雲端較新勝出)', () async {
-      final uid = 'user123';
-      final petId = 'pet_abc';
-      final mockCollection = MockCollectionReference();
-      
-      // 本地資料 (較舊)
-      final localPet = PetModel(
-        petId: petId,
-        ownerId: uid,
-        name: '小乖',
-        species: '狗',
-        breed: '柴犬',
-        gender: '公',
-        birthday: '2023',
-        personality: '活潑',
-        avatarUrl: 'url_old',
-        updatedAt: DateTime(2024, 1, 1),
+    test('equal or newer cloud revision wins', () {
+      expect(
+        manager.resolveConflict(pet(DateTime(2026, 1)), pet(DateTime(2026, 2))),
+        false,
       );
-
-      // 雲端資料 (較新)
-      final mockDoc = MockQueryDocumentSnapshot();
-      final mockDocRef = MockDocumentReference();
-      
-      when(() => mockDb.collection('pets')).thenReturn(mockCollection);
-      when(() => mockCollection.doc(petId)).thenReturn(mockDocRef as DocumentReference<Map<String, dynamic>>);
-      when(() => mockDocRef.get()).thenAnswer((_) async => mockDoc as DocumentSnapshot<Map<String, dynamic>>);
-      when(() => mockDoc.exists).thenReturn(true);
-      when(() => mockDoc.id).thenReturn(petId); // 補上這個
-      when(() => mockDoc.data()).thenReturn({
-        'owner_id': uid,
-        'name': '小乖',
-        'updated_at': '2024-01-02T00:00:00.000', // 雲端較新
-      });
-
-      // 執行更新
-      await petService.updatePet(petId, localPet);
-
-      // 驗證：不應該呼叫 update
-      verifyNever(() => mockDocRef.update(any()));
+      expect(
+        manager.resolveConflict(pet(DateTime(2026, 1)), pet(DateTime(2026, 1))),
+        false,
+      );
     });
   });
 }
-
-class MockDocumentReference extends Mock implements DocumentReference<Map<String, dynamic>> {}

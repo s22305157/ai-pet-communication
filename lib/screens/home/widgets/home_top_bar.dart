@@ -5,7 +5,7 @@ import '../../../../services/auth_service.dart';
 import '../../../../services/ad_service.dart';
 import '../../../../services/membership_action_handler.dart';
 import '../../../../features/pet/application/pet_service.dart';
-import '../../../../utils/web_helper.dart';
+import '../../../../widgets/authenticated_network_image.dart';
 import '../../../../constants.dart';
 import '../../profile/profile_screen.dart';
 
@@ -39,18 +39,21 @@ class HomeTopBar extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
+                    ),
                   );
                 },
                 child: StreamBuilder<UserModel?>(
                   stream: authService.getUserStream(),
                   builder: (context, userSnap) {
-                    final tier = userSnap.data?.membershipType?.toLowerCase() ?? 'free';
+                    final tier =
+                        userSnap.data?.membershipType?.toLowerCase() ?? 'free';
                     final borderColor = tier == 'pro'
                         ? Colors.amber
                         : tier == 'plus'
-                            ? Colors.blue
-                            : Colors.grey.shade400;
+                        ? Colors.blue
+                        : Colors.grey.shade400;
                     final photoUrl = userSnap.data?.photoURL ?? user.photoURL;
                     return Hero(
                       tag: 'profile_avatar',
@@ -69,27 +72,47 @@ class HomeTopBar extends StatelessWidget {
                           ),
                           child: ClipOval(
                             child: photoUrl != null && photoUrl.isNotEmpty
-                                ? Image.network(
-                                    WebHelper.getWebSafeUrl(photoUrl),
+                                ? AuthenticatedNetworkImage(
+                                    url: photoUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(Icons.person_rounded, color: borderColor, size: 26);
-                                    },
-                                    loadingBuilder: (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: borderColor,
-                                          ),
+                                    authLoadingPlaceholder: Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: borderColor,
                                         ),
+                                      ),
+                                    ),
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(
+                                        Icons.person_rounded,
+                                        color: borderColor,
+                                        size: 26,
                                       );
                                     },
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Center(
+                                            child: SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: borderColor,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                   )
-                                : Icon(Icons.person_rounded, color: borderColor, size: 26),
+                                : Icon(
+                                    Icons.person_rounded,
+                                    color: borderColor,
+                                    size: 26,
+                                  ),
                           ),
                         ),
                       ),
@@ -104,15 +127,17 @@ class HomeTopBar extends StatelessWidget {
                   StreamBuilder<UserModel?>(
                     stream: authService.getUserStream(),
                     builder: (context, userSnap) {
-                      final tier = userSnap.data?.membershipType?.toLowerCase() ?? 'free';
+                      final tier =
+                          userSnap.data?.membershipType?.toLowerCase() ??
+                          'free';
                       final nameColor = tier == 'pro'
                           ? Colors.amber.shade700
                           : tier == 'plus'
-                              ? Colors.blue.shade700
-                              : AppColors.textPrimary;
+                          ? Colors.blue.shade700
+                          : AppColors.textPrimary;
                       final firestoreName = userSnap.data?.displayName;
                       final authName = user.displayName;
-                      
+
                       // 優先順序：Firestore 名稱 -> Auth 名稱 -> 預設名稱
                       String displayName = '毛小孩主人';
                       if (firestoreName != null && firestoreName.isNotEmpty) {
@@ -131,27 +156,6 @@ class HomeTopBar extends StatelessWidget {
                               color: nameColor,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // 測試用：後台加點按鈕
-                          GestureDetector(
-                            onTap: () async {
-                              try {
-                                await authService.consumePoints(-15);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('已為您領取 15 點測試點數！')),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('加點失敗: $e')),
-                                  );
-                                }
-                              }
-                            },
-                            child: const Icon(Icons.card_giftcard_rounded, size: 20, color: AppColors.secondary),
-                          ),
                         ],
                       );
                     },
@@ -160,7 +164,7 @@ class HomeTopBar extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // 右側區塊：同步狀態與點數
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -177,27 +181,32 @@ class HomeTopBar extends StatelessWidget {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondary),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.secondary,
+                          ),
                         ),
                       ),
                     );
                   }
-                  
+
                   return ValueListenableBuilder<bool>(
                     valueListenable: petService.isCloudActive,
                     builder: (context, isCloud, _) {
                       return StreamBuilder<UserModel?>(
                         stream: authService.getUserStream(),
                         builder: (context, userSnap) {
-                          final hasCloudSupport = userSnap.data?.membershipType != 'free';
-                          
+                          final hasCloudSupport =
+                              userSnap.data?.membershipType != 'free';
+
                           // 根據狀態決定顏色與圖示
                           Color iconColor;
                           IconData iconData;
                           String tooltip;
 
                           if (!hasCloudSupport) {
-                            iconColor = AppColors.textSecondary.withOpacity(0.5);
+                            iconColor = AppColors.textSecondary.withOpacity(
+                              0.5,
+                            );
                             iconData = Icons.storage_rounded;
                             tooltip = '本地儲存模式 (Free)';
                           } else if (!isCloud) {
@@ -217,18 +226,29 @@ class HomeTopBar extends StatelessWidget {
                               child: InkWell(
                                 onTap: () {
                                   if (!hasCloudSupport) {
-                                    membershipHandler.showUpgradeDialog(context, currentTier: 'free');
+                                    membershipHandler.showUpgradeDialog(
+                                      context,
+                                      currentTier: 'free',
+                                    );
                                   } else if (!isCloud) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('目前網路不穩，已自動啟動本地保護機制')),
+                                      const SnackBar(
+                                        content: Text('目前網路不穩，已自動啟動本地保護機制'),
+                                      ),
                                     );
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('您的資料已由雲端安全守護')),
+                                      const SnackBar(
+                                        content: Text('您的資料已由雲端安全守護'),
+                                      ),
                                     );
                                   }
                                 },
-                                child: Icon(iconData, size: 20, color: iconColor),
+                                child: Icon(
+                                  iconData,
+                                  size: 20,
+                                  color: iconColor,
+                                ),
                               ),
                             ),
                           );
@@ -245,42 +265,46 @@ class HomeTopBar extends StatelessWidget {
                   final userObj = snapshot.data;
                   final points = userObj?.points ?? 0;
 
-                  return GestureDetector(
-                    onTap: () => adService.watchAdForPoints(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.pets_rounded,
+                          color: AppColors.secondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$points PT',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
                           ),
-                        ],
-                        border: Border.all(color: Colors.white.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.pets_rounded,
-                            color: AppColors.secondary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$points PT',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.add_circle_outline, size: 16, color: AppColors.primary),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.add_circle_outline,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
                     ),
                   );
                 },

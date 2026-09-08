@@ -17,9 +17,9 @@ class PetDetailController extends ChangeNotifier {
     required PetModel pet,
     PetService? petService,
     MembershipActionHandler? membershipHandler,
-  })  : _pet = pet,
-        _petService = petService ?? getIt<PetService>(),
-        _membershipHandlerOverride = membershipHandler;
+  }) : _pet = pet,
+       _petService = petService ?? getIt<PetService>(),
+       _membershipHandlerOverride = membershipHandler;
 
   MembershipActionHandler get _membershipHandler =>
       _membershipHandlerOverride ?? getIt<MembershipActionHandler>();
@@ -44,25 +44,31 @@ class PetDetailController extends ChangeNotifier {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => PetFormSheet(
-        existingPet: _pet,
-        petService: _petService,
-      ),
+      builder: (_) => PetFormSheet(existingPet: _pet, petService: _petService),
     );
     await refreshPet();
   }
 
-  Future<void> handleDelete(BuildContext context, {required VoidCallback onDeleted}) async {
+  Future<void> handleDelete(
+    BuildContext context, {
+    required VoidCallback onDeleted,
+  }) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('刪除毛小孩', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          '刪除毛小孩',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         content: Text('確定要刪除 ${_pet.name} 的資料嗎？\n(此動作無法復原)'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              '取消',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -82,12 +88,15 @@ class PetDetailController extends ChangeNotifier {
     await _membershipHandler.handleStartCommunication(
       context,
       _pet,
-      onAllowed: () {
+      onAllowed: (creditReservationId) {
         if (context.mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => PetCommunicationInputScreen(pet: _pet),
+              builder: (context) => PetCommunicationInputScreen(
+                pet: _pet,
+                creditReservationId: creditReservationId,
+              ),
             ),
           );
         }

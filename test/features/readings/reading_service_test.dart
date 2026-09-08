@@ -52,11 +52,13 @@ void main() {
     expect(repository.readings.first.title, 'AI 寵物溝通紀錄');
   });
 
-  test('recordAiResponse logs error but does not throw when repository fails', () async {
+  test('recordAiResponse reports persistence failure to its caller', () async {
     repository.throwError = true;
 
-    // This should not throw
-    await service.recordAiResponse(petId: 'p1', aiText: 'Meow');
+    await expectLater(
+      service.recordAiResponse(petId: 'p1', aiText: 'Meow'),
+      throwsA(isA<ReadingPersistenceException>()),
+    );
 
     expect(repository.readings.length, 0);
   });

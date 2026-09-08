@@ -47,6 +47,8 @@ void main() {
     );
 
     when(() => mockAuthService.getUserData()).thenAnswer((_) async => user);
+    when(() => mockAuthService.userIdChanges)
+        .thenAnswer((_) => Stream.value(user.uid));
     
     // Mock cloud setup
     final mockCollection = MockCollectionReference();
@@ -62,8 +64,12 @@ void main() {
       PetModel(petId: 'local1', ownerId: 'user123', name: 'LocalPet', species: 'Cat', breed: 'Siamese', gender: '母', birthday: '', personality: '', avatarUrl: '')
     ];
     final localController = StreamController<List<PetModel>>();
-    when(() => mockLocalService.watchPets()).thenAnswer((_) => localController.stream);
-    when(() => mockLocalService.getAllPets()).thenReturn([]);
+    when(() => mockLocalService.watchPets(user.uid))
+        .thenAnswer((_) => localController.stream);
+    when(() => mockLocalService.getAllPets(user.uid)).thenReturn([]);
+    when(() => mockLocalService.migrateLegacyDataForUser(user.uid))
+        .thenAnswer((_) async {});
+    when(() => mockLocalService.getPendingOperations(user.uid)).thenReturn([]);
 
     // Start watching
     final resultStream = petService.watchPetsByOwner('user123');

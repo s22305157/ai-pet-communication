@@ -5,15 +5,35 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId 
-                    && request.resource.data.points == 1; // 初始點數鎖定為 1
+                    && !exists(/databases/$(database)/documents/_deletedUsers/$(userId))
+                    && request.resource.data.keys().hasAll([
+                      'uid', 'email', 'displayName', 'photoUrl', 'points',
+                      'membershipTier', 'hasCompletedOnboarding', 'createdAt',
+                      'lastLoginAt'
+                    ])
+                    && request.resource.data.keys().hasOnly([
+                      'uid', 'email', 'displayName', 'photoUrl', 'points',
+                      'membershipTier', 'hasCompletedOnboarding', 'createdAt',
+                      'lastLoginAt'
+                    ])
+                    && request.resource.data.uid == userId
+                    && request.resource.data.points == 1
+                    && request.resource.data.membershipTier == 'free'
+                    && request.resource.data.hasCompletedOnboarding == false
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.lastLoginAt is timestamp;
       
        // 安全規則覆核：
-        // 允許更新：限本人，且確保 UID 不變
+        // 客戶端只能更新個人顯示與新手問卷資料。
         allow update: if request.auth != null && request.auth.uid == userId
-                      && (request.resource.data.uid == resource.data.uid);
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly([
+                          'displayName', 'photoUrl', 'hasCompletedOnboarding',
+                          'onboardingAnswers', 'lastLoginAt'
+                        ]);
        
-       // 允許刪除：本人帳號
-       allow delete: if request.auth != null && request.auth.uid == userId;
+       // 帳號刪除由後端先建立 tombstone，再清除 Auth 與資料。
+       allow delete: if false;
 
      }
     
@@ -21,8 +41,13 @@ service cloud.firestore {
     match /pets/{petId} {
       // 允許 read：如果是本人，或者文件尚不存在（用於 get 檢查）
       allow read: if request.auth != null && (resource == null || resource.data.owner_id == request.auth.uid);
-      allow update, delete: if request.auth != null && resource.data.owner_id == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.owner_id == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.owner_id == request.auth.uid
+        && request.resource.data.owner_id == request.auth.uid;
+      allow delete: if false;
+      allow create: if request.auth != null
+        && request.resource.data.owner_id == request.auth.uid
+        && !exists(/databases/$(database)/documents/petTombstones/$(petId));
       
       // 溝通紀錄規則 (readings 子集合)
       match /readings/{readingId} {
@@ -30,6 +55,12 @@ service cloud.firestore {
         allow read, write: if request.auth != null 
           && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
       }
+    }
+
+    match /petTombstones/{petId} {
+      allow get: if request.auth != null
+        && (resource == null || resource.data.owner_id == request.auth.uid);
+      allow list, create, update, delete: if false;
     }
     
     // 預設規則：拒絕所有其他存取

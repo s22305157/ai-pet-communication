@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import '../domain/models/pet_model.dart';
+
+import '../../../services/auth_service.dart';
 import '../data/local_pet_service.dart';
 import '../data/sources/pet_remote_data_source.dart';
-import '../../../services/auth_service.dart';
+import '../domain/models/pet_model.dart';
 import 'pet_sync_manager.dart';
 
 class PetStreamWatcher {
@@ -17,66 +19,154 @@ class PetStreamWatcher {
     required LocalPetService localService,
     required AuthService authService,
     required PetSyncManager syncManager,
-  })  : _remoteDataSource = remoteDataSource,
-        _localService = localService,
-        _authService = authService,
-        _syncManager = syncManager;
+  }) : _remoteDataSource = remoteDataSource,
+       _localService = localService,
+       _authService = authService,
+       _syncManager = syncManager;
 
   Stream<List<PetModel>> watchPetsByOwner(String uid) async* {
     final user = await _authService.getUserData();
-    
-    if (user == null) {
+
+    if (user == null || user.uid != uid) {
       yield [];
       return;
     }
 
     if (user.membershipType == 'free') {
-      yield* _localService.watchPets();
-    } else {
-      // 付費帳戶 (Plus/Pro)：先嘗試雲端，失敗則降級本地
-      _syncManager.migrateIfNeeded(uid);
-      
-      final controller = StreamController<List<PetModel>>();
-      StreamSubscription? cloudSub;
-      StreamSubscription? localSub;
-
-      void startLocalFallback() {
-        if (localSub != null) return;
-        _syncManager.isCloudActive.value = false;
-        localSub = _localService.watchPets().listen(
-          (data) {
-            if (!controller.isClosed) controller.add(data);
-          },
-          onError: (e) {
-            if (!controller.isClosed) controller.addError(e);
-          },
-        );
+      try {
+        await _syncManager.syncPendingOperations(uid, includeUpserts: false);
+      } catch (error) {
+        debugPrint('Free 帳號的待刪除操作仍離線，稍後重試: $error');
       }
+      yield* _guardActiveUser(uid, _localService.watchPets(uid));
+      return;
+    }
 
-      controller.onListen = () {
+    try {
+      await _syncManager.migrateIfNeeded(uid);
+    } catch (_) {
+      _syncManager.isCloudActive.value = false;
+    }
+    final activeUser = await _authService.getUserData();
+    if (activeUser == null || activeUser.uid != uid) {
+      yield [];
+      return;
+    }
+
+    yield* _guardActiveUser(uid, _paidPetStream(uid));
+  }
+
+  Stream<List<PetModel>> _paidPetStream(String uid) {
+    late final StreamController<List<PetModel>> controller;
+    StreamSubscription<List<PetModel>>? cloudSub;
+    StreamSubscription<List<PetModel>>? localSub;
+    Future<void>? localCancellation;
+
+    void startLocalFallback() {
+      if (localSub != null) return;
+      _syncManager.isCloudActive.value = false;
+      localSub = _localService
+          .watchPets(uid)
+          .listen(
+            (data) {
+              if (!controller.isClosed) controller.add(data);
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              if (!controller.isClosed) controller.addError(error, stackTrace);
+            },
+          );
+    }
+
+    controller = StreamController<List<PetModel>>(
+      onListen: () {
         _syncManager.isCloudActive.value = true;
-        cloudSub = _remoteDataSource.watchPetsByOwner(uid).listen(
-          (snapshot) {
-            _syncManager.isCloudActive.value = true;
-            if (!controller.isClosed) {
-              controller.add(snapshot);
+        cloudSub = _remoteDataSource
+            .watchPetsByOwner(uid)
+            .listen(
+              (snapshot) async {
+                try {
+                  await _syncManager.applyCloudSnapshot(uid, snapshot);
+                  await _syncManager.syncPendingOperations(uid);
+                  final fallbackSubscription = localSub;
+                  localSub = null;
+                  if (fallbackSubscription != null) {
+                    localCancellation = fallbackSubscription
+                        .cancel()
+                        .catchError((Object error) {
+                          debugPrint('取消本地降級串流失敗: $error');
+                        });
+                    unawaited(localCancellation!);
+                  }
+                  _syncManager.isCloudActive.value = true;
+                  if (!controller.isClosed) {
+                    controller.add(_localService.getAllPets(uid));
+                  }
+                } catch (error) {
+                  debugPrint('雲端快照同步失敗: $error。使用本地資料。');
+                  startLocalFallback();
+                }
+              },
+              onError: (Object error, StackTrace stackTrace) {
+                debugPrint('雲端監聽錯誤: $error。啟動本地降級串流。');
+                startLocalFallback();
+              },
+              cancelOnError: false,
+            );
+      },
+      onCancel: () async {
+        await cloudSub?.cancel();
+        await localSub?.cancel();
+        await localCancellation;
+      },
+    );
+
+    return controller.stream;
+  }
+
+  Stream<List<PetModel>> _guardActiveUser(
+    String uid,
+    Stream<List<PetModel>> source,
+  ) {
+    late final StreamController<List<PetModel>> controller;
+    StreamSubscription<List<PetModel>>? dataSub;
+    StreamSubscription<String?>? authSub;
+    var stopping = false;
+
+    void stopForAccountChange() {
+      if (stopping) return;
+      stopping = true;
+      if (!controller.isClosed) {
+        controller.add(const <PetModel>[]);
+        unawaited(controller.close());
+      }
+    }
+
+    controller = StreamController<List<PetModel>>(
+      onListen: () {
+        authSub = _authService.userIdChanges.listen((activeUid) {
+          if (activeUid != uid) stopForAccountChange();
+        });
+        dataSub = source.listen(
+          (pets) {
+            if (stopping || controller.isClosed) return;
+            controller.add(
+              pets.where((pet) => pet.ownerId == uid).toList(growable: false),
+            );
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (!stopping && !controller.isClosed) {
+              controller.addError(error, stackTrace);
             }
           },
-          onError: (error) {
-            debugPrint('雲端監聽錯誤: $error。啟動本地降級串流。');
-            startLocalFallback();
-          },
-          cancelOnError: false,
         );
-      };
+      },
+      onCancel: () async {
+        stopping = true;
+        await dataSub?.cancel();
+        await authSub?.cancel();
+      },
+    );
 
-      controller.onCancel = () {
-        cloudSub?.cancel();
-        localSub?.cancel();
-        controller.close();
-      };
-
-      yield* controller.stream;
-    }
+    return controller.stream;
   }
 }
