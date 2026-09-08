@@ -1,24 +1,11 @@
 const CREDIT_AMOUNT = 1;
 
-class CreditOperationError extends Error {
-  constructor(code, message) {
-    super(message);
-    this.code = code;
-  }
-}
+const {OperationError: CreditOperationError, validatePetId} = require("./validation");
 
 function validateRequestId(value) {
   if (typeof value !== "string" ||
       !/^[A-Za-z0-9_-]{16,128}$/.test(value)) {
     throw new CreditOperationError("invalid-argument", "Invalid request ID");
-  }
-  return value;
-}
-
-function validatePetId(value) {
-  if (typeof value !== "string" || value.length < 1 || value.length > 128 ||
-      value.includes("/")) {
-    throw new CreditOperationError("invalid-argument", "Invalid pet ID");
   }
   return value;
 }

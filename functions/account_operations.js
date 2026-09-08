@@ -2,7 +2,7 @@ const {getAuth} = require("firebase-admin/auth");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
-const {validatePetId, CreditOperationError} = require("./credit_logic");
+const {validatePetId, OperationError} = require("./validation");
 const {
   ownedAvatarPath,
   hasRecentAuthentication,
@@ -53,7 +53,7 @@ exports.deletePetData = onCall({maxInstances: 20}, async (request) => {
     return {deleted: true, petId};
   } catch (error) {
     if (error instanceof HttpsError) throw error;
-    if (error instanceof CreditOperationError) {
+    if (error instanceof OperationError) {
       throw new HttpsError(error.code, error.message);
     }
     throw new HttpsError("internal", "Pet deletion failed");
