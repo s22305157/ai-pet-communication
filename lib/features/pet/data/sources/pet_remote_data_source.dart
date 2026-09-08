@@ -1,5 +1,6 @@
 import 'package:ai_pet_communication/features/pet/data/mappers/pet_firestore_mapper.dart';
 import 'dart:typed_data';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_write_result.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -30,14 +31,30 @@ class PetRemoteDataSource {
   }
 
   Future<void> setPet(String petId, PetModel pet) async {
-    await _db.collection('pets').doc(petId).set(PetFirestoreMapper.create(pet));
+    final ref = _db.collection('pets').doc(petId);
+    await _db.runTransaction((tx) async {
+      final existing = await tx.get(ref);
+      if (existing.exists) throw const PetVersionConflict();
+      tx.set(ref, PetFirestoreMapper.create(pet));
+    });
   }
 
-  Future<void> updatePet(String petId, PetModel pet) async {
-    await _db
-        .collection('pets')
-        .doc(petId)
-        .update(PetFirestoreMapper.update(pet));
+  Future<void> updatePet(
+    String petId,
+    PetModel pet, {
+    DateTime? expectedUpdatedAt,
+  }) async {
+    final ref = _db.collection('pets').doc(petId);
+    await _db.runTransaction((tx) async {
+      final document = await tx.get(ref);
+      if (!document.exists) throw const PetVersionConflict();
+      final current = PetFirestoreMapper.fromDoc(document);
+      if (current.ownerId != pet.ownerId ||
+          current.updatedAt != expectedUpdatedAt) {
+        throw const PetVersionConflict();
+      }
+      tx.update(ref, PetFirestoreMapper.update(pet));
+    });
   }
 
   Future<void> deletePet(String petId, {String? avatarUrl}) async {

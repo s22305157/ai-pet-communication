@@ -2,15 +2,11 @@ const {getFirestore, FieldValue, Timestamp} = require("firebase-admin/firestore"
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {
-  CREDIT_AMOUNT,
   CreditOperationError,
   validateRequestId,
-  validatePetId,
-  planReservation,
   planTransition,
 } = require("./credit_logic");
 
-const RESERVATION_TTL_MS = 30 * 60 * 1000;
 
 function requireUid(request) {
   if (!request.auth || !request.auth.uid) {
@@ -28,57 +24,14 @@ function asHttpsError(error) {
 }
 
 async function reserveCommunicationCreditHandler(request) {
-  try {
-    const uid = requireUid(request);
-    const requestId = validateRequestId(request.data && request.data.requestId);
-    const petId = validatePetId(request.data && request.data.petId);
-    const db = getFirestore();
-    const userRef = db.collection("users").doc(uid);
-    const operationRef = userRef.collection("creditOperations").doc(requestId);
-
-    return await db.runTransaction(async (transaction) => {
-      const [userSnapshot, operationSnapshot] = await Promise.all([
-        transaction.get(userRef),
-        transaction.get(operationRef),
-      ]);
-      if (!userSnapshot.exists) {
-        throw new CreditOperationError("not-found", "User account not found");
-      }
-
-      const operation = operationSnapshot.exists ? operationSnapshot.data() : null;
-      const plan = planReservation({
-        existingOperation: operation,
-        points: userSnapshot.get("points"),
-        petId,
-      });
-      if (plan.create) {
-        transaction.update(userRef, {points: plan.pointsRemaining});
-        transaction.create(operationRef, {
-          requestId,
-          kind: "communication",
-          petId,
-          amount: CREDIT_AMOUNT,
-          status: "reserved",
-          pointsAfterReservation: plan.pointsRemaining,
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-          expiresAt: Timestamp.fromMillis(Date.now() + RESERVATION_TTL_MS),
-        });
-      }
-      return {
-        requestId,
-        status: plan.status,
-        pointsRemaining: plan.pointsRemaining,
-      };
-    });
-  } catch (error) {
-    throw asHttpsError(error);
-  }
+  requireUid(request);
+  throw new HttpsError('failed-precondition', '溝通點數收費尚未設定');
 }
 
 async function transitionCredit(request, targetStatus) {
   try {
     const uid = requireUid(request);
+    if (targetStatus === 'settled') throw new HttpsError('failed-precondition', '溝通點數收費尚未設定');
     const requestId = validateRequestId(request.data && request.data.requestId);
     const db = getFirestore();
     const userRef = db.collection("users").doc(uid);
@@ -87,6 +40,10 @@ async function transitionCredit(request, targetStatus) {
     return await db.runTransaction(async (transaction) => {
       const operationSnapshot = await transaction.get(operationRef);
       const operation = operationSnapshot.exists ? operationSnapshot.data() : null;
+      if (operation?.aiStatus === 'processing' &&
+          Date.now() - operation.aiStartedAtMs < 120000) {
+        throw new CreditOperationError('failed-precondition', 'AI communication is still processing');
+      }
       const plan = planTransition(operation, targetStatus);
       if (!plan.change) return {requestId, status: plan.status};
 

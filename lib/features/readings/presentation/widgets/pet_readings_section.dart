@@ -44,7 +44,8 @@ class _PetReadingsSectionState extends State<PetReadingsSection> {
   @override
   void didUpdateWidget(covariant PetReadingsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.pet.petId != oldWidget.pet.petId) {
+    if (widget.pet.petId != oldWidget.pet.petId ||
+        widget.pet.ownerId != oldWidget.pet.ownerId) {
       setState(() {
         _readingsStream = _readingsRepository.watchReadingsByPetId(
           widget.pet.petId,

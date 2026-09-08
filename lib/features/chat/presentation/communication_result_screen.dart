@@ -4,12 +4,14 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
 import 'package:ai_pet_communication/features/chat/presentation/chat_ui_texts.dart';
+import 'communication_display.dart';
 
 class CommunicationResultScreen extends StatelessWidget {
   final dynamic result; // AiResponseModel or AiSafeResponseModel
@@ -23,8 +25,6 @@ class CommunicationResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSafe = result is AiSafeResponseModel;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -35,20 +35,51 @@ class CommunicationResultScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppStyles.padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isSafe)
-              _buildSafeResult(result as AiSafeResponseModel)
-            else
-              _buildStandardResult(result as AiResponseModel),
-            const SizedBox(height: 32),
-            _buildFooter(),
-          ],
-        ),
+        child: CommunicationResultContent(result: result),
       ),
     );
   }
+}
+
+class CommunicationResultContent extends StatelessWidget {
+  final dynamic result;
+  const CommunicationResultContent({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton.icon(
+          icon: const Icon(Icons.copy_outlined),
+          label: const Text('複製回覆'),
+          onPressed: () async {
+            try {
+              await Clipboard.setData(
+                ClipboardData(text: communicationCopyText(result)),
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('已複製回覆')));
+              }
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('無法存取剪貼簿，請選取文字複製。')),
+                );
+              }
+            }
+          },
+        ),
+      ),
+      if (result is AiSafeResponseModel)
+        _buildSafeResult(result as AiSafeResponseModel)
+      else
+        _buildStandardResult(result as AiResponseModel),
+    ],
+  );
 
   Widget _buildStandardResult(AiResponseModel model) {
     return Column(
@@ -93,7 +124,7 @@ class CommunicationResultScreen extends StatelessWidget {
           ChatUiTexts.petVoiceSubtitle,
           Icons.pets,
         ),
-        _buildContentCard('感應回饋', model.petVoice.text),
+        _buildContentCard('毛孩的回覆', naturalPetVoice(model.petVoice.text)),
         if (model.safetyAlert.hasRedFlags) ...[
           const SizedBox(height: 24),
           _buildSectionHeader(
@@ -111,6 +142,11 @@ class CommunicationResultScreen extends StatelessWidget {
           Icons.lightbulb_outline,
         ),
         ...model.knowledgeTips.map((tip) => _buildBulletItem(tip)),
+        if (model.nextSteps.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          _buildSectionHeader('接下來可以做', '具體的照護步驟', Icons.check_circle_outline),
+          ...model.nextSteps.map((step) => _buildBulletItem(step)),
+        ],
       ],
     );
   }
@@ -141,13 +177,14 @@ class CommunicationResultScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              color: AppColors.textSecondary,
+          if (subtitle.isNotEmpty)
+            Text(
+              subtitle,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -181,8 +218,8 @@ class CommunicationResultScreen extends StatelessWidget {
             ),
             const Divider(height: 24),
           ],
-          Text(
-            a,
+          SelectableText(
+            naturalPetVoice(a),
             style: GoogleFonts.outfit(
               fontSize: 15,
               height: 1.6,
@@ -257,19 +294,6 @@ class CommunicationResultScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFooter() {
-    return Center(
-      child: Text(
-        ChatUiTexts.footerNote,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.outfit(
-          fontSize: 12,
-          color: AppColors.textSecondary.withValues(alpha: 0.6),
-        ),
       ),
     );
   }

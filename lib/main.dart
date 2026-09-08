@@ -60,15 +60,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PAWLINK 毛孩心語',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFF914D)),
-        useMaterial3: true,
-        fontFamily: 'NotoSansTC',
+    return StreamBuilder<UserModel?>(
+      stream: getIt<AuthService>().getUserStream(),
+      builder: (context, session) => MaterialApp(
+        key: ValueKey(session.data?.uid),
+        title: 'PAWLINK 毛孩心語',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFF914D)),
+          useMaterial3: true,
+          fontFamily: 'NotoSansTC',
+        ),
+        home: const AuthWrapper(),
       ),
-      home: const AuthWrapper(),
     );
   }
 }
@@ -83,6 +87,11 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<UserModel?>(
       stream: authService.getUserStream(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(child: Text('無法讀取帳號資料，請重新登入或稍後重試。')),
+          );
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
@@ -101,7 +110,7 @@ class AuthWrapper extends StatelessWidget {
           return const OnboardingScreen();
         }
 
-        return HomeScreen(user: user);
+        return HomeScreen(key: ValueKey(user.uid), user: user);
       },
     );
   }

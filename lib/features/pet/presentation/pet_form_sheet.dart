@@ -39,6 +39,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
         currentUid: () async => (await getIt<AuthService>().getUserData())?.uid,
       );
   bool _isSaving = false;
+  late final Future<String?> _originUid;
   bool _isUploadingAvatar = false;
 
   // 目前選取的圖片 bytes（用於 Web）或本地路徑
@@ -59,6 +60,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
   void initState() {
     super.initState();
     final pet = widget.existingPet;
+    _originUid = pet == null
+        ? _formController.currentUid()
+        : Future.value(pet.ownerId);
 
     nameController = TextEditingController(text: pet?.name ?? '');
     speciesController = TextEditingController(text: pet?.species ?? '');
@@ -144,11 +148,15 @@ class _PetFormSheetState extends State<PetFormSheet> {
 
     try {
       final uid = await _formController.currentUid();
+      final originUid = await _originUid;
       if (!mounted) return;
       if (uid == null) throw const PetWriteFailure('請先登入');
+      if (uid != originUid) {
+        throw const PetWriteFailure('帳號已變更，請重新開啟表單');
+      }
       final pet = PetModel(
         petId: widget.existingPet?.petId ?? '',
-        ownerId: uid,
+        ownerId: originUid!,
         name: nameController.text.trim(),
         species: speciesController.text.trim(),
         breed: breedController.text.trim(),

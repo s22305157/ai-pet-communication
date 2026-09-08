@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_write_result.dart';
+import 'package:ai_pet_communication/services/error_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../features/pet/domain/models/pet_model.dart';
 import '../../../../../features/pet/application/pet_service.dart';
@@ -247,7 +249,32 @@ class HomePetList extends StatelessWidget {
                       );
 
                       if (confirm == true) {
-                        await petService.deletePet(pet.petId);
+                        try {
+                          final result = await petService.deletePet(
+                            pet.petId,
+                            expectedOwnerId: pet.ownerId,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                result == PetWriteResult.pendingSync
+                                    ? '已從此裝置移除，等待同步刪除'
+                                    : '已刪除毛小孩資料',
+                              ),
+                            ),
+                          );
+                        } catch (error) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ErrorService.getErrorMessage(error),
+                                ),
+                              ),
+                            );
+                          }
+                        }
                       }
                     }
                   },

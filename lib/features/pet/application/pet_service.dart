@@ -48,8 +48,8 @@ class PetService {
   }
 
   // 刪除寵物資料
-  Future<void> deletePet(String petId) {
-    return _repository.deletePet(petId);
+  Future<PetWriteResult> deletePet(String petId, {String? expectedOwnerId}) {
+    return _repository.deletePet(petId, expectedOwnerId: expectedOwnerId);
   }
 
   // 上傳寵物大頭貼

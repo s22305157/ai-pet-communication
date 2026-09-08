@@ -25,10 +25,17 @@ class PetCleanupRepository implements PetRepository {
   Future<PetWriteResult> updatePet(String petId, PetModel pet) =>
       pets.updatePet(petId, pet);
   @override
-  Future<void> deletePet(String petId) async {
+  Future<PetWriteResult> deletePet(
+    String petId, {
+    String? expectedOwnerId,
+  }) async {
     final user = await session.getUserData();
     if (user == null) throw const PetWriteFailure('請先登入');
-    await pets.deletePet(petId);
+    if (expectedOwnerId != null && expectedOwnerId != user.uid) {
+      throw const PetWriteFailure('帳號已變更');
+    }
+    final result = await pets.deletePet(petId, expectedOwnerId: user.uid);
     await readings.clearPet(user.uid, petId);
+    return result;
   }
 }

@@ -5,6 +5,8 @@ import 'package:ai_pet_communication/app/theme.dart';
 import '../../../../features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 import 'package:ai_pet_communication/app/injection.dart';
+import '../../chat/presentation/communication_display.dart';
+import '../../chat/presentation/communication_result_screen.dart';
 
 class ReadingDetailScreen extends StatefulWidget {
   final Reading? reading;
@@ -199,6 +201,7 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
     }
 
     final reading = _currentReading!;
+    final communication = parseCommunication(reading.content);
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm');
 
     return SingleChildScrollView(
@@ -267,7 +270,12 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      reading.source!,
+                      const {
+                            'pro_chat': '毛孩對話',
+                            'safe_chat': '照護對話',
+                            'chat': '毛孩對話',
+                          }[reading.source] ??
+                          '溝通紀錄',
                       style: GoogleFonts.outfit(
                         fontSize: 12,
                         color: AppColors.primary,
@@ -281,14 +289,17 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
           const SizedBox(height: 24),
           const Divider(),
           const SizedBox(height: 24),
-          Text(
-            reading.content,
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              color: AppColors.textPrimary,
-              height: 1.6,
+          if (communication != null)
+            CommunicationResultContent(result: communication)
+          else
+            Text(
+              readingPreview(reading.content),
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                color: AppColors.textPrimary,
+                height: 1.6,
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -6,12 +6,9 @@ import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
-import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
-import '../knowledge/knowledge_test_index.dart';
 
 class MockReadingService extends Mock implements ReadingService {}
 
@@ -32,13 +29,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockReadingService readingService;
-  late KnowledgeRetrievalService retrievalService;
 
   setUp(() {
     readingService = MockReadingService();
-    retrievalService = KnowledgeRetrievalService(
-      loader: loadKnowledgeTestIndex,
-    );
     when(
       () => readingService.recordAiResponse(
         petId: any(named: 'petId'),
@@ -77,7 +70,7 @@ void main() {
     );
   }
 
-  test('排尿急症問題會召回紅旗知識並注入安全 Prompt', () async {
+  test('排尿急症傳原始資料至後端且驗證安全回覆', () async {
     const response = '''
 {
   "version": "rag-safe-1",
@@ -93,11 +86,7 @@ void main() {
 }
 ''';
     final chatService = RecordingChatService(response);
-    final controller = ChatController(
-      chatService,
-      readingService,
-      retrievalService,
-    );
+    final controller = ChatController(chatService, readingService);
     final request = buildRequest(
       species: '貓',
       story: '今天反覆進貓砂盆，一直用力尿但尿不出。',
@@ -108,13 +97,11 @@ void main() {
 
     expect(result, isA<AiSafeResponseModel>());
     expect((result as AiSafeResponseModel).safetyAlert.hasRedFlags, isTrue);
-    final messages = jsonDecode(chatService.lastRequest!) as List<dynamic>;
-    final developerPrompt =
-        (messages[1] as Map<String, dynamic>)['content'] as String;
-    expect(developerPrompt, contains('"level":"emergency"'));
-    expect(developerPrompt, contains('urinary_obstruction'));
-    expect(developerPrompt, contains('doc006-litter'));
-    expect(developerPrompt, contains('尿道阻塞'));
+    final envelope =
+        jsonDecode(chatService.lastRequest!) as Map<String, dynamic>;
+    expect(envelope['petId'], 'cat-1');
+    expect(envelope['request'], request.toMap());
+    expect(envelope.keys.toSet(), {'petId', 'requestId', 'request'});
     verify(
       () => readingService.recordAiResponse(
         petId: 'cat-1',
@@ -124,7 +111,7 @@ void main() {
     ).called(1);
   });
 
-  test('犬隻獨處問題會召回對應知識並走一般問答格式', () async {
+  test('犬隻獨處問題傳原始資料並保留一般問答格式', () async {
     const response = '''
 {
   "petVoice": [{"question": "獨處時一直叫怎麼辦？", "answer": "先記錄離家後何時開始與持續多久，再安排漸進練習。"}],
@@ -138,11 +125,7 @@ void main() {
 }
 ''';
     final chatService = RecordingChatService(response);
-    final controller = ChatController(
-      chatService,
-      readingService,
-      retrievalService,
-    );
+    final controller = ChatController(chatService, readingService);
     final request = buildRequest(
       species: '狗',
       story:
@@ -156,12 +139,10 @@ void main() {
 
     expect(result, isA<AiResponseModel>());
     expect((result as AiResponseModel).knowledgeStation.title, '獨處觀察');
-    final messages = jsonDecode(chatService.lastRequest!) as List<dynamic>;
-    final developerPrompt =
-        (messages[1] as Map<String, dynamic>)['content'] as String;
-    expect(developerPrompt, contains('"level":"general"'));
-    expect(developerPrompt, contains('doc004-separation'));
-    expect(developerPrompt, contains('獨處與分離困擾'));
+    final envelope =
+        jsonDecode(chatService.lastRequest!) as Map<String, dynamic>;
+    expect(envelope['request'], request.toMap());
+    expect(envelope.containsKey('model'), isFalse);
     verify(
       () => readingService.recordAiResponse(
         petId: 'dog-1',

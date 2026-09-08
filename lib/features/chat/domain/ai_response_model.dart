@@ -81,14 +81,14 @@ class AiResponseModel {
       petVoice: [
         const PetVoiceItem(
           question: "...",
-          answer: "對不起，我剛剛稍微分神了。雖然現在連結有點弱，但我依然能感受到你對我的愛。我們先休息一下吧，等等再聊。",
+          answer: "AI 服務目前無法完成回覆，請稍後再試。這段文字是系統提示，並非 AI 分析結果。",
         ),
       ],
       knowledgeStation: const KnowledgeStation(
-        title: "靜心連結",
-        content: "有時候溝通不順暢是正常的，保持平靜的心情，能讓之後的連結更穩定。",
+        title: "服務暫時無法使用",
+        content: "若毛孩有身體不適或急症警訊，請直接聯絡獸醫，不要等待 AI 回覆。",
       ),
-      summary: error ?? "連結暫時中斷，回傳預設回應。",
+      summary: "AI 服務暫時無法使用。",
       tags: ["連結中斷", "系統預設"],
       confidence: 0.1,
       tone: "warm",

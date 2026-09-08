@@ -1,0 +1,60 @@
+[
+  {
+    "package": "stream-json",
+    "version": "1.9.1",
+    "advisory": "GHSA-528h-pc64-c93x",
+    "files": [
+      {
+        "path": "filters/FilterBase.js",
+        "beforeSha256": "4c63caeb52939e2c2eb77c593f6e62fe679186836976abda6da39ae810c81312",
+        "afterSha256": "8b83fd873d8d5ec7359df86214253793c76d0248242021ed50af6a064266f4dd",
+        "edits": [
+          {
+            "before": "  _check(chunk, _, callback) {",
+            "after": "  _check(chunk, _, callback) {\n    // GHSA-528h-pc64-c93x: backport the upstream default depth bound.\n    // Keep the 1.x CommonJS API; fail before quadratic path construction.\n    if (this._stack.length > 1024) {\n      return callback(new RangeError('filter: JSON nesting depth exceeds maxDepth (1024)'));\n    }"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "package": "@opentelemetry/core",
+    "version": "1.30.1",
+    "advisory": "GHSA-8988-4f7v-96qf",
+    "files": [
+      {
+        "path": "build/src/baggage/propagation/W3CBaggagePropagator.js",
+        "beforeSha256": "86a596cb73dc0fdaf53571c90cf80bd466b5d896002fa4122ce9ff25b4980c6d",
+        "afterSha256": "2a997865872c03145761d1ded160b368a897610218f581ff695764c32c2ec9b5",
+        "edits": [
+          {
+            "before": "        const headerValue = getter.get(carrier, constants_1.BAGGAGE_HEADER);\n        const baggageString = Array.isArray(headerValue)\n            ? headerValue.join(constants_1.BAGGAGE_ITEMS_SEPARATOR)\n            : headerValue;\n        if (!baggageString)\n            return context;\n        const baggage = {};\n        if (baggageString.length === 0) {\n            return context;\n        }\n        const pairs = baggageString.split(constants_1.BAGGAGE_ITEMS_SEPARATOR);\n        pairs.forEach(entry => {\n            const keyPair = (0, utils_1.parsePairKeyValue)(entry);\n            if (keyPair) {\n                const baggageEntry = { value: keyPair.value };\n                if (keyPair.metadata) {\n                    baggageEntry.metadata = keyPair.metadata;\n                }\n                baggage[keyPair.key] = baggageEntry;\n            }\n        });\n",
+            "after": "        // GHSA-8988-4f7v-96qf: bounded parsing, without join/split allocations.\n        // Backport of upstream parseBaggageHeaderString limits to the 1.x API.\n        var headerValue = getter.get(carrier, constants_1.BAGGAGE_HEADER);\n        var headers = Array.isArray(headerValue) ? headerValue : [headerValue];\n        var baggage = Object.create(null);\n        var count = 0;\n        var totalSize = 0;\n        for (var h = 0; h < headers.length && count < 180; h++) {\n            var value = headers[h];\n            if (typeof value !== 'string') continue;\n            var start = 0;\n            while (start < value.length && count < 180) {\n                var end = value.indexOf(',', start);\n                var entryEnd = end === -1 ? value.length : end;\n                var entryLength = entryEnd - start;\n                if (entryLength <= 4096) {\n                    var pair;\n                    try { pair = (0, utils_1.parsePairKeyValue)(value.substring(start, entryEnd)); }\n                    catch (error) { if (!(error instanceof URIError)) throw error; pair = undefined; }\n                    if (pair) {\n                        var entrySize = (count === 0 ? 0 : 1) + entryLength;\n                        if (totalSize + entrySize > 8192) break;\n                        baggage[pair.key] = pair.metadata\n                            ? { value: pair.value, metadata: pair.metadata }\n                            : { value: pair.value };\n                        count++;\n                        totalSize += entrySize;\n                    }\n                }\n                if (end === -1) break;\n                start = end + 1;\n            }\n        }\n"
+          }
+        ]
+      },
+      {
+        "path": "build/esm/baggage/propagation/W3CBaggagePropagator.js",
+        "beforeSha256": "9e144e44b7769068041b35221af42f2a5a566d4b391af61ab5387b56939c5902",
+        "afterSha256": "f97a60b8224652c0d8e6900675da709414480c3e01dc725a95cc7b531298f311",
+        "edits": [
+          {
+            "before": "        var headerValue = getter.get(carrier, BAGGAGE_HEADER);\n        var baggageString = Array.isArray(headerValue)\n            ? headerValue.join(BAGGAGE_ITEMS_SEPARATOR)\n            : headerValue;\n        if (!baggageString)\n            return context;\n        var baggage = {};\n        if (baggageString.length === 0) {\n            return context;\n        }\n        var pairs = baggageString.split(BAGGAGE_ITEMS_SEPARATOR);\n        pairs.forEach(function (entry) {\n            var keyPair = parsePairKeyValue(entry);\n            if (keyPair) {\n                var baggageEntry = { value: keyPair.value };\n                if (keyPair.metadata) {\n                    baggageEntry.metadata = keyPair.metadata;\n                }\n                baggage[keyPair.key] = baggageEntry;\n            }\n        });\n",
+            "after": "        // GHSA-8988-4f7v-96qf: bounded parsing, without join/split allocations.\n        // Backport of upstream parseBaggageHeaderString limits to the 1.x API.\n        var headerValue = getter.get(carrier, BAGGAGE_HEADER);\n        var headers = Array.isArray(headerValue) ? headerValue : [headerValue];\n        var baggage = Object.create(null);\n        var count = 0;\n        var totalSize = 0;\n        for (var h = 0; h < headers.length && count < 180; h++) {\n            var value = headers[h];\n            if (typeof value !== 'string') continue;\n            var start = 0;\n            while (start < value.length && count < 180) {\n                var end = value.indexOf(',', start);\n                var entryEnd = end === -1 ? value.length : end;\n                var entryLength = entryEnd - start;\n                if (entryLength <= 4096) {\n                    var pair;\n                    try { pair = parsePairKeyValue(value.substring(start, entryEnd)); }\n                    catch (error) { if (!(error instanceof URIError)) throw error; pair = undefined; }\n                    if (pair) {\n                        var entrySize = (count === 0 ? 0 : 1) + entryLength;\n                        if (totalSize + entrySize > 8192) break;\n                        baggage[pair.key] = pair.metadata\n                            ? { value: pair.value, metadata: pair.metadata }\n                            : { value: pair.value };\n                        count++;\n                        totalSize += entrySize;\n                    }\n                }\n                if (end === -1) break;\n                start = end + 1;\n            }\n        }\n"
+          }
+        ]
+      },
+      {
+        "path": "build/esnext/baggage/propagation/W3CBaggagePropagator.js",
+        "beforeSha256": "abdafe4a2284dcb2f94642cdbc9ea38efd151b524decc2807e4d4cd4090a44cd",
+        "afterSha256": "70d12fc3ec633184f486211a47709d8616324a88600840f51441d82ea0c163e0",
+        "edits": [
+          {
+            "before": "        const headerValue = getter.get(carrier, BAGGAGE_HEADER);\n        const baggageString = Array.isArray(headerValue)\n            ? headerValue.join(BAGGAGE_ITEMS_SEPARATOR)\n            : headerValue;\n        if (!baggageString)\n            return context;\n        const baggage = {};\n        if (baggageString.length === 0) {\n            return context;\n        }\n        const pairs = baggageString.split(BAGGAGE_ITEMS_SEPARATOR);\n        pairs.forEach(entry => {\n            const keyPair = parsePairKeyValue(entry);\n            if (keyPair) {\n                const baggageEntry = { value: keyPair.value };\n                if (keyPair.metadata) {\n                    baggageEntry.metadata = keyPair.metadata;\n                }\n                baggage[keyPair.key] = baggageEntry;\n            }\n        });\n",
+            "after": "        // GHSA-8988-4f7v-96qf: bounded parsing, without join/split allocations.\n        // Backport of upstream parseBaggageHeaderString limits to the 1.x API.\n        var headerValue = getter.get(carrier, BAGGAGE_HEADER);\n        var headers = Array.isArray(headerValue) ? headerValue : [headerValue];\n        var baggage = Object.create(null);\n        var count = 0;\n        var totalSize = 0;\n        for (var h = 0; h < headers.length && count < 180; h++) {\n            var value = headers[h];\n            if (typeof value !== 'string') continue;\n            var start = 0;\n            while (start < value.length && count < 180) {\n                var end = value.indexOf(',', start);\n                var entryEnd = end === -1 ? value.length : end;\n                var entryLength = entryEnd - start;\n                if (entryLength <= 4096) {\n                    var pair;\n                    try { pair = parsePairKeyValue(value.substring(start, entryEnd)); }\n                    catch (error) { if (!(error instanceof URIError)) throw error; pair = undefined; }\n                    if (pair) {\n                        var entrySize = (count === 0 ? 0 : 1) + entryLength;\n                        if (totalSize + entrySize > 8192) break;\n                        baggage[pair.key] = pair.metadata\n                            ? { value: pair.value, metadata: pair.metadata }\n                            : { value: pair.value };\n                        count++;\n                        totalSize += entrySize;\n                    }\n                }\n                if (end === -1) break;\n                start = end + 1;\n            }\n        }\n"
+          }
+        ]
+      }
+    ]
+  }
+]

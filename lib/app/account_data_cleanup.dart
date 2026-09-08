@@ -5,8 +5,16 @@ class AccountDataCleanup implements AccountCleanup {
   const AccountDataCleanup(this.stores);
   @override
   Future<void> clearUser(String uid) async {
+    Object? failure;
+    StackTrace? failureStack;
     for (final store in stores) {
-      await store.clearUser(uid);
+      try {
+        await store.clearUser(uid);
+      } catch (error, stack) {
+        failure ??= error;
+        failureStack ??= stack;
+      }
     }
+    if (failure != null) Error.throwWithStackTrace(failure, failureStack!);
   }
 }

@@ -27,11 +27,7 @@ void main() {
     mockChatService = MockChatService();
     mockReadingService = MockReadingService();
     mockKnowledgeRetrievalService = MockKnowledgeRetrievalService();
-    chatController = ChatController(
-      mockChatService,
-      mockReadingService,
-      mockKnowledgeRetrievalService,
-    );
+    chatController = ChatController(mockChatService, mockReadingService);
     when(
       () => mockKnowledgeRetrievalService.search(
         query: any(named: 'query'),
@@ -338,8 +334,8 @@ void main() {
       final result = await chatController.handleCommunication(petId, request);
 
       expect(result, isA<AiResponseModel>());
-      expect((result as AiResponseModel).summary, contains("Network Timeout"));
-      expect(result.petVoice[0].answer, contains("對不起，我剛剛稍微分神了"));
+      expect((result as AiResponseModel).summary, 'AI 服務暫時無法使用。');
+      expect(result.petVoice[0].answer, contains('並非 AI 分析結果'));
 
       verify(() => mockChatService.sendMessage(any())).called(2); // 重試一次，共兩次
       verifyNever(

@@ -17,6 +17,7 @@ import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart'
 import 'package:ai_pet_communication/features/chat/presentation/chat_ui_texts.dart';
 import 'package:ai_pet_communication/features/chat/presentation/communication_result_screen.dart';
 import 'package:ai_pet_communication/services/credit_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
@@ -109,15 +110,6 @@ class _PetCommunicationInputScreenState
 
   CreditService get _creditService => getIt<CreditService>();
 
-  Future<void> _settleReservation() async {
-    final requestId = widget.creditReservationId;
-    if (requestId == null || _creditFinalized) return;
-    if (_releaseFuture != null) await _releaseFuture;
-    if (_creditFinalized) return;
-    await _creditService.settleCommunication(requestId);
-    _creditFinalized = true;
-  }
-
   Future<void> _releaseReservation() {
     final requestId = widget.creditReservationId;
     if (requestId == null || _creditFinalized) return Future<void>.value();
@@ -158,38 +150,47 @@ class _PetCommunicationInputScreenState
       // 1. 準備依賴 (使用 DI)
       final controller = getIt<ChatController>();
 
-      // 2. 建立 Request Model
-      // 注意：這裡假設 OwnerProfile 已由其他地方提供或有預設值
-      // 為了演示，我們使用基本的預設值
+      final user = await getIt<AuthService>().getUserData();
+      if (user == null) throw StateError('請先登入');
+      final birthday = DateTime.tryParse(widget.pet.birthday);
+      final age = birthday == null || birthday.isAfter(DateTime.now())
+          ? null
+          : DateTime.now().difference(birthday).inDays / 365.25;
+      // 尚未提供的飼主資訊保留空值，不編造人格或生活習慣。
       final request = AiRequestModel(
         ownerProfile: const OwnerProfile(
-          experienceLevel: "intermediate",
-          careStyle: "gentle",
-          emotionStyle: "supportive",
-          dailyRoutine: "stable",
-          mainConcern: "health",
+          experienceLevel: '',
+          careStyle: '',
+          emotionStyle: '',
+          dailyRoutine: '',
+          mainConcern: '',
         ),
         petProfile: PetProfile(
           name: widget.pet.name,
           species: widget.pet.species,
           breed: widget.pet.breed,
-          age: 3, // 預設值
+          age: age,
           coatColor: widget.pet.color,
           personalityTraits: [widget.pet.personality],
         ),
         story: _storyController.text.trim(),
         questions: questions,
-        inputMode: _isDeepAnalysis ? "pro" : "free",
+        inputMode: user.membershipTier,
       );
 
       // 3. 發送請求
       final outcome = await controller.handleCommunicationWithPersistence(
         widget.pet.petId,
         request,
+        requestId: widget.creditReservationId,
       );
 
-      // AI 已成功產生結果才結算；同一 request ID 重試不會重複扣點。
-      await _settleReservation();
+      if (outcome.isFallback) {
+        throw StateError('AI 目前無法完成回覆，請稍後再試');
+      }
+
+      // 本階段不計費；後端已保存回覆以供重試去重。
+      _creditFinalized = true;
       await _showPersistenceWarning(controller, outcome);
 
       if (mounted) {
@@ -214,8 +215,10 @@ class _PetCommunicationInputScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              releaseError == null
-                  ? '溝通失敗，預留點數已退回: $e'
+              widget.creditReservationId == null
+                  ? '溝通暫時無法完成，請稍後再試。'
+                  : releaseError == null
+                  ? '溝通失敗，既有預留點數已退回: $e'
                   : '溝通失敗，點數退回待重試，請稍後查看餘額: $e',
             ),
             backgroundColor: Colors.redAccent,

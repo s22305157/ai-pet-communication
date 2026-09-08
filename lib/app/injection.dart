@@ -1,6 +1,7 @@
 import 'package:ai_pet_communication/features/pet/application/pet_cleanup_repository.dart';
 import 'package:ai_pet_communication/app/account_data_cleanup.dart';
 import 'package:get_it/get_it.dart';
+import 'package:ai_pet_communication/core/storage/mutation_queue.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -31,6 +32,7 @@ import 'package:ai_pet_communication/services/credit_service.dart';
 final getIt = GetIt.instance;
 
 void setupDependencies() {
+  getIt.registerLazySingleton<MutationQueue>(() => MutationQueue());
   // ── 基礎核心與外部套件 ──────────────────
   getIt.registerLazySingleton<FirebaseFirestore>(
     () => FirebaseFirestore.instance,
@@ -47,6 +49,7 @@ void setupDependencies() {
   );
   getIt.registerLazySingleton<AuthService>(
     () => AuthService(
+      functions: getIt<FirebaseFunctions>(),
       cleanup: AccountDataCleanup([
         getIt<LocalPetService>(),
         getIt<LocalReadingsRepository>(),
@@ -78,6 +81,7 @@ void setupDependencies() {
 
   getIt.registerLazySingleton<PetSyncManager>(
     () => PetSyncManager(
+      mutations: getIt<MutationQueue>(),
       localService: getIt<LocalPetService>(),
       remoteDataSource: getIt<PetRemoteDataSource>(),
     ),
@@ -89,6 +93,7 @@ void setupDependencies() {
       session: getIt<AuthService>(),
       readings: getIt<LocalReadingsRepository>(),
       pets: PetRepositoryImpl(
+        mutations: getIt<MutationQueue>(),
         remoteDataSource: getIt<PetRemoteDataSource>(),
         localService: getIt<LocalPetService>(),
         authService: getIt<AuthService>(),
@@ -121,7 +126,9 @@ void setupDependencies() {
   );
 
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
-  getIt.registerLazySingleton<ChatService>(() => ChatService());
+  getIt.registerLazySingleton<ChatService>(
+    () => ChatService(functions: getIt<FirebaseFunctions>()),
+  );
   getIt.registerLazySingleton<KnowledgeRetrievalService>(
     () => KnowledgeRetrievalService(functions: getIt<FirebaseFunctions>()),
   );
@@ -141,10 +148,6 @@ void setupDependencies() {
 
   // Controller 使用 Factory，使每次調用皆建立全新狀態
   getIt.registerFactory<ChatController>(
-    () => ChatController(
-      getIt<ChatService>(),
-      getIt<ReadingService>(),
-      getIt<KnowledgeRetrievalService>(),
-    ),
+    () => ChatController(getIt<ChatService>(), getIt<ReadingService>()),
   );
 }

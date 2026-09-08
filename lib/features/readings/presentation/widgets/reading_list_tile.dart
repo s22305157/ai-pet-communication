@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import '../../../../../features/readings/domain/reading.dart';
+import '../../../chat/presentation/communication_display.dart';
 
 class ReadingListTile extends StatelessWidget {
   final Reading reading;
@@ -60,7 +61,7 @@ class ReadingListTile extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              reading.content,
+              readingPreview(reading.content),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.outfit(

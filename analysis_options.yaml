@@ -29,5 +29,6 @@ linter:
 
 analyzer:
   exclude:
+    - '**/node_modules/**'
     - scratch/**
     - tools/maintenance/**

@@ -26,30 +26,30 @@ exports.deletePetData = onCall({maxInstances: 20}, async (request) => {
     const avatarUrl = request.data && request.data.avatarUrl;
     const db = getFirestore();
     const petRef = db.collection("pets").doc(petId);
-    const pet = await petRef.get();
-    if (pet.exists && pet.get("owner_id") !== uid) {
-      throw new HttpsError("permission-denied", "Pet is owned by another user");
-    }
-
     const tombstoneRef = db.collection("petTombstones").doc(petId);
-    const existingTombstone = await tombstoneRef.get();
-    if (existingTombstone.exists &&
-        existingTombstone.get("owner_id") !== uid) {
-      throw new HttpsError(
-        "permission-denied",
-        "Pet deletion belongs to another user",
-      );
-    }
-
-    await tombstoneRef.set({
-      owner_id: uid,
-      deleted_at: FieldValue.serverTimestamp(),
+    const ownedAvatar = await db.runTransaction(async (transaction) => {
+      const [pet, existingTombstone, account, deletedAccount] = await Promise.all([
+        transaction.get(petRef), transaction.get(tombstoneRef),
+        transaction.get(db.collection('users').doc(uid)),
+        transaction.get(db.collection('_deletedUsers').doc(uid)),
+      ]);
+      if (!account.exists || deletedAccount.exists) {
+        throw new HttpsError('permission-denied', 'Account is inactive');
+      }
+      if ((pet.exists && pet.get('owner_id') !== uid) ||
+          (existingTombstone.exists && existingTombstone.get('owner_id') !== uid)) {
+        throw new HttpsError('permission-denied', 'Pet is owned by another user');
+      }
+      const avatar = pet.exists ? pet.get('avatar_url') :
+        (existingTombstone.exists ? existingTombstone.get('avatar_url') : avatarUrl);
+      transaction.set(tombstoneRef, {
+        owner_id: uid, deleted_at: FieldValue.serverTimestamp(),
+        avatar_url: typeof avatar === 'string' ? avatar : '',
+      });
+      return avatar;
     });
     await db.recursiveDelete(petRef);
-    await deleteAvatarIfOwned(
-      pet.exists ? pet.get("avatar_url") : avatarUrl,
-      uid,
-    );
+    await deleteAvatarIfOwned(ownedAvatar, uid);
     return {deleted: true, petId};
   } catch (error) {
     if (error instanceof HttpsError) throw error;
@@ -86,6 +86,9 @@ exports.deleteOwnAccount = onCall({
   // 刪除後立刻重建 users/{uid} 來重領初始點數。
   await tombstoneRef.set({deletedAt: FieldValue.serverTimestamp()});
   try {
+    await getAuth().revokeRefreshTokens(uid).catch((error) => {
+      if (error.code !== 'auth/user-not-found') throw error;
+    });
     const pets = await db.collection("pets")
       .where("owner_id", "==", uid)
       .get();
@@ -99,7 +102,9 @@ exports.deleteOwnAccount = onCall({
     await getStorage().bucket().deleteFiles({prefix: `pets/${uid}/`});
     await db.collection("_proxyRateLimits").doc(uid).delete();
     await db.recursiveDelete(userRef);
-    await getAuth().deleteUser(uid);
+    await getAuth().deleteUser(uid).catch((error) => {
+      if (error.code !== 'auth/user-not-found') throw error;
+    });
   } catch (error) {
     throw new HttpsError("internal", "Account deletion failed");
   }

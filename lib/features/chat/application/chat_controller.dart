@@ -5,26 +5,20 @@
 
 import 'dart:developer' as dev;
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
-import 'package:ai_pet_communication/features/chat/application/prompt_manager.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
-import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 
 class ChatController {
   final ChatService _chatService;
   final ReadingService _readingService;
-  final KnowledgeRetrievalService _knowledgeRetrievalService;
 
-  ChatController(
-    this._chatService,
-    this._readingService, [
-    KnowledgeRetrievalService? knowledgeRetrievalService,
-  ]) : _knowledgeRetrievalService =
-           knowledgeRetrievalService ?? KnowledgeRetrievalService();
+  ChatController(this._chatService, this._readingService);
 
   /// 處理完整的 AI 溝通請求 (包含重試與 Fallback 邏輯)
   Future<dynamic> handleCommunication(
@@ -35,53 +29,34 @@ class ChatController {
 
   Future<CommunicationOutcome> handleCommunicationWithPersistence(
     String petId,
-    AiRequestModel request,
-  ) async {
+    AiRequestModel request, {
+    String? requestId,
+  }) async {
+    final operationId = requestId ?? const Uuid().v4();
     int retryCount = 0;
     const int maxRetries = 1; // 失敗時重試一次
 
     while (retryCount <= maxRetries) {
       try {
-        // 1. 先做安全分流，再以完整問題檢索知識。
+        // 本機驗證作為 UI 防護；正式權限、知識檢索與提示詞由後端決定。
         final safetyDecision = SafetyRouter.evaluate(request);
-        final retrievalQuery = [
-          request.petProfile.species,
-          request.ownerProfile.mainConcern,
-          request.story,
-          ...request.questions,
-        ].where((value) => value.trim().isNotEmpty).join(' ');
-        List<KnowledgeHit> knowledgeHits;
-        try {
-          knowledgeHits = await _knowledgeRetrievalService.search(
-            query: retrievalQuery,
-            species: request.petProfile.species,
-            limit: safetyDecision.needsImmediateAction ? 5 : 4,
-          );
-        } catch (error, stackTrace) {
-          dev.log('知識庫檢索失敗，改用無檢索安全提示', error: error, stackTrace: stackTrace);
-          knowledgeHits = const [];
-        }
 
-        // 2. 將安全結果與可追溯知識片段組裝進 Prompt。
-        final bundle = PromptManager.buildMessages(
-          request,
-          knowledgeHits: knowledgeHits,
-          safetyDecision: safetyDecision,
-        );
+        AiValidator.validateRequest(request);
 
-        // 3. 呼叫 AI 服務；使用 JSON 序列化保留訊息角色與跳脫字元。
+        // 只傳原始資料；不將前端提示詞、模型選擇或檢索結果視為可信指令。
         final rawResponse = await _chatService.sendMessage(
-          jsonEncode(bundle.messages),
+          jsonEncode({
+            'requestId': operationId,
+            'petId': petId,
+            'request': request.toMap(),
+          }),
         );
 
         // 4. 根據模式進行動態驗證
         dynamic aiResponse;
-        if (bundle.isSafeMode) {
+        if (safetyDecision.useSafeMode) {
           final safeResponse = AiValidator.validateSafeResponse(rawResponse);
-          AiValidator.enforceSafetyDecision(
-            safeResponse,
-            bundle.safetyDecision,
-          );
+          AiValidator.enforceSafetyDecision(safeResponse, safetyDecision);
           aiResponse = safeResponse;
         } else {
           aiResponse = AiValidator.validateResponse(rawResponse);
@@ -92,7 +67,7 @@ class ChatController {
           await _readingService.recordAiResponse(
             petId: petId,
             aiText: aiResponse.toJson(),
-            source: bundle.isSafeMode ? 'safe_chat' : 'pro_chat',
+            source: safetyDecision.useSafeMode ? 'safe_chat' : 'pro_chat',
           );
         } on ReadingPersistenceException catch (error) {
           persistenceFailure = error;
@@ -105,7 +80,14 @@ class ChatController {
       } catch (e) {
         dev.log('AI 溝通失敗 (嘗試 ${retryCount + 1}): $e');
 
-        if (retryCount < maxRetries) {
+        final sessionChanged =
+            e is FirebaseFunctionsException &&
+            [
+              'unauthenticated',
+              'cancelled',
+              'permission-denied',
+            ].contains(e.code);
+        if (!sessionChanged && retryCount < maxRetries) {
           retryCount++;
           await Future.delayed(const Duration(milliseconds: 500));
           continue;

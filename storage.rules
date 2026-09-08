@@ -2,7 +2,9 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return request.auth != null && request.auth.uid == uid
+        && firestore.exists(/databases/(default)/documents/users/$(uid))
+        && !firestore.exists(/databases/(default)/documents/_deletedUsers/$(uid));
     }
 
     function isValidPetAvatar(fileName) {

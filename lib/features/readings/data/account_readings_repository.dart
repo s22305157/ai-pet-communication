@@ -1,4 +1,5 @@
 import 'package:ai_pet_communication/core/session/current_session.dart';
+import 'package:ai_pet_communication/core/session/session_stream.dart';
 import 'package:ai_pet_communication/core/storage/storage_policy.dart';
 import 'package:ai_pet_communication/features/pet/domain/repositories/owned_pet_lookup.dart';
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
@@ -38,19 +39,26 @@ class AccountReadingsRepository implements ReadingsRepository {
   @override
   Stream<List<Reading>> watchReadingsByPetId(String petId) async* {
     final scope = await _scope(petId);
-    if (scope.useLocal) {
-      yield* _localReadings.watchReadings(scope.uid, petId);
-    } else {
-      yield* _cloudReadings.watchReadingsByPetId(petId);
-    }
+    yield* watchSession(
+      _authService,
+      scope.uid,
+      () async => scope.useLocal
+          ? _localReadings.watchReadings(scope.uid, petId)
+          : _cloudReadings.watchReadingsByPetId(petId),
+      const <Reading>[],
+    );
   }
 
   @override
   Future<Reading?> getReadingById(String petId, String readingId) async {
     final scope = await _scope(petId);
-    return scope.useLocal
+    final result = await (scope.useLocal
         ? _localReadings.getReading(scope.uid, petId, readingId)
-        : _cloudReadings.getReadingById(petId, readingId);
+        : _cloudReadings.getReadingById(petId, readingId));
+    if ((await _authService.getUserData())?.uid != scope.uid) {
+      throw StateError('Account changed during reading request.');
+    }
+    return result;
   }
 
   @override

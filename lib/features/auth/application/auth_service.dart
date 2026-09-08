@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:async';
+import '../data/user_mapper.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:ai_pet_communication/core/session/current_session.dart';
 import 'package:ai_pet_communication/core/storage/account_cleanup.dart';
@@ -12,9 +13,12 @@ class AuthService implements CurrentSession {
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     AccountCleanup? cleanup,
+    FirebaseFunctions? functions,
   }) : _customAuth = auth,
        _customDb = firestore,
-       _cleanup = cleanup;
+       _cleanup = cleanup,
+       _functions = functions;
+  final FirebaseFunctions? _functions;
   final AccountCleanup? _cleanup;
 
   final FirebaseAuth? _customAuth;
@@ -55,6 +59,8 @@ class AuthService implements CurrentSession {
     await previousSubscription?.cancel();
 
     if (generation != _authGeneration) return;
+    // Never retain the previous account while the next document is loading.
+    if (_userSubject.valueOrNull?.uid != user?.uid) _userSubject.add(null);
     if (user == null) {
       _userSubject.add(null);
       return;
@@ -66,7 +72,11 @@ class AuthService implements CurrentSession {
       (snapshot) {
         if (generation != _authGeneration) return;
         if (snapshot.exists) {
-          _userSubject.add(UserModel.fromMap(snapshot.data()!, user.uid));
+          try {
+            _userSubject.add(UserMapper.fromMap(snapshot.data()!, user.uid));
+          } catch (error, stack) {
+            _userSubject.addError(error, stack);
+          }
           return;
         }
         if (isCreatingUser) return;
@@ -100,9 +110,9 @@ class AuthService implements CurrentSession {
   ) async {
     final reference = _db.collection('users').doc(user.uid);
     final snapshot = await transaction.get(reference);
-    if (snapshot.exists) return UserModel.fromMap(snapshot.data()!, user.uid);
+    if (snapshot.exists) return UserMapper.fromMap(snapshot.data()!, user.uid);
     final created = _newUser(user);
-    transaction.set(reference, created.toMap());
+    transaction.set(reference, UserMapper.toMap(created));
     return created;
   });
 
@@ -134,7 +144,7 @@ class AuthService implements CurrentSession {
           await _db.collection('users').doc(user.uid).update({
             'lastLoginAt': FieldValue.serverTimestamp(),
           });
-          return UserModel.fromMap(doc.data()!, user.uid);
+          return UserMapper.fromMap(doc.data()!, user.uid);
         }
       }
     } catch (e) {
@@ -163,8 +173,9 @@ class AuthService implements CurrentSession {
     final user = _auth.currentUser;
     if (user == null) return null;
     final doc = await _db.collection('users').doc(user.uid).get();
+    if (_auth.currentUser?.uid != user.uid) return null;
     if (doc.exists) {
-      return UserModel.fromMap(doc.data()!, user.uid);
+      return UserMapper.fromMap(doc.data()!, user.uid);
     }
     return null;
   }
@@ -190,7 +201,9 @@ class AuthService implements CurrentSession {
     _userDocumentSubscription = null;
     await previousSubscription?.cancel();
     try {
-      await FirebaseFunctions.instance.httpsCallable('deleteOwnAccount').call();
+      await (_functions ?? FirebaseFunctions.instance)
+          .httpsCallable('deleteOwnAccount')
+          .call();
     } catch (_) {
       if (generation == _authGeneration) {
         await _switchUserDocument(_auth.currentUser);

@@ -5,6 +5,7 @@ const {onRequest} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const creditOperations = require("./credit_operations");
 const accountOperations = require("./account_operations");
+const {assertActiveAccount} = require('./account_access');
 const knowledgeRetrieval = require("./knowledge_retrieval");
 const {
   TargetValidationError,
@@ -36,7 +37,9 @@ async function authenticate(req) {
   }
 
   try {
-    return await getAuth().verifyIdToken(match[1]);
+    const token = await getAuth().verifyIdToken(match[1], true);
+    await assertActiveAccount(getFirestore(), token.uid);
+    return token;
   } catch (_) {
     throw new HttpError(401, "Invalid authentication token");
   }
@@ -214,3 +217,4 @@ exports.releaseExpiredCommunicationCredits =
 exports.deleteOwnAccount = accountOperations.deleteOwnAccount;
 exports.deletePetData = accountOperations.deletePetData;
 exports.retrieveKnowledge = knowledgeRetrieval.retrieveKnowledge;
+exports.communicateWithPet = require('./ai_operations').communicateWithPet;

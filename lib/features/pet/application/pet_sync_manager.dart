@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:ai_pet_communication/core/storage/mutation_queue.dart';
 
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart';
@@ -18,6 +19,7 @@ class SyncState {
 class PetSyncManager {
   final LocalPetService _localService;
   final PetRemoteDataSource _remoteDataSource;
+  final MutationQueue _mutations;
 
   final ValueNotifier<bool> _cloud = ValueNotifier(true);
   final ValueNotifier<bool> _busy = ValueNotifier(false);
@@ -28,6 +30,7 @@ class PetSyncManager {
   final Map<String, Future<void>> _queues = {};
   int _generation = 0;
   String? _activeUid;
+  int _listeners = 0;
   void _publish() {
     _state.value = SyncState(
       uid: _activeUid,
@@ -37,7 +40,12 @@ class PetSyncManager {
   }
 
   int beginSession(String uid) {
+    if (_activeUid == uid) {
+      _listeners++;
+      return _generation;
+    }
     _activeUid = uid;
+    _listeners = 1;
     _busy.value = _queues.containsKey(uid);
     _publish();
     return ++_generation;
@@ -47,6 +55,7 @@ class PetSyncManager {
       _activeUid == uid && _generation == generation;
   void endSession(String uid, int generation) {
     if (isCurrentSession(uid, generation)) {
+      if (--_listeners > 0) return;
       ++_generation;
       _activeUid = null;
       _busy.value = false;
@@ -64,11 +73,12 @@ class PetSyncManager {
   PetSyncManager({
     required LocalPetService localService,
     required PetRemoteDataSource remoteDataSource,
+    MutationQueue? mutations,
   }) : _localService = localService,
-       _remoteDataSource = remoteDataSource;
+       _remoteDataSource = remoteDataSource,
+       _mutations = mutations ?? MutationQueue();
   Future<void> _enqueue(String uid, Future<void> Function() work) {
-    final previous = _queues[uid] ?? Future<void>.value();
-    final queued = previous.then((_) => work());
+    final queued = _mutations.run(uid, work);
     // Store a handled tail so one failure never poisons subsequent work.
     final tail = queued.then<void>(
       (_) {},
@@ -119,7 +129,11 @@ class PetSyncManager {
         if (cloudPet == null) {
           await _remoteDataSource.setPet(pet.petId, pet);
         } else if (cloudPet.ownerId == uid && resolveConflict(pet, cloudPet)) {
-          await _remoteDataSource.updatePet(pet.petId, pet);
+          await _remoteDataSource.updatePet(
+            pet.petId,
+            pet,
+            expectedUpdatedAt: cloudPet.updatedAt,
+          );
         } else if (cloudPet.ownerId == uid) {
           await _localService.cacheCloudPet(uid, cloudPet);
         }
@@ -169,9 +183,15 @@ class PetSyncManager {
       } else if (cloudPet.ownerId != uid) {
         throw StateError('Remote pet owner does not match pending operation.');
       } else if (resolveConflict(pet, cloudPet)) {
-        await _remoteDataSource.updatePet(pet.petId, pet);
+        await _remoteDataSource.updatePet(
+          pet.petId,
+          pet,
+          expectedUpdatedAt: cloudPet.updatedAt,
+        );
       } else {
-        await _localService.cacheCloudPet(uid, cloudPet);
+        if (_localService.isPendingOperationCurrent(uid, operation)) {
+          await _localService.cacheCloudPet(uid, cloudPet);
+        }
       }
       await _localService.clearPendingOperationIfUnchanged(uid, operation);
       await _localService.clearTombstone(uid, pet.petId);

@@ -1,71 +1,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 使用者資料規則 (Users 集合)
+    function signedIn() { return request.auth != null; }
+    function notDeleted() {
+      return signedIn() && !exists(/databases/$(database)/documents/_deletedUsers/$(request.auth.uid));
+    }
+    function activeAccount() {
+      return notDeleted() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function text(value, limit) { return value is string && value.size() <= limit; }
+    function optionalText(value, limit) { return value == null || text(value, limit); }
+    function validUser(data) {
+      return text(data.displayName, 200) && optionalText(data.photoUrl, 4096)
+        && data.hasCompletedOnboarding is bool && data.lastLoginAt is timestamp
+        && (!('onboardingAnswers' in data) || data.onboardingAnswers is map);
+    }
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId 
-                    && !exists(/databases/$(database)/documents/_deletedUsers/$(userId))
-                    && request.resource.data.keys().hasAll([
-                      'uid', 'email', 'displayName', 'photoUrl', 'points',
-                      'membershipTier', 'hasCompletedOnboarding', 'createdAt',
-                      'lastLoginAt'
-                    ])
-                    && request.resource.data.keys().hasOnly([
-                      'uid', 'email', 'displayName', 'photoUrl', 'points',
-                      'membershipTier', 'hasCompletedOnboarding', 'createdAt',
-                      'lastLoginAt'
-                    ])
-                    && request.resource.data.uid == userId
-                    && request.resource.data.points == 1
-                    && request.resource.data.membershipTier == 'free'
-                    && request.resource.data.hasCompletedOnboarding == false
-                    && request.resource.data.createdAt is timestamp
-                    && request.resource.data.lastLoginAt is timestamp;
-      
-       // 安全規則覆核：
-        // 客戶端只能更新個人顯示與新手問卷資料。
-        allow update: if request.auth != null && request.auth.uid == userId
-                      && request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly([
-                          'displayName', 'photoUrl', 'hasCompletedOnboarding',
-                          'onboardingAnswers', 'lastLoginAt'
-                        ]);
-       
-       // 帳號刪除由後端先建立 tombstone，再清除 Auth 與資料。
-       allow delete: if false;
-
-     }
-    
-    // 寵物資料規則 (pets 集合)
-    match /pets/{petId} {
-      // 允許 read：如果是本人，或者文件尚不存在（用於 get 檢查）
-      allow read: if request.auth != null && (resource == null || resource.data.owner_id == request.auth.uid);
-      allow update: if request.auth != null
-        && resource.data.owner_id == request.auth.uid
-        && request.resource.data.owner_id == request.auth.uid;
+      allow read: if notDeleted() && request.auth.uid == userId;
+      allow create: if notDeleted() && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'email', 'displayName', 'photoUrl', 'points', 'membershipTier', 'hasCompletedOnboarding', 'createdAt', 'lastLoginAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'photoUrl', 'points', 'membershipTier', 'hasCompletedOnboarding', 'createdAt', 'lastLoginAt'])
+        && request.resource.data.uid == userId && text(request.resource.data.email, 320)
+        && request.resource.data.points == 1 && request.resource.data.membershipTier == 'free'
+        && request.resource.data.hasCompletedOnboarding == false
+        && request.resource.data.createdAt is timestamp && validUser(request.resource.data);
+      allow update: if notDeleted() && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoUrl', 'hasCompletedOnboarding', 'onboardingAnswers', 'lastLoginAt'])
+        && validUser(request.resource.data);
       allow delete: if false;
-      allow create: if request.auth != null
-        && request.resource.data.owner_id == request.auth.uid
-        && !exists(/databases/$(database)/documents/petTombstones/$(petId));
-      
-      // 溝通紀錄規則 (readings 子集合)
+    }
+    function livePet(petId) {
+      return !exists(/databases/$(database)/documents/petTombstones/$(petId));
+    }
+    function validPet(data, petId) {
+      return data.keys().hasAll(['pet_id', 'owner_id', 'name', 'species', 'breed', 'gender', 'birthday', 'personality', 'avatar_url', 'color', 'weight', 'updated_at'])
+        && data.keys().hasOnly(['pet_id', 'owner_id', 'name', 'species', 'breed', 'gender', 'birthday', 'personality', 'avatar_url', 'color', 'weight', 'created_at', 'updated_at'])
+        && data.pet_id == petId && data.owner_id == request.auth.uid
+        && text(data.name, 200) && data.name.size() > 0 && text(data.species, 100)
+        && text(data.breed, 200) && text(data.gender, 50) && text(data.birthday, 32)
+        && text(data.personality, 4000) && text(data.avatar_url, 4096) && text(data.color, 100)
+        && data.weight is number && data.weight >= 0 && data.weight <= 10000
+        && data.updated_at == request.time;
+    }
+    match /pets/{petId} {
+      allow read: if activeAccount() && (resource == null || resource.data.owner_id == request.auth.uid);
+      allow create: if activeAccount() && livePet(petId) && validPet(request.resource.data, petId)
+        && request.resource.data.created_at is timestamp;
+      allow update: if activeAccount() && livePet(petId)
+        && resource.data.owner_id == request.auth.uid && validPet(request.resource.data, petId)
+        && request.resource.data.get('created_at', null) == resource.data.get('created_at', null);
+      allow delete: if false;
       match /readings/{readingId} {
-        // 確保只有寵物擁有人可以存取紀錄
-        allow read, write: if request.auth != null 
-          && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
+        function ownsParent() {
+          return activeAccount() && livePet(petId)
+            && get(/databases/$(database)/documents/pets/$(petId)).data.owner_id == request.auth.uid;
+        }
+        function validReading(data) {
+          return data.keys().hasAll(['petId', 'title', 'content', 'mood', 'source', 'createdAt', 'updatedAt'])
+            && data.keys().hasOnly(['petId', 'title', 'content', 'mood', 'source', 'createdAt', 'updatedAt'])
+            && data.petId == petId && text(data.title, 256) && text(data.content, 100000)
+            && optionalText(data.mood, 128) && optionalText(data.source, 256)
+            && text(data.createdAt, 40) && data.createdAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*')
+            && optionalText(data.updatedAt, 40);
+        }
+        allow read, delete: if ownsParent();
+        allow create, update: if ownsParent() && validReading(request.resource.data);
       }
     }
-
     match /petTombstones/{petId} {
-      allow get: if request.auth != null
-        && (resource == null || resource.data.owner_id == request.auth.uid);
+      allow get: if activeAccount() && (resource == null || resource.data.owner_id == request.auth.uid);
       allow list, create, update, delete: if false;
     }
-    
-    // 預設規則：拒絕所有其他存取
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }

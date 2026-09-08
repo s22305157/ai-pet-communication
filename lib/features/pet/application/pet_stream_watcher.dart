@@ -48,6 +48,10 @@ class PetStreamWatcher {
       } catch (error) {
         debugPrint('Free 帳號的待刪除操作仍離線，稍後重試: $error');
       }
+      if ((await _authService.getUserData())?.uid != uid) {
+        yield [];
+        return;
+      }
       yield* _guardActiveUser(uid, _localService.watchPets(uid));
       return;
     }
@@ -134,7 +138,6 @@ class PetStreamWatcher {
       },
       onCancel: () async {
         cancelled = true;
-        _syncManager.endSession(uid, generation);
         await cloudSub?.cancel();
         await localSub?.cancel();
         await localCancellation;

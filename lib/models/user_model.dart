@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class UserModel {
   final String uid;
   final String email;
@@ -30,42 +28,6 @@ class UserModel {
     this.createdAt,
     this.lastLoginAt,
   });
-
-  factory UserModel.fromMap(Map<String, dynamic> map, [String? id]) {
-    return UserModel(
-      uid: id ?? map['uid'] ?? '',
-      email: map['email'] ?? '',
-      displayName: map['displayName'] ?? '',
-      photoUrl: map['photoUrl'] ?? map['photoURL'],
-      points: map['points'] ?? 0,
-      membershipTier: map['membershipTier'] ?? map['membershipType'] ?? 'free',
-      hasCompletedOnboarding: map['hasCompletedOnboarding'] ?? false,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      lastLoginAt: map['lastLoginAt'] != null
-          ? (map['lastLoginAt'] as Timestamp).toDate()
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'uid': uid,
-      'email': email,
-      'displayName': displayName,
-      'photoUrl': photoUrl,
-      'points': points,
-      'membershipTier': membershipTier,
-      'hasCompletedOnboarding': hasCompletedOnboarding,
-      'createdAt': createdAt != null
-          ? Timestamp.fromDate(createdAt!)
-          : FieldValue.serverTimestamp(),
-      'lastLoginAt': lastLoginAt != null
-          ? Timestamp.fromDate(lastLoginAt!)
-          : FieldValue.serverTimestamp(),
-    };
-  }
 
   UserModel copyWith({
     String? displayName,

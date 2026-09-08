@@ -5,6 +5,6 @@ abstract class PetRepository {
   Future<PetModel?> getPet(String petId);
   Future<PetWriteResult> createPet(PetModel pet);
   Future<PetWriteResult> updatePet(String petId, PetModel pet);
-  Future<void> deletePet(String petId);
+  Future<PetWriteResult> deletePet(String petId, {String? expectedOwnerId});
   Future<bool> shouldUseCloud();
 }

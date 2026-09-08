@@ -79,7 +79,7 @@ class PetProfile {
   final String name;
   final String species;
   final String breed;
-  final double age;
+  final double? age;
   final String coatColor;
   final List<String> personalityTraits;
 

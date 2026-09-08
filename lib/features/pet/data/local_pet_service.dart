@@ -165,6 +165,21 @@ class LocalPetService implements OwnedPetLookup, AccountCleanup {
     }
   }
 
+  String? pendingToken(String uid, String petId) {
+    final current = _box.get(_syncKey(uid, petId));
+    return current is Map
+        ? '${current['operationId']}/${current['queuedAt']}/${current['type']}'
+        : null;
+  }
+
+  bool isPendingOperationCurrent(String uid, PendingPetOperation sent) {
+    final current = _box.get(_syncKey(uid, sent.petId));
+    return current is Map &&
+        current['operationId'] == sent.operationId &&
+        current['queuedAt'] == sent.queuedAt?.toIso8601String() &&
+        current['type'] == sent.type;
+  }
+
   List<PendingPetOperation> getPendingOperations(String uid) {
     final prefix = _syncPrefix(uid);
     final operations = <PendingPetOperation>[];

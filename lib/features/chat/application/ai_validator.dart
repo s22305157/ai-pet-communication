@@ -43,8 +43,10 @@ class AiValidator {
 
     // 驗證 inputMode
     final mode = json['inputMode'];
-    if (mode != 'free' && mode != 'pro') {
-      throw AiValidationException('Request inputMode must be "free" or "pro"');
+    if (!['free', 'plus', 'pro'].contains(mode)) {
+      throw AiValidationException(
+        'Request inputMode must be free, plus or pro',
+      );
     }
 
     // 驗證 story 長度
@@ -235,8 +237,8 @@ class AiValidator {
       throw AiValidationException('Invalid tone: ${json['tone']}');
     }
 
-    if (json['inputMode'] != 'free' && json['inputMode'] != 'pro') {
-      throw AiValidationException('inputMode must be "free" or "pro"');
+    if (!['free', 'plus', 'pro'].contains(json['inputMode'])) {
+      throw AiValidationException('inputMode must be free, plus or pro');
     }
   }
 

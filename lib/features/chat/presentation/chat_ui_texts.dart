@@ -7,13 +7,13 @@ class ChatUiTexts {
   // ── 1. 頂部提示 ───────────────────────────────────────────
   static const String safeModeTitle = "安全模式已開啟";
   static const String safeModeSubtitle =
-      "目前會先依據你提供的文字資訊，做保守推測與照護提醒。這不是醫療診斷，也不是影像判讀。若毛孩看起來不舒服，請優先尋求獸醫協助。";
+      "分享毛孩最近的生活，讓 AI 對話更貼近你們的相處。";
 
   // ── 2. 區塊標題與副標題 ──────────────────────────────────────
 
   // 毛孩心語
-  static const String petVoiceTitle = "毛孩心語";
-  static const String petVoiceSubtitle = "這是一段依目前資訊做出的推測，不是毛孩真正的心聲。";
+  static const String petVoiceTitle = "AI 毛孩對話";
+  static const String petVoiceSubtitle = "";
 
   // 毛孩知識補給站
   static const String knowledgeTipsTitle = "毛孩知識補給站";
@@ -38,7 +38,7 @@ class ChatUiTexts {
       "如果毛孩出現呼吸急促、持續嘔吐、抽搐、站不穩、血便、血尿或明顯疼痛，請盡快聯絡獸醫或就近就醫。";
 
   // ── 5. 結尾補充文案 ──────────────────────────────────────────
-  static const String footerNote = "以上內容是根據文字資訊做出的安全推測，不是醫療診斷，也不是影像判讀。";
+  static const String footerNote = "";
 
   // ── 6. 按鈕文案 ───────────────────────────────────────────
   static const String btnAddInfo = "補充觀察資訊";

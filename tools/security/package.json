@@ -1,0 +1,27 @@
+{
+  "name": "pawlink-security-tests",
+  "private": true,
+  "scripts": {
+    "test": "cd ../.. && firebase emulators:exec --config firebase.security.json --project demo-pawlink-security --only firestore,storage \"node --test tools/security/rules.test.cjs\"",
+    "postinstall": "node apply-security-patches.cjs",
+    "security:patch": "node apply-security-patches.cjs",
+    "test:dependencies": "node apply-security-patches.cjs && node --test dependency-security.test.cjs",
+    "pretest": "npm run test:dependencies"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.18.0",
+    "firebase-tools": "15.29.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "qs": "^6.16.0",
+    "firebase-tools": {
+      "@google-cloud/pubsub": "5.3.1",
+      "stream-json": "1.9.1"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

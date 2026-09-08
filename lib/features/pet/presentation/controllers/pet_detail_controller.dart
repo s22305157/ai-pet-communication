@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../domain/models/pet_write_result.dart';
+import 'package:ai_pet_communication/services/error_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
@@ -9,6 +11,13 @@ import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/app/injection.dart';
 
 class PetDetailController extends ChangeNotifier {
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   PetModel _pet;
   final PetService _petService;
   final MembershipActionHandler? _membershipHandlerOverride;
@@ -28,7 +37,7 @@ class PetDetailController extends ChangeNotifier {
 
   Future<void> refreshPet() async {
     final refreshed = await _petService.getPet(_pet.petId);
-    if (refreshed != null) {
+    if (!_disposed && refreshed != null) {
       _pet = refreshed;
       notifyListeners();
     }
@@ -79,8 +88,29 @@ class PetDetailController extends ChangeNotifier {
     );
 
     if (confirm == true) {
-      await _petService.deletePet(_pet.petId);
-      onDeleted();
+      try {
+        final result = await _petService.deletePet(
+          _pet.petId,
+          expectedOwnerId: _pet.ownerId,
+        );
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result == PetWriteResult.pendingSync
+                  ? '已從此裝置移除，等待同步刪除'
+                  : '已刪除毛小孩資料',
+            ),
+          ),
+        );
+        onDeleted();
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(ErrorService.getErrorMessage(error))),
+          );
+        }
+      }
     }
   }
 

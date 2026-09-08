@@ -67,6 +67,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     super.dispose();
   }
 
