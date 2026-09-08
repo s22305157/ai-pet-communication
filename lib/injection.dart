@@ -19,13 +19,16 @@ import 'features/readings/data/readings_repository.dart';
 import 'features/readings/data/firestore_readings_repository.dart';
 import 'features/readings/application/reading_service.dart';
 import 'features/chat/application/chat_controller.dart';
+import 'features/knowledge/application/knowledge_retrieval_service.dart';
 import 'services/membership_action_handler.dart';
 
 final getIt = GetIt.instance;
 
 void setupDependencies() {
   // ── 基礎核心與外部套件 ──────────────────
-  getIt.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  getIt.registerLazySingleton<FirebaseFirestore>(
+    () => FirebaseFirestore.instance,
+  );
   getIt.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
   // ── 基礎系統服務 ──────────────────
@@ -38,54 +41,73 @@ void setupDependencies() {
     () => MembershipActionHandler(getIt<AuthService>(), getIt<AdService>()),
   );
 
-  getIt.registerLazySingleton<PetRemoteDataSource>(() => PetRemoteDataSource(
-    firestore: getIt<FirebaseFirestore>(),
-    storage: getIt<FirebaseStorage>(),
-  ));
+  getIt.registerLazySingleton<PetRemoteDataSource>(
+    () => PetRemoteDataSource(
+      firestore: getIt<FirebaseFirestore>(),
+      storage: getIt<FirebaseStorage>(),
+    ),
+  );
 
-  getIt.registerLazySingleton<PetSyncManager>(() => PetSyncManager(
-    firestore: getIt<FirebaseFirestore>(),
-    localService: getIt<LocalPetService>(),
-    remoteDataSource: getIt<PetRemoteDataSource>(),
-  ));
+  getIt.registerLazySingleton<PetSyncManager>(
+    () => PetSyncManager(
+      firestore: getIt<FirebaseFirestore>(),
+      localService: getIt<LocalPetService>(),
+      remoteDataSource: getIt<PetRemoteDataSource>(),
+    ),
+  );
 
-  getIt.registerLazySingleton<PetRepository>(() => PetRepositoryImpl(
-    remoteDataSource: getIt<PetRemoteDataSource>(),
-    localService: getIt<LocalPetService>(),
-    authService: getIt<AuthService>(),
-  ));
+  getIt.registerLazySingleton<PetRepository>(
+    () => PetRepositoryImpl(
+      remoteDataSource: getIt<PetRemoteDataSource>(),
+      localService: getIt<LocalPetService>(),
+      authService: getIt<AuthService>(),
+    ),
+  );
 
-  getIt.registerLazySingleton<AvatarUploadRepository>(() => AvatarUploadRepositoryImpl(
-    remoteDataSource: getIt<PetRemoteDataSource>(),
-  ));
+  getIt.registerLazySingleton<AvatarUploadRepository>(
+    () => AvatarUploadRepositoryImpl(
+      remoteDataSource: getIt<PetRemoteDataSource>(),
+    ),
+  );
 
-  getIt.registerLazySingleton<PetStreamWatcher>(() => PetStreamWatcher(
-    remoteDataSource: getIt<PetRemoteDataSource>(),
-    localService: getIt<LocalPetService>(),
-    authService: getIt<AuthService>(),
-    syncManager: getIt<PetSyncManager>(),
-  ));
+  getIt.registerLazySingleton<PetStreamWatcher>(
+    () => PetStreamWatcher(
+      remoteDataSource: getIt<PetRemoteDataSource>(),
+      localService: getIt<LocalPetService>(),
+      authService: getIt<AuthService>(),
+      syncManager: getIt<PetSyncManager>(),
+    ),
+  );
 
-  getIt.registerLazySingleton<PetService>(() => PetService(
-    repository: getIt<PetRepository>(),
-    avatarUploadRepository: getIt<AvatarUploadRepository>(),
-    streamWatcher: getIt<PetStreamWatcher>(),
-    syncManager: getIt<PetSyncManager>(),
-  ));
+  getIt.registerLazySingleton<PetService>(
+    () => PetService(
+      repository: getIt<PetRepository>(),
+      avatarUploadRepository: getIt<AvatarUploadRepository>(),
+      streamWatcher: getIt<PetStreamWatcher>(),
+      syncManager: getIt<PetSyncManager>(),
+    ),
+  );
 
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
   getIt.registerLazySingleton<ChatService>(() => ChatService());
-  
-  getIt.registerLazySingleton<ReadingsRepository>(
-    () => FirestoreReadingsRepository(getIt<FirebaseFirestore>())
+  getIt.registerLazySingleton<KnowledgeRetrievalService>(
+    () => KnowledgeRetrievalService(),
   );
-  
+
+  getIt.registerLazySingleton<ReadingsRepository>(
+    () => FirestoreReadingsRepository(getIt<FirebaseFirestore>()),
+  );
+
   getIt.registerLazySingleton<ReadingService>(
-    () => ReadingService(getIt<ReadingsRepository>())
+    () => ReadingService(getIt<ReadingsRepository>()),
   );
 
   // Controller 使用 Factory，使每次調用皆建立全新狀態
   getIt.registerFactory<ChatController>(
-    () => ChatController(getIt<ChatService>(), getIt<ReadingService>())
+    () => ChatController(
+      getIt<ChatService>(),
+      getIt<ReadingService>(),
+      getIt<KnowledgeRetrievalService>(),
+    ),
   );
 }

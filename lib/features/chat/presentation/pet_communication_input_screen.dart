@@ -9,6 +9,7 @@ import '../../../constants.dart';
 import '../../pet/domain/models/pet_model.dart';
 import '../../../injection.dart';
 import '../application/prompt_manager.dart';
+import '../application/safety_router.dart';
 import '../application/chat_controller.dart';
 import '../domain/ai_request_model.dart';
 import 'chat_ui_texts.dart';
@@ -20,14 +21,18 @@ class PetCommunicationInputScreen extends StatefulWidget {
   const PetCommunicationInputScreen({super.key, required this.pet});
 
   @override
-  State<PetCommunicationInputScreen> createState() => _PetCommunicationInputScreenState();
+  State<PetCommunicationInputScreen> createState() =>
+      _PetCommunicationInputScreenState();
 }
 
-class _PetCommunicationInputScreenState extends State<PetCommunicationInputScreen> {
+class _PetCommunicationInputScreenState
+    extends State<PetCommunicationInputScreen> {
   final TextEditingController _storyController = TextEditingController();
-  final List<TextEditingController> _questionControllers = 
-      List.generate(5, (_) => TextEditingController());
-  
+  final List<TextEditingController> _questionControllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
+
   bool _isLoading = false;
   bool _hasRedFlags = false;
   int _wordCount = 0;
@@ -54,22 +59,52 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
 
   void _onTextChanged() {
     final storyText = _storyController.text.trim();
-    final questionsText = _questionControllers.map((c) => c.text.trim()).join(' ');
-    
+    final questionsText = _questionControllers
+        .map((c) => c.text.trim())
+        .join(' ');
+
     setState(() {
       _wordCount = storyText.length;
-      _hasRedFlags = PromptManager.detectRedFlags(storyText) || 
-                     PromptManager.detectRedFlags(questionsText);
+      _hasRedFlags =
+          PromptManager.detectRedFlags(
+            storyText,
+            species: widget.pet.species,
+          ) ||
+          PromptManager.detectRedFlags(
+            questionsText,
+            species: widget.pet.species,
+          );
     });
   }
 
-  bool get _useSafeMode => _wordCount < 300 || _hasRedFlags;
+  bool get _useSafeMode =>
+      _hasRedFlags ||
+      PromptManager.shouldUseSafeMode(
+        story: _storyController.text.trim(),
+        questions: _questionControllers
+            .map((controller) => controller.text.trim())
+            .where((text) => text.isNotEmpty)
+            .toList(),
+        species: widget.pet.species,
+      );
+
+  bool get _isDeepAnalysis => _wordCount >= SafetyRouter.deepAnalysisThreshold;
 
   Future<void> _handleSubmit() async {
     if (_storyController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')));
+      return;
+    }
+    final questions = _questionControllers
+        .map((controller) => controller.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (questions.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請至少輸入一個想詢問的問題。')));
       return;
     }
 
@@ -99,31 +134,32 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
           personalityTraits: [widget.pet.personality],
         ),
         story: _storyController.text.trim(),
-        questions: _questionControllers
-            .map((c) => c.text.trim())
-            .where((t) => t.isNotEmpty)
-            .toList(),
-        inputMode: "free", // 暫定
+        questions: questions,
+        inputMode: _isDeepAnalysis ? "pro" : "free",
       );
 
       // 3. 發送請求
-      final result = await controller.handleCommunication(widget.pet.petId!, request);
+      final result = await controller.handleCommunication(
+        widget.pet.petId!,
+        request,
+      );
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => CommunicationResultScreen(
-              result: result,
-              pet: widget.pet,
-            ),
+            builder: (context) =>
+                CommunicationResultScreen(result: result, pet: widget.pet),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('溝通失敗: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('溝通失敗: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -136,7 +172,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('與 ${widget.pet.name} 溝通', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          '與 ${widget.pet.name} 溝通',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -172,10 +211,14 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isSafe ? AppColors.secondary.withOpacity(0.1) : AppColors.primary.withOpacity(0.1),
+        color: isSafe
+            ? AppColors.secondary.withOpacity(0.1)
+            : AppColors.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSafe ? AppColors.secondary.withOpacity(0.3) : AppColors.primary.withOpacity(0.3),
+          color: isSafe
+              ? AppColors.secondary.withOpacity(0.3)
+              : AppColors.primary.withOpacity(0.3),
         ),
       ),
       child: Column(
@@ -200,8 +243,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
           ),
           const SizedBox(height: 8),
           Text(
-            isSafe ? ChatUiTexts.safeModeSubtitle : '當前資訊充足，AI 將結合毛孩檔案進行多維度的深度分析。',
-            style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary),
+            isSafe
+                ? ChatUiTexts.safeModeSubtitle
+                : '當前資訊充足，AI 將結合毛孩檔案進行多維度的深度分析。',
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -216,11 +264,18 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         children: [
           Text(
             title,
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           Text(
             subtitle,
-            style: GoogleFonts.outfit(fontSize: 14, color: AppColors.textSecondary),
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -233,7 +288,11 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -245,8 +304,13 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
             style: GoogleFonts.outfit(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: '描述毛孩最近的表現、食慾、心情或特別的事...',
-              hintStyle: GoogleFonts.outfit(color: AppColors.textSecondary.withOpacity(0.5)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              hintStyle: GoogleFonts.outfit(
+                color: AppColors.textSecondary.withOpacity(0.5),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
               contentPadding: const EdgeInsets.all(20),
             ),
           ),
@@ -259,17 +323,27 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
                   '$_wordCount 字',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    color: _wordCount >= 300 ? Colors.green : AppColors.textSecondary,
-                    fontWeight: _wordCount >= 300 ? FontWeight.bold : FontWeight.normal,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                if (_wordCount < 300) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    '(滿 300 字開啟深度模式)',
-                    style: GoogleFonts.outfit(fontSize: 11, color: AppColors.textSecondary.withOpacity(0.7)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isDeepAnalysis
+                        ? '已達 300 字，將啟用深度分析模式。'
+                        : '(滿 300 字開啟深度分析模式)',
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: _isDeepAnalysis
+                          ? Colors.green
+                          : AppColors.textSecondary.withOpacity(0.7),
+                      fontWeight: _isDeepAnalysis
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -285,9 +359,14 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         controller: _questionControllers[index],
         style: GoogleFonts.outfit(color: AppColors.textPrimary),
         decoration: InputDecoration(
-          hintText: '問題 ${index + 1} (選填)',
-          hintStyle: GoogleFonts.outfit(color: AppColors.textSecondary.withOpacity(0.5)),
-          prefixIcon: Icon(Icons.help_outline, color: AppColors.primary.withOpacity(0.5)),
+          hintText: index == 0 ? '問題 1 (必填)' : '問題 ${index + 1} (選填)',
+          hintStyle: GoogleFonts.outfit(
+            color: AppColors.textSecondary.withOpacity(0.5),
+          ),
+          prefixIcon: Icon(
+            Icons.help_outline,
+            color: AppColors.primary.withOpacity(0.5),
+          ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
@@ -298,7 +377,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -312,13 +394,19 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 2,
           shadowColor: AppColors.primary.withOpacity(0.3),
         ),
         child: Text(
           '發送溝通請求',
-          style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.outfit(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -341,7 +429,10 @@ class _PetCommunicationInputScreenState extends State<PetCommunicationInputScree
               const SizedBox(height: 24),
               Text(
                 '連結感應中...',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

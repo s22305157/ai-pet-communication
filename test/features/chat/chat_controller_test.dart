@@ -7,29 +7,50 @@ import 'package:ai_pet_communication/features/readings/application/reading_servi
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
+import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 
 class MockChatService extends Mock implements ChatService {}
+
 class MockReadingService extends Mock implements ReadingService {}
+
+class MockKnowledgeRetrievalService extends Mock
+    implements KnowledgeRetrievalService {}
 
 void main() {
   late MockChatService mockChatService;
   late MockReadingService mockReadingService;
+  late MockKnowledgeRetrievalService mockKnowledgeRetrievalService;
   late ChatController chatController;
 
   setUp(() {
     mockChatService = MockChatService();
     mockReadingService = MockReadingService();
-    chatController = ChatController(mockChatService, mockReadingService);
-    
+    mockKnowledgeRetrievalService = MockKnowledgeRetrievalService();
+    chatController = ChatController(
+      mockChatService,
+      mockReadingService,
+      mockKnowledgeRetrievalService,
+    );
+    when(
+      () => mockKnowledgeRetrievalService.search(
+        query: any(named: 'query'),
+        species: any(named: 'species'),
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer((_) async => const []);
+
     // Register fallback values for mocktail
     registerFallbackValue('pet123');
   });
 
   group('ChatController - Behavioral Tests', () {
     const String petId = 'pet123';
-    
+
     // Helper to build a request model
-    AiRequestModel buildRequest({required String story, String inputMode = 'free'}) {
+    AiRequestModel buildRequest({
+      required String story,
+      String inputMode = 'free',
+    }) {
       return AiRequestModel(
         ownerProfile: const OwnerProfile(
           experienceLevel: '新手',
@@ -78,13 +99,16 @@ void main() {
 }
 ''';
 
-      when(() => mockChatService.sendMessage(any()))
-          .thenAnswer((_) async => normalResponseJson);
-      when(() => mockReadingService.recordAiResponse(
-            petId: any(named: 'petId'),
-            aiText: any(named: 'aiText'),
-            source: any(named: 'source'),
-          )).thenAnswer((_) async => {});
+      when(
+        () => mockChatService.sendMessage(any()),
+      ).thenAnswer((_) async => normalResponseJson);
+      when(
+        () => mockReadingService.recordAiResponse(
+          petId: any(named: 'petId'),
+          aiText: any(named: 'aiText'),
+          source: any(named: 'source'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final result = await chatController.handleCommunication(petId, request);
 
@@ -93,11 +117,13 @@ void main() {
       expect(result.petVoice[0].answer, '看到你搖尾巴，超開心！');
 
       verify(() => mockChatService.sendMessage(any())).called(1);
-      verify(() => mockReadingService.recordAiResponse(
-            petId: petId,
-            aiText: result.toJson(),
-            source: 'pro_chat',
-          )).called(1);
+      verify(
+        () => mockReadingService.recordAiResponse(
+          petId: petId,
+          aiText: result.toJson(),
+          source: 'pro_chat',
+        ),
+      ).called(1);
     });
 
     test('安全模式 (低資訊量) 成功溝通並記錄至資料庫', () async {
@@ -126,13 +152,16 @@ void main() {
 }
 ''';
 
-      when(() => mockChatService.sendMessage(any()))
-          .thenAnswer((_) async => safeResponseJson);
-      when(() => mockReadingService.recordAiResponse(
-            petId: any(named: 'petId'),
-            aiText: any(named: 'aiText'),
-            source: any(named: 'source'),
-          )).thenAnswer((_) async => {});
+      when(
+        () => mockChatService.sendMessage(any()),
+      ).thenAnswer((_) async => safeResponseJson);
+      when(
+        () => mockReadingService.recordAiResponse(
+          petId: any(named: 'petId'),
+          aiText: any(named: 'aiText'),
+          source: any(named: 'source'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final result = await chatController.handleCommunication(petId, request);
 
@@ -141,11 +170,13 @@ void main() {
       expect(result.petVoice.text, '主人，我今天感覺很平靜。');
 
       verify(() => mockChatService.sendMessage(any())).called(1);
-      verify(() => mockReadingService.recordAiResponse(
-            petId: petId,
-            aiText: result.toJson(),
-            source: 'safe_chat',
-          )).called(1);
+      verify(
+        () => mockReadingService.recordAiResponse(
+          petId: petId,
+          aiText: result.toJson(),
+          source: 'safe_chat',
+        ),
+      ).called(1);
     });
 
     test('第一次呼叫失敗時，自動重試一次並成功完成', () async {
@@ -172,31 +203,36 @@ void main() {
         }
         return safeResponseJson;
       });
-      
-      when(() => mockReadingService.recordAiResponse(
-            petId: any(named: 'petId'),
-            aiText: any(named: 'aiText'),
-            source: any(named: 'source'),
-          )).thenAnswer((_) async => {});
+
+      when(
+        () => mockReadingService.recordAiResponse(
+          petId: any(named: 'petId'),
+          aiText: any(named: 'aiText'),
+          source: any(named: 'source'),
+        ),
+      ).thenAnswer((_) async => {});
 
       final result = await chatController.handleCommunication(petId, request);
 
       expect(result, isA<AiSafeResponseModel>());
       expect((result as AiSafeResponseModel).petVoice.text, '平靜');
-      
+
       expect(callCount, 2); // 呼叫了兩次
-      verify(() => mockReadingService.recordAiResponse(
-            petId: petId,
-            aiText: result.toJson(),
-            source: 'safe_chat',
-          )).called(1);
+      verify(
+        () => mockReadingService.recordAiResponse(
+          petId: petId,
+          aiText: result.toJson(),
+          source: 'safe_chat',
+        ),
+      ).called(1);
     });
 
     test('兩次重試均完全失敗時，返回 Fallback 預設降級回應且不記錄至資料庫', () async {
       final request = buildRequest(story: 'A' * 10);
 
-      when(() => mockChatService.sendMessage(any()))
-          .thenThrow(Exception("Network Timeout"));
+      when(
+        () => mockChatService.sendMessage(any()),
+      ).thenThrow(Exception("Network Timeout"));
 
       final result = await chatController.handleCommunication(petId, request);
 
@@ -205,11 +241,13 @@ void main() {
       expect(result.petVoice[0].answer, contains("對不起，我剛剛稍微分神了"));
 
       verify(() => mockChatService.sendMessage(any())).called(2); // 重試一次，共兩次
-      verifyNever(() => mockReadingService.recordAiResponse(
-            petId: any(named: 'petId'),
-            aiText: any(named: 'aiText'),
-            source: any(named: 'source'),
-          ));
+      verifyNever(
+        () => mockReadingService.recordAiResponse(
+          petId: any(named: 'petId'),
+          aiText: any(named: 'aiText'),
+          source: any(named: 'source'),
+        ),
+      );
     });
   });
 }
