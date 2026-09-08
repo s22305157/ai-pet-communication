@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/ad_service.dart';
@@ -17,10 +18,13 @@ import 'services/onboarding_service.dart';
 import 'features/chat/data/chat_service.dart';
 import 'features/readings/data/readings_repository.dart';
 import 'features/readings/data/firestore_readings_repository.dart';
+import 'features/readings/data/local_readings_repository.dart';
+import 'features/readings/data/account_readings_repository.dart';
 import 'features/readings/application/reading_service.dart';
 import 'features/chat/application/chat_controller.dart';
 import 'features/knowledge/application/knowledge_retrieval_service.dart';
 import 'services/membership_action_handler.dart';
+import 'services/credit_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -30,21 +34,35 @@ void setupDependencies() {
     () => FirebaseFirestore.instance,
   );
   getIt.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
+  getIt.registerLazySingleton<FirebaseFunctions>(
+    () => FirebaseFunctions.instance,
+  );
 
   // ── 基礎系統服務 ──────────────────
   getIt.registerLazySingleton<LocalPetService>(() => LocalPetService());
+  getIt.registerLazySingleton<LocalReadingsRepository>(
+    () => LocalReadingsRepository(),
+  );
   getIt.registerLazySingleton<AuthService>(() => AuthService());
   getIt.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
   getIt.registerLazySingleton<AdService>(() => AdService());
+  getIt.registerLazySingleton<CreditService>(
+    () => CreditService(functions: getIt<FirebaseFunctions>()),
+  );
   getIt.registerLazySingleton<OnboardingService>(() => OnboardingService());
   getIt.registerLazySingleton<MembershipActionHandler>(
-    () => MembershipActionHandler(getIt<AuthService>(), getIt<AdService>()),
+    () => MembershipActionHandler(
+      getIt<AuthService>(),
+      getIt<AdService>(),
+      getIt<CreditService>(),
+    ),
   );
 
   getIt.registerLazySingleton<PetRemoteDataSource>(
     () => PetRemoteDataSource(
       firestore: getIt<FirebaseFirestore>(),
       storage: getIt<FirebaseStorage>(),
+      functions: getIt<FirebaseFunctions>(),
     ),
   );
 
@@ -61,6 +79,7 @@ void setupDependencies() {
       remoteDataSource: getIt<PetRemoteDataSource>(),
       localService: getIt<LocalPetService>(),
       authService: getIt<AuthService>(),
+      localReadings: getIt<LocalReadingsRepository>(),
     ),
   );
 
@@ -95,7 +114,12 @@ void setupDependencies() {
   );
 
   getIt.registerLazySingleton<ReadingsRepository>(
-    () => FirestoreReadingsRepository(getIt<FirebaseFirestore>()),
+    () => AccountReadingsRepository(
+      authService: getIt<AuthService>(),
+      localPets: getIt<LocalPetService>(),
+      localReadings: getIt<LocalReadingsRepository>(),
+      cloudReadings: FirestoreReadingsRepository(getIt<FirebaseFirestore>()),
+    ),
   );
 
   getIt.registerLazySingleton<ReadingService>(

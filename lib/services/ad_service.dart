@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'auth_service.dart';
-import '../injection.dart';
 
 class AdService {
   static final AdService _instance = AdService._internal();
@@ -16,16 +13,16 @@ class AdService {
 
   // ── 測試廣告 ID (正式發布時請替換) ──────────────────────────────────────────
   final String _rewardedAdUnitId = kIsWeb
-      ? '' 
+      ? ''
       : (defaultTargetPlatform == TargetPlatform.android
-          ? 'ca-app-pub-3940256099942544/5224354917' 
-          : 'ca-app-pub-3940256099942544/1712485313'); 
+            ? 'ca-app-pub-3940256099942544/5224354917'
+            : 'ca-app-pub-3940256099942544/1712485313');
 
   final String _interstitialAdUnitId = kIsWeb
       ? ''
       : (defaultTargetPlatform == TargetPlatform.android
-          ? 'ca-app-pub-3940256099942544/1033173712'
-          : 'ca-app-pub-3940256099942544/4411468910');
+            ? 'ca-app-pub-3940256099942544/1033173712'
+            : 'ca-app-pub-3940256099942544/4411468910');
   // ────────────────────────────────────────────────────────────────────────
 
   /// 初始化 Mobile Ads SDK
@@ -49,7 +46,7 @@ class AdService {
           debugPrint('AdService: 激勵廣告載入成功');
           _rewardedAd = ad;
           _isRewardedAdLoading = false;
-          
+
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
@@ -130,33 +127,6 @@ class AdService {
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         debugPrint('AdService: 用戶獲得獎勵 - ${reward.amount} ${reward.type}');
         onReward(reward);
-      },
-    );
-  }
-
-  /// 輔助方法：看廣告領 1 PT
-  Future<void> watchAdForPoints(BuildContext context) async {
-    if (_rewardedAd == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('影片廣告準備中，請稍後再試')),
-      );
-      loadRewardedAd();
-      return;
-    }
-
-    await showRewardedAd(
-      onReward: (reward) async {
-        try {
-          final authService = getIt<AuthService>();
-          await authService.addPoints(1); // 增加 1 點
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('恭喜獲得 1 PT 點數！')),
-            );
-          }
-        } catch (e) {
-          debugPrint('AdService: 獎勵發放失敗 - $e');
-        }
       },
     );
   }

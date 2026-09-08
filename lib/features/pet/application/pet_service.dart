@@ -10,6 +10,7 @@ import '../data/repositories/avatar_upload_repository_impl.dart';
 import 'pet_stream_watcher.dart';
 import '../data/local_pet_service.dart';
 import '../data/sources/pet_remote_data_source.dart';
+import '../../readings/data/local_readings_repository.dart';
 import 'pet_sync_manager.dart';
 import '../../../services/auth_service.dart';
 import '../../../injection.dart';
@@ -35,34 +36,60 @@ class PetService {
     LocalPetService? localService,
     AuthService? authService,
     PetRemoteDataSource? remoteDataSource,
+    LocalReadingsRepository? localReadings,
   }) {
-    final finalSyncManager = syncManager ?? (getIt.isRegistered<PetSyncManager>() ? getIt<PetSyncManager>() : PetSyncManager(
-      firestore: firestore,
-      storage: storage,
-      localService: localService,
-      remoteDataSource: remoteDataSource,
-    ));
+    final finalSyncManager =
+        syncManager ??
+        (getIt.isRegistered<PetSyncManager>()
+            ? getIt<PetSyncManager>()
+            : PetSyncManager(
+                firestore: firestore,
+                storage: storage,
+                localService: localService,
+                remoteDataSource: remoteDataSource,
+              ));
 
-    final finalRemoteDataSource = remoteDataSource ?? (getIt.isRegistered<PetRemoteDataSource>() ? getIt<PetRemoteDataSource>() : PetRemoteDataSource(firestore: firestore, storage: storage));
-    final finalLocalService = localService ?? (getIt.isRegistered<LocalPetService>() ? getIt<LocalPetService>() : LocalPetService());
-    final finalAuthService = authService ?? (getIt.isRegistered<AuthService>() ? getIt<AuthService>() : AuthService());
+    final finalRemoteDataSource =
+        remoteDataSource ??
+        (getIt.isRegistered<PetRemoteDataSource>()
+            ? getIt<PetRemoteDataSource>()
+            : PetRemoteDataSource(firestore: firestore, storage: storage));
+    final finalLocalService =
+        localService ??
+        (getIt.isRegistered<LocalPetService>()
+            ? getIt<LocalPetService>()
+            : LocalPetService());
+    final finalAuthService =
+        authService ??
+        (getIt.isRegistered<AuthService>()
+            ? getIt<AuthService>()
+            : AuthService());
 
-    final finalRepository = repository ?? PetRepositoryImpl(
-      remoteDataSource: finalRemoteDataSource,
-      localService: finalLocalService,
-      authService: finalAuthService,
-    );
+    final finalRepository =
+        repository ??
+        PetRepositoryImpl(
+          remoteDataSource: finalRemoteDataSource,
+          localService: finalLocalService,
+          authService: finalAuthService,
+          localReadings:
+              localReadings ??
+              (getIt.isRegistered<LocalReadingsRepository>()
+                  ? getIt<LocalReadingsRepository>()
+                  : null),
+        );
 
-    final finalAvatarUploadRepository = avatarUploadRepository ?? AvatarUploadRepositoryImpl(
-      remoteDataSource: finalRemoteDataSource,
-    );
+    final finalAvatarUploadRepository =
+        avatarUploadRepository ??
+        AvatarUploadRepositoryImpl(remoteDataSource: finalRemoteDataSource);
 
-    final finalStreamWatcher = streamWatcher ?? PetStreamWatcher(
-      remoteDataSource: finalRemoteDataSource,
-      localService: finalLocalService,
-      authService: finalAuthService,
-      syncManager: finalSyncManager,
-    );
+    final finalStreamWatcher =
+        streamWatcher ??
+        PetStreamWatcher(
+          remoteDataSource: finalRemoteDataSource,
+          localService: finalLocalService,
+          authService: finalAuthService,
+          syncManager: finalSyncManager,
+        );
 
     return PetService._internal(
       repository: finalRepository,
@@ -77,10 +104,10 @@ class PetService {
     required AvatarUploadRepository avatarUploadRepository,
     required PetStreamWatcher streamWatcher,
     required PetSyncManager syncManager,
-  })  : _repository = repository,
-        _avatarUploadRepository = avatarUploadRepository,
-        _streamWatcher = streamWatcher,
-        _syncManager = syncManager;
+  }) : _repository = repository,
+       _avatarUploadRepository = avatarUploadRepository,
+       _streamWatcher = streamWatcher,
+       _syncManager = syncManager;
 
   // 根據 UID 監聽寵物列表
   Stream<List<PetModel>> watchPetsByOwner(String uid) {
@@ -108,7 +135,11 @@ class PetService {
   }
 
   // 上傳寵物大頭貼
-  Future<String> uploadPetAvatar(String uid, String imageId, Uint8List imageBytes) {
+  Future<String> uploadPetAvatar(
+    String uid,
+    String imageId,
+    Uint8List imageBytes,
+  ) {
     return _avatarUploadRepository.uploadPetAvatar(uid, imageId, imageBytes);
   }
 }

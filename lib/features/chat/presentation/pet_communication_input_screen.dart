@@ -3,6 +3,8 @@
 // PAWLINK - 寵物溝通輸入頁
 // ============================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../constants.dart';
@@ -14,11 +16,17 @@ import '../application/chat_controller.dart';
 import '../domain/ai_request_model.dart';
 import 'chat_ui_texts.dart';
 import 'communication_result_screen.dart';
+import '../../../services/credit_service.dart';
 
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
+  final String? creditReservationId;
 
-  const PetCommunicationInputScreen({super.key, required this.pet});
+  const PetCommunicationInputScreen({
+    super.key,
+    required this.pet,
+    this.creditReservationId,
+  });
 
   @override
   State<PetCommunicationInputScreen> createState() =>
@@ -36,6 +44,8 @@ class _PetCommunicationInputScreenState
   bool _isLoading = false;
   bool _hasRedFlags = false;
   int _wordCount = 0;
+  bool _creditFinalized = false;
+  Future<void>? _releaseFuture;
 
   @override
   void initState() {
@@ -48,6 +58,13 @@ class _PetCommunicationInputScreenState
 
   @override
   void dispose() {
+    if (!_creditFinalized && widget.creditReservationId != null) {
+      unawaited(
+        _releaseReservation().catchError((Object error) {
+          debugPrint('Credit release on screen close failed: $error');
+        }),
+      );
+    }
     _storyController.removeListener(_onTextChanged);
     _storyController.dispose();
     for (var controller in _questionControllers) {
@@ -90,7 +107,34 @@ class _PetCommunicationInputScreenState
 
   bool get _isDeepAnalysis => _wordCount >= SafetyRouter.deepAnalysisThreshold;
 
+  CreditService get _creditService => getIt<CreditService>();
+
+  Future<void> _settleReservation() async {
+    final requestId = widget.creditReservationId;
+    if (requestId == null || _creditFinalized) return;
+    if (_releaseFuture != null) await _releaseFuture;
+    if (_creditFinalized) return;
+    await _creditService.settleCommunication(requestId);
+    _creditFinalized = true;
+  }
+
+  Future<void> _releaseReservation() {
+    final requestId = widget.creditReservationId;
+    if (requestId == null || _creditFinalized) return Future<void>.value();
+    return _releaseFuture ??= _performRelease(requestId);
+  }
+
+  Future<void> _performRelease(String requestId) async {
+    try {
+      await _creditService.releaseCommunication(requestId);
+      _creditFinalized = true;
+    } finally {
+      if (!_creditFinalized) _releaseFuture = null;
+    }
+  }
+
   Future<void> _handleSubmit() async {
+    if (_isLoading) return;
     if (_storyController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -139,32 +183,93 @@ class _PetCommunicationInputScreenState
       );
 
       // 3. 發送請求
-      final result = await controller.handleCommunication(
-        widget.pet.petId!,
+      final outcome = await controller.handleCommunicationWithPersistence(
+        widget.pet.petId,
         request,
       );
+
+      // AI 已成功產生結果才結算；同一 request ID 重試不會重複扣點。
+      await _settleReservation();
+      await _showPersistenceWarning(controller, outcome);
 
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                CommunicationResultScreen(result: result, pet: widget.pet),
+            builder: (context) => CommunicationResultScreen(
+              result: outcome.response,
+              pet: widget.pet,
+            ),
           ),
         );
       }
     } catch (e) {
+      Object? releaseError;
+      try {
+        await _releaseReservation();
+      } catch (error) {
+        releaseError = error;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('溝通失敗: $e'),
+            content: Text(
+              releaseError == null
+                  ? '溝通失敗，預留點數已退回: $e'
+                  : '溝通失敗，點數退回待重試，請稍後查看餘額: $e',
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
+        // 預留已結束；重新開始時必須取得新的 request ID。
+        if (widget.creditReservationId != null) {
+          Navigator.pop(context);
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showPersistenceWarning(
+    ChatController controller,
+    CommunicationOutcome outcome,
+  ) async {
+    if (!mounted || outcome.persistenceFailure == null) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('紀錄尚未儲存'),
+        content: const Text('AI 回應已完成，但溝通紀錄儲存失敗。您可以立即重試，或先查看結果。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('先查看結果'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                await controller.retryPersistence(outcome);
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('溝通紀錄已儲存')));
+                }
+              } catch (error) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('仍無法儲存，請稍後再試: $error')),
+                  );
+                }
+              }
+            },
+            child: const Text('重試儲存'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

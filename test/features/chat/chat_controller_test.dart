@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
 import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
@@ -225,6 +226,56 @@ void main() {
           source: 'safe_chat',
         ),
       ).called(1);
+    });
+
+    test('紀錄儲存失敗會保留 AI 結果並回報可重試狀態', () async {
+      final request = buildRequest(story: 'A' * 10);
+      const safeResponseJson = '''
+{
+  "version": "1.0",
+  "mode": "safe_default",
+  "disclaimer": "D",
+  "pet_voice": {"text": "平靜", "tone": "gentle", "is_inference": true},
+  "knowledge_tips": ["K"],
+  "safety_alert": {"has_red_flags": false, "message": "OK"},
+  "next_steps": ["N"],
+  "confidence": 0.9,
+  "needs_more_info": false
+}
+''';
+      final failedReading = Reading(
+        id: 'reading-1',
+        petId: petId,
+        title: 'title',
+        content: 'content',
+        createdAt: DateTime(2026),
+      );
+      when(
+        () => mockChatService.sendMessage(any()),
+      ).thenAnswer((_) async => safeResponseJson);
+      when(
+        () => mockReadingService.recordAiResponse(
+          petId: any(named: 'petId'),
+          aiText: any(named: 'aiText'),
+          source: any(named: 'source'),
+        ),
+      ).thenThrow(
+        ReadingPersistenceException(
+          failedReading,
+          Exception('offline'),
+          StackTrace.current,
+        ),
+      );
+
+      final outcome = await chatController.handleCommunicationWithPersistence(
+        petId,
+        request,
+      );
+
+      expect(outcome.response, isA<AiSafeResponseModel>());
+      expect(outcome.persistenceFailure?.reading, same(failedReading));
+      expect(outcome.isFallback, false);
+      verify(() => mockChatService.sendMessage(any())).called(1);
     });
 
     test('兩次重試均完全失敗時，返回 Fallback 預設降級回應且不記錄至資料庫', () async {

@@ -8,7 +8,7 @@ import '../../constants.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_model.dart';
 import '../../injection.dart';
-import '../../utils/web_helper.dart';
+import '../../widgets/authenticated_network_image.dart';
 import 'account_info_screen.dart';
 import 'settings_screen.dart';
 
@@ -92,9 +92,19 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           child: ClipOval(
                             child: photoUrl != null && photoUrl.isNotEmpty
-                                ? Image.network(
-                                    WebHelper.getWebSafeUrl(photoUrl),
+                                ? AuthenticatedNetworkImage(
+                                    url: photoUrl,
                                     fit: BoxFit.cover,
+                                    authLoadingPlaceholder: Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: tierColor,
+                                        ),
+                                      ),
+                                    ),
                                     errorBuilder: (context, error, stackTrace) {
                                       return Icon(Icons.person_rounded, size: 50, color: tierColor);
                                     },

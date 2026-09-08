@@ -56,7 +56,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
     birthdayController = TextEditingController(text: pet?.birthday ?? '');
     personalityController = TextEditingController(text: pet?.personality ?? '');
     colorController = TextEditingController(text: pet?.color ?? '');
-    weightController = TextEditingController(text: pet?.weight?.toString() ?? '0.0');
+    weightController = TextEditingController(
+      text: pet?.weight?.toString() ?? '0.0',
+    );
     _avatarUrl = pet?.avatarUrl ?? '';
   }
 
@@ -93,7 +95,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
       final Uint8List bytes = await file.readAsBytes();
       final imageId = const Uuid().v4();
 
-      // 上傳至 Firebase Storage：pets/{uid}/{imageId}.jpg
+      // 上傳至 Firebase Storage：pets/{uid}/{imageId}.{jpg|png}
       final url = await _petService.uploadPetAvatar(uid, imageId, bytes);
 
       setState(() {
@@ -128,7 +130,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: widget.existingPet?.birthday != null 
+      initialDate: widget.existingPet?.birthday != null
           ? DateTime.tryParse(widget.existingPet!.birthday) ?? DateTime.now()
           : DateTime.now(),
       firstDate: DateTime(2000),
@@ -148,7 +150,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
     );
     if (picked != null) {
       setState(() {
-        birthdayController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        birthdayController.text =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -159,9 +162,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先登入')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請先登入')));
       return;
     }
 
@@ -180,6 +183,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
         avatarUrl: _avatarUrl,
         color: colorController.text.trim(),
         weight: double.tryParse(weightController.text.trim()) ?? 0.0,
+        createdAt: widget.existingPet?.createdAt,
+        updatedAt: widget.existingPet?.updatedAt,
       );
 
       if (widget.existingPet == null) {
@@ -236,9 +241,7 @@ class _PetFormSheetState extends State<PetFormSheet> {
                   ),
                 ],
               ),
-              child: ClipOval(
-                child: _buildAvatarContent(),
-              ),
+              child: ClipOval(child: _buildAvatarContent()),
             ),
           ),
           // 右下角相機 icon
@@ -260,10 +263,16 @@ class _PetFormSheetState extends State<PetFormSheet> {
                         height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
-                    : const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                    : const Icon(
+                        Icons.camera_alt,
+                        size: 14,
+                        color: Colors.white,
+                      ),
               ),
             ),
           ),
@@ -294,7 +303,11 @@ class _PetFormSheetState extends State<PetFormSheet> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.pets_rounded, size: 32, color: AppColors.primary.withOpacity(0.6)),
+          Icon(
+            Icons.pets_rounded,
+            size: 32,
+            color: AppColors.primary.withOpacity(0.6),
+          ),
           const SizedBox(height: 4),
           Text(
             '上傳頭像',
@@ -403,7 +416,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
                       child: TextFormField(
                         controller: speciesController,
                         decoration: _buildInputDecoration('種類 (例如：狗、貓)'),
-                        validator: (v) => (v == null || v.isEmpty) ? '請輸入種類' : null,
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? '請輸入種類' : null,
                         style: GoogleFonts.outfit(),
                       ),
                     ),
@@ -422,14 +436,22 @@ class _PetFormSheetState extends State<PetFormSheet> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: ['公', '母', '未知'].contains(genderController.text) ? genderController.text : null,
+                        value: ['公', '母', '未知'].contains(genderController.text)
+                            ? genderController.text
+                            : null,
                         decoration: _buildInputDecoration('性別'),
-                        items: ['公', '母', '未知'].map((label) => DropdownMenuItem(
-                          value: label,
-                          child: Text(label, style: GoogleFonts.outfit()),
-                        )).toList(),
-                        onChanged: (v) => setState(() => genderController.text = v ?? ''),
-                        validator: (v) => (v == null || v.isEmpty) ? '請選擇性別' : null,
+                        items: ['公', '母', '未知']
+                            .map(
+                              (label) => DropdownMenuItem(
+                                value: label,
+                                child: Text(label, style: GoogleFonts.outfit()),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => genderController.text = v ?? ''),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? '請選擇性別' : null,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -439,7 +461,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
                         readOnly: true,
                         onTap: _selectDate,
                         decoration: _buildInputDecoration('生日 (點擊選擇)'),
-                        validator: (v) => (v == null || v.isEmpty) ? '請選擇生日' : null,
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? '請選擇生日' : null,
                         style: GoogleFonts.outfit(),
                       ),
                     ),
@@ -460,7 +483,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
                       child: TextFormField(
                         controller: weightController,
                         decoration: _buildInputDecoration('體重 (kg)'),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         validator: (v) {
                           if (v == null || v.isEmpty) return '請輸入體重';
                           final weight = double.tryParse(v);
@@ -490,7 +515,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
                     disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+                      borderRadius: BorderRadius.circular(
+                        AppStyles.borderRadius,
+                      ),
                     ),
                     elevation: 0,
                   ),
@@ -500,7 +527,9 @@ class _PetFormSheetState extends State<PetFormSheet> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : Text(

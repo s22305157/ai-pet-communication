@@ -1,19 +1,16 @@
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../domain/models/pet_model.dart';
+import 'package:flutter/foundation.dart';
+
 import '../data/local_pet_service.dart';
 import '../data/sources/pet_remote_data_source.dart';
+import '../domain/models/pet_model.dart';
 
 class PetSyncManager {
-  final FirebaseFirestore _db;
   final LocalPetService _localService;
   final PetRemoteDataSource _remoteDataSource;
 
-  // 追蹤雲端連線狀態，供 UI 顯示
   final ValueNotifier<bool> isCloudActive = ValueNotifier<bool>(true);
-
-  // 追蹤是否正在進行遷移同步
   final ValueNotifier<bool> isSyncing = ValueNotifier<bool>(false);
 
   PetSyncManager({
@@ -21,44 +18,129 @@ class PetSyncManager {
     FirebaseStorage? storage,
     LocalPetService? localService,
     PetRemoteDataSource? remoteDataSource,
-  })  : _db = firestore ?? FirebaseFirestore.instance,
-        _localService = localService ?? LocalPetService(),
-        _remoteDataSource = remoteDataSource ?? PetRemoteDataSource(firestore: firestore, storage: storage);
+  }) : _localService = localService ?? LocalPetService(),
+       _remoteDataSource =
+           remoteDataSource ??
+           PetRemoteDataSource(firestore: firestore, storage: storage);
 
-  // 內部遷移邏輯：將本地資料推送到雲端 (使用 petId 進行唯一性檢查)
   Future<void> migrateIfNeeded(String uid) async {
-    if (isSyncing.value) return; // 避免重複觸發
-
+    if (isSyncing.value) return;
+    isSyncing.value = true;
     try {
-      final localPets = _localService.getAllPets();
-      if (localPets.isEmpty) return;
+      await _localService.migrateLegacyDataForUser(uid);
+      await _syncPendingOperations(uid, includeUpserts: true);
 
-      isSyncing.value = true;
-      debugPrint("檢測到本地寵物資料，開始按 petId 進行遷移...");
-      for (var pet in localPets) {
-        final docRef = _db.collection('pets').doc(pet.petId);
-        final existing = await docRef.get();
+      final pendingIds = _localService
+          .getPendingOperations(uid)
+          .map((operation) => operation.petId)
+          .toSet();
+      for (final pet in _localService.getAllPets(uid)) {
+        if (pet.ownerId != uid || pendingIds.contains(pet.petId)) continue;
+        if (await _remoteDataSource.getPetDeletionTime(pet.petId) != null) {
+          await _discardDeletedLocalPet(uid, pet);
+          continue;
+        }
 
-        if (!existing.exists) {
-          // 雲端無資料：直接同步
+        final cloudPet = await _remoteDataSource.getPet(pet.petId);
+        if (cloudPet == null) {
           await _remoteDataSource.setPet(pet.petId, pet);
-        } else {
-          // 雲端有資料：執行衝突解決策略 (Timestamp Wins)
-          final cloudPet = PetModel.fromDoc(existing);
-          if (resolveConflict(pet, cloudPet)) {
-            await _remoteDataSource.updatePet(pet.petId, pet);
-          }
+        } else if (cloudPet.ownerId == uid && resolveConflict(pet, cloudPet)) {
+          await _remoteDataSource.updatePet(pet.petId, pet);
+        } else if (cloudPet.ownerId == uid) {
+          await _localService.cacheCloudPet(uid, cloudPet);
         }
       }
-      debugPrint("遷移完成。");
-    } catch (e) {
-      debugPrint("遷移失敗: $e");
+    } catch (error) {
+      debugPrint('寵物遷移失敗，保留待同步操作: $error');
+      rethrow;
     } finally {
       isSyncing.value = false;
     }
   }
 
-  // 衝突解決策略 (Timestamp Wins)
+  Future<void> syncPendingOperations(
+    String uid, {
+    bool includeUpserts = true,
+  }) async {
+    if (isSyncing.value) return;
+    isSyncing.value = true;
+    try {
+      await _syncPendingOperations(uid, includeUpserts: includeUpserts);
+    } finally {
+      isSyncing.value = false;
+    }
+  }
+
+  Future<void> _syncPendingOperations(
+    String uid, {
+    required bool includeUpserts,
+  }) async {
+    for (final operation in _localService.getPendingOperations(uid)) {
+      if (operation.ownerId != uid) continue;
+      if (operation.isDelete) {
+        await _remoteDataSource.deletePet(
+          operation.petId,
+          avatarUrl: operation.avatarUrl,
+        );
+        await _localService.clearPendingOperation(uid, operation.petId);
+        continue;
+      }
+      if (!includeUpserts) continue;
+
+      final pet = operation.pet;
+      if (pet == null || pet.ownerId != uid) {
+        await _localService.clearPendingOperation(uid, operation.petId);
+        continue;
+      }
+      if (await _remoteDataSource.getPetDeletionTime(pet.petId) != null) {
+        await _discardDeletedLocalPet(uid, pet);
+        continue;
+      }
+      final cloudPet = await _remoteDataSource.getPet(pet.petId);
+      if (cloudPet == null) {
+        await _remoteDataSource.setPet(pet.petId, pet);
+      } else if (cloudPet.ownerId != uid) {
+        throw StateError('Remote pet owner does not match pending operation.');
+      } else if (resolveConflict(pet, cloudPet)) {
+        await _remoteDataSource.updatePet(pet.petId, pet);
+      } else {
+        await _localService.cacheCloudPet(uid, cloudPet);
+      }
+      await _localService.clearPendingOperation(uid, pet.petId);
+      await _localService.clearTombstone(uid, pet.petId);
+    }
+  }
+
+  Future<void> _discardDeletedLocalPet(String uid, PetModel pet) async {
+    await _localService.markPendingDelete(
+      uid,
+      pet.petId,
+      avatarUrl: pet.avatarUrl,
+    );
+    await _localService.clearPendingOperation(uid, pet.petId);
+  }
+
+  Future<void> applyCloudSnapshot(String uid, List<PetModel> cloudPets) async {
+    await _localService.reconcileCloudSnapshot(uid, cloudPets);
+    final cloudIds = cloudPets
+        .where((pet) => pet.ownerId == uid)
+        .map((pet) => pet.petId)
+        .toSet();
+    final pendingIds = _localService
+        .getPendingOperations(uid)
+        .map((operation) => operation.petId)
+        .toSet();
+    for (final localPet in _localService.getAllPets(uid)) {
+      if (cloudIds.contains(localPet.petId) ||
+          pendingIds.contains(localPet.petId)) {
+        continue;
+      }
+      if (await _remoteDataSource.getPetDeletionTime(localPet.petId) != null) {
+        await _discardDeletedLocalPet(uid, localPet);
+      }
+    }
+  }
+
   bool resolveConflict(PetModel localPet, PetModel cloudPet) {
     final localTime = localPet.updatedAt ?? DateTime(2000);
     final cloudTime = cloudPet.updatedAt ?? DateTime(2000);

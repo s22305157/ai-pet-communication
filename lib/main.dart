@@ -13,13 +13,12 @@ import 'injection.dart';
 
 void main() async {
   print('DEBUG: >>> PAWLINK Final Startup Initiated <<<');
-  
+
   try {
     WidgetsFlutterBinding.ensureInitialized();
     setupDependencies();
     print('DEBUG: [1] WidgetsBinding Initialized');
 
-    
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -27,23 +26,32 @@ void main() async {
 
     await Hive.initFlutter();
     await Hive.openBox('local_pets');
+    await Hive.openBox<dynamic>('local_readings');
     print('DEBUG: [3] Hive initialized');
 
     try {
       await getIt<SubscriptionService>().initialize();
       print('DEBUG: [4a] Subscription Service initialized');
-    } catch (e) { print('DEBUG: [!] Subscription Error: $e'); }
-    
+    } catch (e) {
+      print('DEBUG: [!] Subscription Error: $e');
+    }
+
     try {
       await getIt<AdService>().initialize();
       print('DEBUG: [4b] Ad Service initialized');
-    } catch (e) { print('DEBUG: [!] Ad Error: $e'); }
+    } catch (e) {
+      print('DEBUG: [!] Ad Error: $e');
+    }
 
     print('DEBUG: [5] Launching MyApp');
     runApp(const MyApp());
   } catch (e, stack) {
     print('CRITICAL STARTUP ERROR: $e');
-    runApp(MaterialApp(home: Scaffold(body: Center(child: Text('啟動失敗: $e')))));
+    runApp(
+      MaterialApp(
+        home: Scaffold(body: Center(child: Text('啟動失敗: $e'))),
+      ),
+    );
   }
 }
 
@@ -58,7 +66,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFF914D)),
         useMaterial3: true,
-        fontFamily: 'NotoSansTC', 
+        fontFamily: 'NotoSansTC',
       ),
       home: const AuthWrapper(),
     );
@@ -77,7 +85,9 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: Color(0xFFFF914D))),
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFFF914D)),
+            ),
           );
         }
 

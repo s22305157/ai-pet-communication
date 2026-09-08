@@ -20,6 +20,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   final Map<String, dynamic> _answers = {};
   bool _isDisclaimerAccepted = false;
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   // 產品理念文字
   final String _philosophyText = 
@@ -301,7 +308,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
-                onPressed: () {
+                onPressed: _isSubmitting ? null : () {
                   _pageController.previousPage(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
@@ -317,15 +324,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Align(
             alignment: _currentPage == 0 ? Alignment.center : Alignment.centerRight,
             child: ElevatedButton(
-              onPressed: canGoNext ? () => _handleNext(isLastPage) : null,
+              onPressed: canGoNext && !_isSubmitting
+                  ? () => _handleNext(isLastPage)
+                  : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: canGoNext ? AppColors.primary : Colors.grey.shade300,
-                foregroundColor: canGoNext ? Colors.white : Colors.grey.shade500,
+                backgroundColor: canGoNext && !_isSubmitting
+                    ? AppColors.primary
+                    : Colors.grey.shade300,
+                foregroundColor: canGoNext && !_isSubmitting
+                    ? Colors.white
+                    : Colors.grey.shade500,
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 0,
               ),
-              child: _answers['submitting'] == true
+              child: _isSubmitting
                 ? const SizedBox(
                     height: 20,
                     width: 20,
@@ -342,26 +355,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _handleNext(bool isLastPage) async {
+  Future<void> _handleNext(bool isLastPage) async {
     if (isLastPage) {
+      if (_isSubmitting) return;
+
       // 顯示載入中
       setState(() {
-        _answers['submitting'] = true;
+        _isSubmitting = true;
       });
 
       // 儲存答案並完成 (同步至雲端帳號)
       try {
-        await getIt<AuthService>().updateOnboardingStatus(true, _answers);
+        final submittedAnswers = Map<String, dynamic>.unmodifiable(_answers);
+        await getIt<AuthService>().updateOnboardingStatus(
+          true,
+          submittedAnswers,
+        );
         
         // 同時也存一份在本地作為備份 (選用)
-        List<OnboardingAnswer> answerList = _answers.entries
-            .where((e) => e.key != 'submitting')
+        List<OnboardingAnswer> answerList = submittedAnswers.entries
             .map((e) => OnboardingAnswer(questionId: e.key, value: e.value))
             .toList();
         await _onboardingService.saveAnswers(answerList);
         await _onboardingService.markCompleted(true);
       } catch (e) {
         if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('儲存失敗: $e')),
           );

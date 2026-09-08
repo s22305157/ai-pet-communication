@@ -1,5 +1,5 @@
-import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 import '../domain/reading.dart';
 import '../data/readings_repository.dart';
 
@@ -28,18 +28,34 @@ class ReadingService {
       createdAt: DateTime.now(),
     );
 
+    await saveReading(reading);
+  }
+
+  Future<void> saveReading(Reading reading) async {
     try {
       await _repository.addReading(reading);
-    } catch (e, stackTrace) {
-      debugPrint('Failed to add reading to Firestore: $e\n$stackTrace');
+    } catch (error, stackTrace) {
+      throw ReadingPersistenceException(reading, error, stackTrace);
     }
   }
+
   Future<void> deleteReading(String petId, String readingId) async {
     try {
       await _repository.deleteReading(petId, readingId);
     } catch (e, stackTrace) {
-      debugPrint('Failed to delete reading from Firestore: $e\n$stackTrace');
+      debugPrint('Failed to delete reading: $e\n$stackTrace');
       rethrow;
     }
   }
+}
+
+class ReadingPersistenceException implements Exception {
+  final Reading reading;
+  final Object cause;
+  final StackTrace stackTrace;
+
+  const ReadingPersistenceException(this.reading, this.cause, this.stackTrace);
+
+  @override
+  String toString() => 'ReadingPersistenceException: $cause';
 }
