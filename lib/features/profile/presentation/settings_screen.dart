@@ -69,7 +69,7 @@ class SettingsScreen extends StatelessWidget {
                 _buildSettingTile(
                   icon: Icons.info_outline_rounded,
                   title: '版本號',
-                  trailing: const Text('0.2.0'),
+                  trailing: const Text('0.2.1'),
                 ),
               ]),
 
