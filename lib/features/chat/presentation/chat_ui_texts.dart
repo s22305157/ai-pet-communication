@@ -12,7 +12,7 @@ class ChatUiTexts {
   // ── 2. 區塊標題與副標題 ──────────────────────────────────────
 
   // 毛孩心語
-  static const String petVoiceTitle = "AI 毛孩對話";
+  static const String petVoiceTitle = "毛孩想對你說";
   static const String petVoiceSubtitle = "";
 
   // 毛孩知識補給站
