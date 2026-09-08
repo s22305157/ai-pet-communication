@@ -7,7 +7,7 @@ import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';

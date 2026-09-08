@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
-import '../features/pet/domain/models/pet_model.dart';
-import '../screens/profile/settings_screen.dart';
-import '../constants.dart';
-import 'auth_service.dart';
-import 'ad_service.dart';
-import 'error_service.dart';
-import 'credit_service.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/profile/presentation/settings_screen.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
+import 'package:ai_pet_communication/services/ad_service.dart';
+import 'package:ai_pet_communication/services/error_service.dart';
+import 'package:ai_pet_communication/services/credit_service.dart';
 
 typedef CommunicationAllowed = void Function(String? creditReservationId);
 

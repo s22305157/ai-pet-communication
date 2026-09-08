@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/pet/application/pet_cleanup_repository.dart';
 import 'dart:io';
 
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
@@ -7,7 +8,7 @@ import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/features/readings/data/local_readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';
@@ -84,11 +85,14 @@ void main() {
           createdAt: DateTime(2026),
         ),
       );
-      final repository = PetRepositoryImpl(
-        remoteDataSource: remote,
-        localService: localPets,
-        authService: auth,
-        localReadings: localReadings,
+      final repository = PetCleanupRepository(
+        session: auth,
+        readings: localReadings,
+        pets: PetRepositoryImpl(
+          remoteDataSource: remote,
+          localService: localPets,
+          authService: auth,
+        ),
       );
 
       await repository.deletePet(petId);

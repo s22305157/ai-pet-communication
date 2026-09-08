@@ -1,9 +1,12 @@
+import 'package:ai_pet_communication/core/storage/account_cleanup.dart';
+import 'package:ai_pet_communication/features/pet/domain/repositories/owned_pet_lookup.dart';
+import 'package:ai_pet_communication/features/pet/data/mappers/pet_local_mapper.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-import '../domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 
-class LocalPetService {
+class LocalPetService implements OwnedPetLookup, AccountCleanup {
   static const _scopePrefix = 'user/';
 
   final Box _box;
@@ -44,7 +47,7 @@ class LocalPetService {
   PetModel? _decodePet(dynamic data) {
     if (data is! Map) return null;
     try {
-      return PetModel.fromMap(Map<String, dynamic>.from(data));
+      return PetLocalMapper.fromMap(Map<String, dynamic>.from(data));
     } catch (_) {
       return null;
     }
@@ -70,6 +73,7 @@ class LocalPetService {
     return petsById.values.toList(growable: false);
   }
 
+  @override
   Future<PetModel?> getPet(String uid, String petId) async {
     final scopedPet = _decodePet(_box.get(_scopedKey(uid, petId)));
     if (scopedPet != null && scopedPet.ownerId == uid) return scopedPet;
@@ -90,7 +94,7 @@ class LocalPetService {
     _validateOwner(uid, pet);
     final petId = pet.petId.isEmpty ? const Uuid().v4() : pet.petId;
     final newPet = pet.copyWith(petId: petId);
-    await _box.put(_scopedKey(uid, petId), newPet.toMap(isLocal: true));
+    await _box.put(_scopedKey(uid, petId), PetLocalMapper.toMap(newPet));
   }
 
   Future<void> updatePet(String uid, String petId, PetModel pet) async {
@@ -100,7 +104,7 @@ class LocalPetService {
     }
     await _box.put(
       _scopedKey(uid, petId),
-      pet.copyWith(petId: petId).toMap(isLocal: true),
+      PetLocalMapper.toMap(pet.copyWith(petId: petId)),
     );
   }
 
@@ -116,10 +120,11 @@ class LocalPetService {
   Future<void> markPendingUpsert(String uid, PetModel pet) async {
     _validateOwner(uid, pet);
     await _box.put(_syncKey(uid, pet.petId), {
+      'operationId': const Uuid().v4(),
       'type': 'upsert',
       'petId': pet.petId,
       'ownerId': uid,
-      'pet': pet.toMap(isLocal: true),
+      'pet': PetLocalMapper.toMap(pet),
       'queuedAt': DateTime.now().toIso8601String(),
     });
   }
@@ -137,6 +142,7 @@ class LocalPetService {
       'deletedAt': now,
     });
     await _box.put(_syncKey(uid, petId), {
+      'operationId': const Uuid().v4(),
       'type': 'delete',
       'petId': petId,
       'ownerId': uid,
@@ -144,6 +150,19 @@ class LocalPetService {
       'queuedAt': now,
     });
     await deletePet(uid, petId);
+  }
+
+  Future<void> clearPendingOperationIfUnchanged(
+    String uid,
+    PendingPetOperation sent,
+  ) async {
+    final current = _box.get(_syncKey(uid, sent.petId));
+    if (current is Map &&
+        current['operationId'] == sent.operationId &&
+        current['queuedAt'] == sent.queuedAt?.toIso8601String() &&
+        current['type'] == sent.type) {
+      await _box.delete(_syncKey(uid, sent.petId));
+    }
   }
 
   List<PendingPetOperation> getPendingOperations(String uid) {
@@ -161,6 +180,7 @@ class LocalPetService {
       if (type != 'upsert' && type != 'delete') continue;
       operations.add(
         PendingPetOperation(
+          operationId: data['operationId'] as String?,
           type: type as String,
           petId: data['petId'] as String,
           ownerId: uid,
@@ -205,7 +225,7 @@ class LocalPetService {
 
   Future<void> cacheCloudPet(String uid, PetModel pet) async {
     _validateOwner(uid, pet);
-    final data = pet.toMap(isLocal: true);
+    final data = PetLocalMapper.toMap(pet);
     if (pet.createdAt != null) {
       data['created_at'] = pet.createdAt!.toIso8601String();
     }
@@ -215,6 +235,7 @@ class LocalPetService {
     await _box.put(_scopedKey(uid, pet.petId), data);
   }
 
+  @override
   Future<void> clearUser(String uid) async {
     _validateUid(uid);
     final prefix = '$_scopePrefix${Uri.encodeComponent(uid)}/';
@@ -258,6 +279,7 @@ class LocalPetService {
 }
 
 class PendingPetOperation {
+  final String? operationId;
   final String type;
   final String petId;
   final String ownerId;
@@ -266,6 +288,7 @@ class PendingPetOperation {
   final DateTime? queuedAt;
 
   const PendingPetOperation({
+    this.operationId,
     required this.type,
     required this.petId,
     required this.ownerId,

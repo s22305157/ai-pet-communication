@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:ai_pet_communication/features/pet/application/pet_sync_manager.dart';
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
@@ -49,6 +50,41 @@ void main() {
     await box.deleteFromDisk();
     await hiveDirectory.delete(recursive: true);
   });
+
+  test(
+    'a newer write during upload survives acknowledgement and is sent on the queued run',
+    () async {
+      final original = pet('p').copyWith(updatedAt: DateTime.utc(2026, 1));
+      final revised = original.copyWith(
+        name: 'revised',
+        updatedAt: DateTime.utc(2026, 2),
+      );
+      await local.updatePet('owner-a', 'p', original);
+      await local.markPendingUpsert('owner-a', original);
+      final started = Completer<void>();
+      final uploaded = Completer<void>();
+      when(() => remote.getPetDeletionTime('p')).thenAnswer((_) async => null);
+      when(() => remote.getPet('p')).thenAnswer((_) async => null);
+      final names = <String>[];
+      when(() => remote.setPet('p', any())).thenAnswer((call) async {
+        names.add((call.positionalArguments[1] as PetModel).name);
+        if (names.length == 1) {
+          started.complete();
+          await uploaded.future;
+        }
+      });
+      final first = manager.syncPendingOperations('owner-a');
+      await started.future;
+      await local.updatePet('owner-a', 'p', revised);
+      await local.markPendingUpsert('owner-a', revised);
+      final next = manager.syncPendingOperations('owner-a');
+      uploaded.complete();
+      await Future.wait([first, next]);
+      expect(names, ['p', 'revised']);
+      expect(local.getPendingOperations('owner-a'), isEmpty);
+      expect((await local.getPet('owner-a', 'p'))!.name, 'revised');
+    },
+  );
 
   test('retries a pending upsert and clears it after cloud success', () async {
     final item = pet('pet-1');

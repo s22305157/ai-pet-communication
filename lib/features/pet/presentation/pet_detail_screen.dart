@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../constants.dart';
-import '../domain/models/pet_model.dart';
-import '../application/pet_service.dart';
-import '../../../../features/readings/data/readings_repository.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 import '../../../../features/readings/application/reading_service.dart';
 import '../../../../services/ad_service.dart';
-import '../../../../services/error_service.dart';
-import '../../../../services/auth_service.dart';
-import '../../../../screens/profile/settings_screen.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import '../../../../services/membership_action_handler.dart';
-import '../../../../injection.dart';
-import 'widgets/pet_avatar_section.dart';
-import 'widgets/pet_info_card.dart';
-import 'widgets/pet_readings_section.dart';
-import 'controllers/pet_detail_controller.dart';
+import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/features/pet/presentation/widgets/pet_avatar_section.dart';
+import 'package:ai_pet_communication/features/pet/presentation/widgets/pet_info_card.dart';
+import 'package:ai_pet_communication/features/readings/presentation/widgets/pet_readings_section.dart';
+import 'package:ai_pet_communication/features/pet/presentation/controllers/pet_detail_controller.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final PetModel pet;
@@ -42,10 +40,10 @@ class PetDetailScreen extends StatefulWidget {
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
   late final PetService _petService = widget.petService ?? getIt<PetService>();
-  late final ReadingsRepository _readingsRepository = widget.readingsRepository ?? getIt<ReadingsRepository>();
-  late final AuthService _authService = widget.authService ?? getIt<AuthService>();
-  late final AdService _adService = widget.adService ?? getIt<AdService>();
-  late final ReadingService _readingService = widget.readingService ?? getIt<ReadingService>();
+  late final ReadingsRepository _readingsRepository =
+      widget.readingsRepository ?? getIt<ReadingsRepository>();
+  late final ReadingService _readingService =
+      widget.readingService ?? getIt<ReadingService>();
 
   late final PetDetailController _controller;
 
@@ -92,7 +90,9 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             onSelected: (value) async {
               if (value == 'edit') {
                 await _controller.handleEdit(context);
@@ -177,12 +177,17 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
 
   Widget _buildBottomAction(BuildContext context, PetModel currentPet) {
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -196,7 +201,9 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 0,
               ),
               child: Row(

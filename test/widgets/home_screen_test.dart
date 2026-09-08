@@ -1,19 +1,23 @@
-import 'package:ai_pet_communication/home_screen.dart';
+import 'package:ai_pet_communication/features/home/presentation/home_screen.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
 import 'package:ai_pet_communication/services/ad_service.dart';
-import 'package:ai_pet_communication/injection.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockPetService extends Mock implements PetService {}
+
 class MockAuthService extends Mock implements AuthService {}
+
 class MockAdService extends Mock implements AdService {}
-class MockMembershipActionHandler extends Mock implements MembershipActionHandler {}
+
+class MockMembershipActionHandler extends Mock
+    implements MembershipActionHandler {}
 
 void main() {
   late UserModel userModel;
@@ -33,16 +37,18 @@ void main() {
       points: 10,
       membershipTier: 'pro',
     );
-    
+
     mockPetService = MockPetService();
     mockAuthService = MockAuthService();
     mockAdService = MockAdService();
     mockMembershipHandler = MockMembershipActionHandler();
 
     // Mock PetService ValueNotifiers
-    when(() => mockPetService.isCloudActive).thenReturn(ValueNotifier<bool>(true));
+    when(
+      () => mockPetService.isCloudActive,
+    ).thenReturn(ValueNotifier<bool>(true));
     when(() => mockPetService.isSyncing).thenReturn(ValueNotifier<bool>(false));
-    
+
     // Mock pet list stream
     when(() => mockPetService.watchPetsByOwner(any())).thenAnswer(
       (_) => Stream.value([
@@ -58,12 +64,14 @@ void main() {
           avatarUrl: '',
           color: 'Yellow',
           weight: 10.0,
-        )
+        ),
       ]),
     );
 
     // Mock auth stream for sync indicator
-    when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(userModel));
+    when(
+      () => mockAuthService.getUserStream(),
+    ).thenAnswer((_) => Stream.value(userModel));
 
     // Register mocks in getIt
     getIt.registerSingleton<PetService>(mockPetService);
@@ -76,7 +84,9 @@ void main() {
     getIt.reset();
   });
 
-  testWidgets('HomeScreen shows pet list and sync indicator', (WidgetTester tester) async {
+  testWidgets('HomeScreen shows pet list and sync indicator', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(splashFactory: NoSplash.splashFactory),
@@ -95,7 +105,7 @@ void main() {
 
     // Verify pet name is shown
     expect(find.text('Buddy'), findsOneWidget);
-    
+
     // Verify sync indicator (it's a tooltip/icon, let's check for the storage icon)
     expect(find.byIcon(Icons.cloud_done_rounded), findsOneWidget);
   });

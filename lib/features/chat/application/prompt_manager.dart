@@ -9,12 +9,12 @@
 // ============================================================
 
 import 'dart:convert';
-import 'ai_prompts.dart';
-import 'ai_validator.dart';
-import 'safety_router.dart';
-import '../domain/ai_request_model.dart';
-import 'media_payload.dart';
-import '../../knowledge/application/knowledge_retrieval_service.dart';
+import 'package:ai_pet_communication/features/chat/application/ai_prompts.dart';
+import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
+import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
+import 'package:ai_pet_communication/features/chat/application/media_payload.dart';
+import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 
 class PromptBundle {
   final List<Map<String, String>> messages;

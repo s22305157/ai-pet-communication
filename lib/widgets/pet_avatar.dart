@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import '../constants.dart';
+import 'package:ai_pet_communication/widgets/avatar_image_loader.dart';
+import 'package:ai_pet_communication/app/theme.dart';
 
 /// 通用的寵物頭像元件
 /// - 若有 [avatarUrl]，用 http 抓成 bytes 再以 Image.memory 顯示（繞過 CORS）
@@ -26,46 +26,36 @@ class PetAvatar extends StatefulWidget {
 }
 
 class _PetAvatarState extends State<PetAvatar> {
-  Uint8List? _bytes;
-  bool _loading = false;
+  final _imageLoader = AvatarImageLoader();
+  Uint8List? get _bytes => _imageLoader.bytes;
+  bool get _loading => _imageLoader.loading;
 
   @override
   void initState() {
     super.initState();
+    _imageLoader.addListener(_imageChanged);
     if (widget.avatarUrl.isNotEmpty) {
       _fetchImage(widget.avatarUrl);
     }
   }
 
-  @override
-  void didUpdateWidget(PetAvatar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // URL 變更時重新載入（例如用戶更換頭像後列表刷新）
-    if (oldWidget.avatarUrl != widget.avatarUrl &&
-        widget.avatarUrl.isNotEmpty) {
-      _fetchImage(widget.avatarUrl);
-    }
+  void _imageChanged() {
+    if (mounted) setState(() {});
   }
 
-  Future<void> _fetchImage(String url) async {
-    setState(() => _loading = true);
-    try {
-      print('Fetching avatar from: $url');
-      final response = await http.get(Uri.parse(url));
-      print('Avatar fetch status: ${response.statusCode}');
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _bytes = response.bodyBytes;
-          _loading = false;
-        });
-      } else {
-        if (mounted) setState(() => _loading = false);
-      }
-    } catch (e) {
-      print('Error fetching avatar: $e');
-      if (mounted) setState(() => _loading = false);
-    }
+  @override
+  void dispose() {
+    _imageLoader.dispose();
+    super.dispose();
   }
+
+  @override
+  void didUpdateWidget(covariant PetAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.avatarUrl != oldWidget.avatarUrl) _fetchImage(widget.avatarUrl);
+  }
+
+  Future<void> _fetchImage(String url) => _imageLoader.load(url);
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +63,7 @@ class _PetAvatarState extends State<PetAvatar> {
       width: widget.size,
       height: widget.size,
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: ClipOval(
@@ -89,22 +79,22 @@ class _PetAvatarState extends State<PetAvatar> {
                 ),
               )
             : _bytes != null
-                ? Image.memory(
-                    _bytes!,
-                    width: widget.size,
-                    height: widget.size,
-                    fit: BoxFit.cover,
-                  )
-                : Center(
-                    child: Text(
-                      widget.petName.isNotEmpty ? widget.petName[0] : '?',
-                      style: GoogleFonts.outfit(
-                        fontSize: widget.fontSize,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
+            ? Image.memory(
+                _bytes!,
+                width: widget.size,
+                height: widget.size,
+                fit: BoxFit.cover,
+              )
+            : Center(
+                child: Text(
+                  widget.petName.isNotEmpty ? widget.petName[0] : '?',
+                  style: GoogleFonts.outfit(
+                    fontSize: widget.fontSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
+                ),
+              ),
       ),
     );
   }

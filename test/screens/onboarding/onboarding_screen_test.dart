@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:ai_pet_communication/injection.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 import 'package:ai_pet_communication/models/onboarding_model.dart';
-import 'package:ai_pet_communication/screens/onboarding/onboarding_screen.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
-import 'package:ai_pet_communication/services/onboarding_service.dart';
+import 'package:ai_pet_communication/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
+import 'package:ai_pet_communication/features/onboarding/application/onboarding_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

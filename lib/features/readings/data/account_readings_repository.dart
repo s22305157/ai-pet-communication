@@ -1,21 +1,22 @@
-import '../../../services/auth_service.dart';
-import '../../pet/data/local_pet_service.dart';
-import '../domain/reading.dart';
-import 'firestore_readings_repository.dart';
-import 'local_readings_repository.dart';
-import 'readings_repository.dart';
+import 'package:ai_pet_communication/core/session/current_session.dart';
+import 'package:ai_pet_communication/core/storage/storage_policy.dart';
+import 'package:ai_pet_communication/features/pet/domain/repositories/owned_pet_lookup.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
+
+import 'package:ai_pet_communication/features/readings/domain/local_readings_store.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 
 class AccountReadingsRepository implements ReadingsRepository {
-  final AuthService _authService;
-  final LocalPetService _localPets;
-  final LocalReadingsRepository _localReadings;
-  final FirestoreReadingsRepository _cloudReadings;
+  final CurrentSession _authService;
+  final OwnedPetLookup _localPets;
+  final LocalReadingsStore _localReadings;
+  final ReadingsRepository _cloudReadings;
 
   AccountReadingsRepository({
-    required AuthService authService,
-    required LocalPetService localPets,
-    required LocalReadingsRepository localReadings,
-    required FirestoreReadingsRepository cloudReadings,
+    required CurrentSession authService,
+    required OwnedPetLookup localPets,
+    required LocalReadingsStore localReadings,
+    required ReadingsRepository cloudReadings,
   }) : _authService = authService,
        _localPets = localPets,
        _localReadings = localReadings,
@@ -24,7 +25,7 @@ class AccountReadingsRepository implements ReadingsRepository {
   Future<({String uid, bool useLocal})> _scope(String petId) async {
     final user = await _authService.getUserData();
     if (user == null) throw StateError('Authentication required.');
-    if (user.membershipType == 'free') {
+    if (!const StoragePolicy().usesCloud(user.membershipType)) {
       final pet = await _localPets.getPet(user.uid, petId);
       if (pet == null || pet.ownerId != user.uid) {
         throw StateError('Local pet does not belong to the active user.');

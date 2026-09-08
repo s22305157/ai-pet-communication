@@ -1,8 +1,9 @@
+import 'package:ai_pet_communication/features/pet/data/mappers/pet_firestore_mapper.dart';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import '../../domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 
 class PetRemoteDataSource {
   static const int maxAvatarSizeBytes = 10 * 1024 * 1024;
@@ -25,15 +26,18 @@ class PetRemoteDataSource {
 
   Future<PetModel?> getPet(String petId) async {
     final doc = await _db.collection('pets').doc(petId).get();
-    return doc.exists ? PetModel.fromDoc(doc) : null;
+    return doc.exists ? PetFirestoreMapper.fromDoc(doc) : null;
   }
 
   Future<void> setPet(String petId, PetModel pet) async {
-    await _db.collection('pets').doc(petId).set(pet.toMap());
+    await _db.collection('pets').doc(petId).set(PetFirestoreMapper.create(pet));
   }
 
   Future<void> updatePet(String petId, PetModel pet) async {
-    await _db.collection('pets').doc(petId).update(pet.toMap());
+    await _db
+        .collection('pets')
+        .doc(petId)
+        .update(PetFirestoreMapper.update(pet));
   }
 
   Future<void> deletePet(String petId, {String? avatarUrl}) async {
@@ -56,8 +60,9 @@ class PetRemoteDataSource {
         .where('owner_id', isEqualTo: uid)
         .snapshots()
         .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => PetModel.fromDoc(doc)).toList(),
+          (snapshot) => snapshot.docs
+              .map((doc) => PetFirestoreMapper.fromDoc(doc))
+              .toList(),
         );
   }
 

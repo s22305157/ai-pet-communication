@@ -1,8 +1,11 @@
+import 'package:ai_pet_communication/core/storage/account_cleanup.dart';
+import 'package:ai_pet_communication/features/readings/domain/local_readings_store.dart';
 import 'package:hive/hive.dart';
 
-import '../domain/reading.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 
-class LocalReadingsRepository {
+class LocalReadingsRepository
+    implements LocalReadingsStore, AccountCleanup, PetReadingsCleanup {
   static const _scopePrefix = 'user/';
   final Box<dynamic> _box;
 
@@ -39,6 +42,7 @@ class LocalReadingsRepository {
     return readings;
   }
 
+  @override
   Stream<List<Reading>> watchReadings(String uid, String petId) async* {
     yield getReadings(uid, petId);
     await for (final _ in _box.watch()) {
@@ -46,12 +50,14 @@ class LocalReadingsRepository {
     }
   }
 
+  @override
   Future<Reading?> getReading(
     String uid,
     String petId,
     String readingId,
   ) async => _decode(_box.get(_key(uid, petId, readingId)), readingId);
 
+  @override
   Future<void> addReading(String uid, Reading reading) async {
     if (uid.isEmpty || reading.petId.isEmpty || reading.id.isEmpty) {
       throw ArgumentError('uid, petId and readingId are required');
@@ -59,12 +65,14 @@ class LocalReadingsRepository {
     await _box.put(_key(uid, reading.petId, reading.id), reading.toMap());
   }
 
+  @override
   Future<void> deleteReading(
     String uid,
     String petId,
     String readingId,
   ) async => _box.delete(_key(uid, petId, readingId));
 
+  @override
   Future<void> clearPet(String uid, String petId) async {
     final prefix = _petPrefix(uid, petId);
     final keys = _box.keys
@@ -73,6 +81,7 @@ class LocalReadingsRepository {
     await _box.deleteAll(keys);
   }
 
+  @override
   Future<void> clearUser(String uid) async {
     final prefix = '$_scopePrefix${Uri.encodeComponent(uid)}/';
     final keys = _box.keys

@@ -7,7 +7,7 @@ import 'package:ai_pet_communication/features/readings/data/firestore_readings_r
 import 'package:ai_pet_communication/features/readings/data/local_readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';

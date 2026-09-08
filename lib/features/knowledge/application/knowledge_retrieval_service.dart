@@ -179,8 +179,9 @@ class KnowledgeRetrievalService {
     });
     final data = Map<String, dynamic>.from(result.data as Map);
     final hits = data['hits'];
-    if (hits is! List)
+    if (hits is! List) {
       throw const FormatException('Invalid knowledge response');
+    }
     return hits
         .map(
           (hit) => KnowledgeHit.fromMap(Map<String, dynamic>.from(hit as Map)),

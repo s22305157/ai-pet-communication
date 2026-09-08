@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
-import 'package:ai_pet_communication/features/readings/data/readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 
 class FakeReadingsRepository extends ReadingsRepository {

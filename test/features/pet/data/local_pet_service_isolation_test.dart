@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/pet/data/mappers/pet_local_mapper.dart';
 import 'dart:io';
 
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
@@ -70,11 +71,11 @@ void main() {
     () async {
       await box.put(
         'legacy-a',
-        pet('legacy-a', 'owner-a').toMap(isLocal: true),
+        PetLocalMapper.toMap(pet('legacy-a', 'owner-a')),
       );
       await box.put(
         'legacy-b',
-        pet('legacy-b', 'owner-b').toMap(isLocal: true),
+        PetLocalMapper.toMap(pet('legacy-b', 'owner-b')),
       );
 
       await service.migrateLegacyDataForUser('owner-b');

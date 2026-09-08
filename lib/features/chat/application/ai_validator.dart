@@ -4,10 +4,10 @@
 // ============================================================
 
 import 'dart:convert';
-import '../domain/ai_response_model.dart';
-import '../domain/ai_request_model.dart';
-import '../domain/ai_safe_response_model.dart';
-import 'safety_router.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
+import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 
 class AiValidationException implements Exception {
   final String message;
@@ -262,8 +262,9 @@ class AiValidator {
 
     // pet_voice 驗證
     final pv = json['pet_voice'];
-    if (pv is! Map<String, dynamic>)
+    if (pv is! Map<String, dynamic>) {
       throw AiValidationException('pet_voice must be a object');
+    }
     _checkRequiredKeys(pv, ['text', 'tone', 'is_inference'], 'pet_voice');
 
     if (pv['text'] is! String || (pv['text'] as String).trim().isEmpty) {
@@ -280,8 +281,9 @@ class AiValidator {
 
     // safety_alert 驗證
     final sa = json['safety_alert'];
-    if (sa is! Map<String, dynamic>)
+    if (sa is! Map<String, dynamic>) {
       throw AiValidationException('safety_alert must be a object');
+    }
     _checkRequiredKeys(sa, ['has_red_flags', 'message'], 'safety_alert');
 
     if (sa['has_red_flags'] is! bool ||

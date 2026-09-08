@@ -2,22 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../../services/auth_service.dart';
-import '../data/local_pet_service.dart';
-import '../data/sources/pet_remote_data_source.dart';
-import '../domain/models/pet_model.dart';
-import 'pet_sync_manager.dart';
+import 'package:ai_pet_communication/core/session/current_session.dart';
+import 'package:ai_pet_communication/core/storage/storage_policy.dart';
+import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
+import 'package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_sync_manager.dart';
 
 class PetStreamWatcher {
   final PetRemoteDataSource _remoteDataSource;
   final LocalPetService _localService;
-  final AuthService _authService;
+  final CurrentSession _authService;
   final PetSyncManager _syncManager;
 
   PetStreamWatcher({
     required PetRemoteDataSource remoteDataSource,
     required LocalPetService localService,
-    required AuthService authService,
+    required CurrentSession authService,
     required PetSyncManager syncManager,
   }) : _remoteDataSource = remoteDataSource,
        _localService = localService,
@@ -25,6 +26,15 @@ class PetStreamWatcher {
        _syncManager = syncManager;
 
   Stream<List<PetModel>> watchPetsByOwner(String uid) async* {
+    final generation = _syncManager.beginSession(uid);
+    try {
+      yield* _watchSession(uid, generation);
+    } finally {
+      _syncManager.endSession(uid, generation);
+    }
+  }
+
+  Stream<List<PetModel>> _watchSession(String uid, int generation) async* {
     final user = await _authService.getUserData();
 
     if (user == null || user.uid != uid) {
@@ -32,7 +42,7 @@ class PetStreamWatcher {
       return;
     }
 
-    if (user.membershipType == 'free') {
+    if (!const StoragePolicy().usesCloud(user.membershipType)) {
       try {
         await _syncManager.syncPendingOperations(uid, includeUpserts: false);
       } catch (error) {
@@ -45,7 +55,7 @@ class PetStreamWatcher {
     try {
       await _syncManager.migrateIfNeeded(uid);
     } catch (_) {
-      _syncManager.isCloudActive.value = false;
+      _syncManager.reportCloud(uid, generation, false);
     }
     final activeUser = await _authService.getUserData();
     if (activeUser == null || activeUser.uid != uid) {
@@ -53,18 +63,21 @@ class PetStreamWatcher {
       return;
     }
 
-    yield* _guardActiveUser(uid, _paidPetStream(uid));
+    yield* _guardActiveUser(uid, _paidPetStream(uid, generation));
   }
 
-  Stream<List<PetModel>> _paidPetStream(String uid) {
+  Stream<List<PetModel>> _paidPetStream(String uid, int generation) {
     late final StreamController<List<PetModel>> controller;
     StreamSubscription<List<PetModel>>? cloudSub;
     StreamSubscription<List<PetModel>>? localSub;
     Future<void>? localCancellation;
+    var cancelled = false;
+    bool active() =>
+        !cancelled && _syncManager.isCurrentSession(uid, generation);
 
     void startLocalFallback() {
-      if (localSub != null) return;
-      _syncManager.isCloudActive.value = false;
+      if (!active() || localSub != null) return;
+      _syncManager.reportCloud(uid, generation, false);
       localSub = _localService
           .watchPets(uid)
           .listen(
@@ -79,14 +92,20 @@ class PetStreamWatcher {
 
     controller = StreamController<List<PetModel>>(
       onListen: () {
-        _syncManager.isCloudActive.value = true;
+        _syncManager.reportCloud(uid, generation, true);
         cloudSub = _remoteDataSource
             .watchPetsByOwner(uid)
+            .asyncMap((snapshot) async {
+              if (!active()) return <PetModel>[];
+              await _syncManager.applyCloudSnapshot(uid, snapshot);
+              if (!active()) return <PetModel>[];
+              await _syncManager.syncPendingOperations(uid);
+              return _localService.getAllPets(uid);
+            })
             .listen(
               (snapshot) async {
                 try {
-                  await _syncManager.applyCloudSnapshot(uid, snapshot);
-                  await _syncManager.syncPendingOperations(uid);
+                  if (!active()) return;
                   final fallbackSubscription = localSub;
                   localSub = null;
                   if (fallbackSubscription != null) {
@@ -97,7 +116,7 @@ class PetStreamWatcher {
                         });
                     unawaited(localCancellation!);
                   }
-                  _syncManager.isCloudActive.value = true;
+                  _syncManager.reportCloud(uid, generation, true);
                   if (!controller.isClosed) {
                     controller.add(_localService.getAllPets(uid));
                   }
@@ -114,6 +133,8 @@ class PetStreamWatcher {
             );
       },
       onCancel: () async {
+        cancelled = true;
+        _syncManager.endSession(uid, generation);
         await cloudSub?.cancel();
         await localSub?.cancel();
         await localCancellation;
@@ -135,6 +156,7 @@ class PetStreamWatcher {
     void stopForAccountChange() {
       if (stopping) return;
       stopping = true;
+      unawaited(dataSub?.cancel());
       if (!controller.isClosed) {
         controller.add(const <PetModel>[]);
         unawaited(controller.close());

@@ -1,7 +1,9 @@
+import 'package:ai_pet_communication/features/pet/application/pet_stream_watcher.dart';
+import 'package:ai_pet_communication/features/pet/application/pet_sync_manager.dart';
+import 'package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart';
 import 'dart:async';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
-import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,93 +12,111 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockLocalPetService extends Mock implements LocalPetService {}
+
 class MockAuthService extends Mock implements AuthService {}
+
 class MockFirebaseFirestore extends Mock implements FirebaseFirestore {}
-class MockCollectionReference extends Mock implements CollectionReference<Map<String, dynamic>> {}
-class MockQuery extends Mock implements Query<Map<String, dynamic>> {}
+
 class MockFirebaseStorage extends Mock implements FirebaseStorage {}
 
+class MockRemote extends Mock implements PetRemoteDataSource {}
+
 void main() {
-  late PetService petService;
-  late MockFirebaseFirestore mockFirestore;
+  late PetStreamWatcher watcher;
+  late PetSyncManager sync;
+  late MockRemote remote;
   late MockLocalPetService mockLocalService;
   late MockAuthService mockAuthService;
-  late MockFirebaseStorage mockStorage;
 
   setUp(() {
-    mockFirestore = MockFirebaseFirestore();
     mockLocalService = MockLocalPetService();
     mockAuthService = MockAuthService();
-    mockStorage = MockFirebaseStorage();
 
-    petService = PetService(
-      firestore: mockFirestore,
+    remote = MockRemote();
+    sync = PetSyncManager(
+      localService: mockLocalService,
+      remoteDataSource: remote,
+    );
+    watcher = PetStreamWatcher(
+      remoteDataSource: remote,
       localService: mockLocalService,
       authService: mockAuthService,
-      storage: mockStorage,
+      syncManager: sync,
     );
   });
 
-  test('watchPetsByOwner should fallback to local stream on cloud error', () async {
-    // Setup user
-    final user = UserModel(
-      uid: 'user123',
-      email: 'test@test.com',
-      displayName: 'Tester',
-      membershipTier: 'pro',
-    );
+  test(
+    'watchPetsByOwner should fallback to local stream on cloud error',
+    () async {
+      // Setup user
+      final user = UserModel(
+        uid: 'user123',
+        email: 'test@test.com',
+        displayName: 'Tester',
+        membershipTier: 'pro',
+      );
 
-    when(() => mockAuthService.getUserData()).thenAnswer((_) async => user);
-    when(() => mockAuthService.userIdChanges)
-        .thenAnswer((_) => Stream.value(user.uid));
-    
-    // Mock cloud setup
-    final mockCollection = MockCollectionReference();
-    final mockQuery = MockQuery();
-    when(() => mockFirestore.collection('pets')).thenReturn(mockCollection);
-    when(() => mockCollection.where('owner_id', isEqualTo: 'user123')).thenReturn(mockQuery);
-    
-    final cloudController = StreamController<QuerySnapshot<Map<String, dynamic>>>();
-    when(() => mockQuery.snapshots()).thenAnswer((_) => cloudController.stream);
+      when(() => mockAuthService.getUserData()).thenAnswer((_) async => user);
+      when(
+        () => mockAuthService.userIdChanges,
+      ).thenAnswer((_) => Stream.value(user.uid));
 
-    // Mock local stream
-    final localPets = [
-      PetModel(petId: 'local1', ownerId: 'user123', name: 'LocalPet', species: 'Cat', breed: 'Siamese', gender: '母', birthday: '', personality: '', avatarUrl: '')
-    ];
-    final localController = StreamController<List<PetModel>>();
-    when(() => mockLocalService.watchPets(user.uid))
-        .thenAnswer((_) => localController.stream);
-    when(() => mockLocalService.getAllPets(user.uid)).thenReturn([]);
-    when(() => mockLocalService.migrateLegacyDataForUser(user.uid))
-        .thenAnswer((_) async {});
-    when(() => mockLocalService.getPendingOperations(user.uid)).thenReturn([]);
+      // Mock cloud setup
+      final cloudController = StreamController<List<PetModel>>();
+      when(
+        () => remote.watchPetsByOwner(user.uid),
+      ).thenAnswer((_) => cloudController.stream);
 
-    // Start watching
-    final resultStream = petService.watchPetsByOwner('user123');
-    final results = <List<PetModel>>[];
-    final subscription = resultStream.listen(
-      (data) {
+      final localPets = [
+        PetModel(
+          petId: 'local1',
+          ownerId: 'user123',
+          name: 'LocalPet',
+          species: 'Cat',
+          breed: 'Siamese',
+          gender: '母',
+          birthday: '',
+          personality: '',
+          avatarUrl: '',
+        ),
+      ];
+      final localController = StreamController<List<PetModel>>();
+      when(
+        () => mockLocalService.watchPets(user.uid),
+      ).thenAnswer((_) => localController.stream);
+      when(() => mockLocalService.getAllPets(user.uid)).thenReturn([]);
+      when(
+        () => mockLocalService.migrateLegacyDataForUser(user.uid),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockLocalService.getPendingOperations(user.uid),
+      ).thenReturn([]);
+
+      // Start watching
+      final resultStream = watcher.watchPetsByOwner('user123');
+      final results = <List<PetModel>>[];
+      final subscription = resultStream.listen((data) {
         results.add(data);
-      },
-    );
+      });
 
-    // 1. Wait a bit for initialization
-    await Future.delayed(Duration(milliseconds: 100));
+      // 1. Wait a bit for initialization
+      await Future.delayed(Duration(milliseconds: 100));
 
-    // 2. Emit cloud error
-    cloudController.addError(Exception('Cloud failure'));
-    await Future.delayed(Duration(milliseconds: 100));
+      // 2. Emit cloud error
+      cloudController.addError(Exception('Cloud failure'));
+      await Future.delayed(Duration(milliseconds: 100));
 
-    // 3. Emit local data
-    localController.add(localPets);
-    await Future.delayed(Duration(milliseconds: 100));
+      // 3. Emit local data
+      localController.add(localPets);
+      await Future.delayed(Duration(milliseconds: 100));
 
-    // Verify
-    expect(results.last, localPets);
-    expect(petService.isCloudActive.value, false);
+      // Verify
+      expect(results.last, localPets);
+      expect(sync.isCloudActive.value, false);
 
-    await subscription.cancel();
-    await cloudController.close();
-    await localController.close();
-  });
+      await subscription.cancel();
+      await cloudController.close();
+      await localController.close();
+    },
+  );
 }

@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart'
 ///
 /// Example:
 /// ```dart
-/// import 'firebase_options.dart';
+/// import 'package:ai_pet_communication/firebase_options.dart';
 /// // ...
 /// await Firebase.initializeApp(
 ///   options: DefaultFirebaseOptions.currentPlatform,
@@ -70,7 +70,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '393735079871',
     projectId: 'fir-project-tw',
     storageBucket: 'fir-project-tw.firebasestorage.app',
-    iosClientId: '393735079871-itjeudch6ga5lph8poobjpjeu36rq0n0.apps.googleusercontent.com',
+    iosClientId:
+        '393735079871-itjeudch6ga5lph8poobjpjeu36rq0n0.apps.googleusercontent.com',
     iosBundleId: 'com.example.ai_pet_communicator',
   );
 }

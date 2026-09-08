@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/pet/data/mappers/pet_local_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
@@ -19,7 +20,7 @@ void main() {
         weight: 10.5,
       );
 
-      final map = pet.toMap();
+      final map = PetLocalMapper.toMap(pet);
       expect(map['name'], '小乖');
       expect(map['weight'], 10.5);
       expect(map['owner_id'], 'user123');

@@ -5,10 +5,10 @@ class UserModel {
   final String email;
   final String displayName;
   final String? photoUrl;
-  
+
   // 向後相容別名 (Firebase 使用 photoURL)
   String? get photoURL => photoUrl;
-  
+
   final int points;
   final String membershipTier;
 
@@ -40,8 +40,12 @@ class UserModel {
       points: map['points'] ?? 0,
       membershipTier: map['membershipTier'] ?? map['membershipType'] ?? 'free',
       hasCompletedOnboarding: map['hasCompletedOnboarding'] ?? false,
-      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
-      lastLoginAt: map['lastLoginAt'] != null ? (map['lastLoginAt'] as Timestamp).toDate() : null,
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
+      lastLoginAt: map['lastLoginAt'] != null
+          ? (map['lastLoginAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -54,8 +58,12 @@ class UserModel {
       'points': points,
       'membershipTier': membershipTier,
       'hasCompletedOnboarding': hasCompletedOnboarding,
-      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
-      'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null
+          ? Timestamp.fromDate(createdAt!)
+          : FieldValue.serverTimestamp(),
+      'lastLoginAt': lastLoginAt != null
+          ? Timestamp.fromDate(lastLoginAt!)
+          : FieldValue.serverTimestamp(),
     };
   }
 
@@ -74,7 +82,8 @@ class UserModel {
       photoUrl: photoUrl ?? this.photoUrl,
       points: points ?? this.points,
       membershipTier: membershipTier ?? this.membershipTier,
-      hasCompletedOnboarding: hasCompletedOnboarding ?? this.hasCompletedOnboarding,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
     );

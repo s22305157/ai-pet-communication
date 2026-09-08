@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/web_helper.dart';
+import 'package:ai_pet_communication/utils/web_helper.dart';
 
 class AuthenticatedNetworkImage extends StatefulWidget {
   final String url;

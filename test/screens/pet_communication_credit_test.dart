@@ -2,7 +2,7 @@ import 'package:ai_pet_communication/features/chat/application/chat_controller.d
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/presentation/pet_communication_input_screen.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
-import 'package:ai_pet_communication/injection.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 import 'package:ai_pet_communication/services/credit_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

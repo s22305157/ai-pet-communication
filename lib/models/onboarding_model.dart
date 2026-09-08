@@ -1,9 +1,4 @@
-enum QuestionType {
-  singleChoice,
-  multipleChoice,
-  text,
-  dropdown,
-}
+enum QuestionType { singleChoice, multipleChoice, text, dropdown }
 
 class OnboardingQuestion {
   final String id;
@@ -107,8 +102,5 @@ class OnboardingAnswer {
   final String questionId;
   final dynamic value;
 
-  const OnboardingAnswer({
-    required this.questionId,
-    required this.value,
-  });
+  const OnboardingAnswer({required this.questionId, required this.value});
 }

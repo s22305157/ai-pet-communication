@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../constants.dart';
-import '../../domain/models/pet_model.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 
 class PetInfoCard extends StatelessWidget {
   final PetModel pet;
@@ -50,7 +50,7 @@ class PetInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppStyles.borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -62,7 +62,11 @@ class PetInfoCard extends StatelessWidget {
           _buildInfoRow('性別', pet.gender, Icons.pets),
           _buildInfoRow('生日', pet.birthday, Icons.cake),
           _buildInfoRow('毛色', pet.color, Icons.palette_outlined),
-          _buildInfoRow('體重', '${pet.weight} kg', Icons.monitor_weight_outlined),
+          _buildInfoRow(
+            '體重',
+            '${pet.weight} kg',
+            Icons.monitor_weight_outlined,
+          ),
           const Divider(height: 24),
           _buildInfoRow('個性', pet.personality, Icons.favorite),
         ],

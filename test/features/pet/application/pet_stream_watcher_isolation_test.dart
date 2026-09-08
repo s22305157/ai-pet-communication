@@ -1,10 +1,10 @@
+import '../../../support/pet_service_fixture.dart';
 import 'dart:async';
 
-import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -55,7 +55,7 @@ void main() {
       ).thenAnswer((_) => localController.stream);
       when(() => localService.getPendingOperations(uid)).thenReturn([]);
 
-      final petService = PetService(
+      final petService = buildPetService(
         firestore: MockFirebaseFirestore(),
         storage: MockFirebaseStorage(),
         localService: localService,

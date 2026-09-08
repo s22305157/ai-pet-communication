@@ -103,10 +103,7 @@ class PetVoiceItem {
   final String question;
   final String answer;
 
-  const PetVoiceItem({
-    required this.question,
-    required this.answer,
-  });
+  const PetVoiceItem({required this.question, required this.answer});
 
   factory PetVoiceItem.fromMap(Map<String, dynamic> map) {
     return PetVoiceItem(
@@ -116,10 +113,7 @@ class PetVoiceItem {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'question': question,
-      'answer': answer,
-    };
+    return {'question': question, 'answer': answer};
   }
 }
 
@@ -128,10 +122,7 @@ class KnowledgeStation {
   final String title;
   final String content;
 
-  const KnowledgeStation({
-    required this.title,
-    required this.content,
-  });
+  const KnowledgeStation({required this.title, required this.content});
 
   factory KnowledgeStation.fromMap(Map<String, dynamic> map) {
     return KnowledgeStation(
@@ -141,9 +132,6 @@ class KnowledgeStation {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'content': content,
-    };
+    return {'title': title, 'content': content};
   }
 }

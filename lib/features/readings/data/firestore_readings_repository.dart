@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../domain/reading.dart';
-import 'readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 
 class FirestoreReadingsRepository implements ReadingsRepository {
   final FirebaseFirestore _firestore;

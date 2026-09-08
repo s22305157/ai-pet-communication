@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/services/ad_service.dart';
 import 'package:ai_pet_communication/services/credit_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';

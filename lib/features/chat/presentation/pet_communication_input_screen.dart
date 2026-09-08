@@ -7,16 +7,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../constants.dart';
-import '../../pet/domain/models/pet_model.dart';
-import '../../../injection.dart';
-import '../application/prompt_manager.dart';
-import '../application/safety_router.dart';
-import '../application/chat_controller.dart';
-import '../domain/ai_request_model.dart';
-import 'chat_ui_texts.dart';
-import 'communication_result_screen.dart';
-import '../../../services/credit_service.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/features/chat/application/prompt_manager.dart';
+import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
+import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
+import 'package:ai_pet_communication/features/chat/presentation/chat_ui_texts.dart';
+import 'package:ai_pet_communication/features/chat/presentation/communication_result_screen.dart';
+import 'package:ai_pet_communication/services/credit_service.dart';
 
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
@@ -317,13 +317,13 @@ class _PetCommunicationInputScreenState
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isSafe
-            ? AppColors.secondary.withOpacity(0.1)
-            : AppColors.primary.withOpacity(0.1),
+            ? AppColors.secondary.withValues(alpha: 0.1)
+            : AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSafe
-              ? AppColors.secondary.withOpacity(0.3)
-              : AppColors.primary.withOpacity(0.3),
+              ? AppColors.secondary.withValues(alpha: 0.3)
+              : AppColors.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -394,7 +394,7 @@ class _PetCommunicationInputScreenState
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -410,7 +410,7 @@ class _PetCommunicationInputScreenState
             decoration: InputDecoration(
               hintText: '描述毛孩最近的表現、食慾、心情或特別的事...',
               hintStyle: GoogleFonts.outfit(
-                color: AppColors.textSecondary.withOpacity(0.5),
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -442,7 +442,7 @@ class _PetCommunicationInputScreenState
                       fontSize: 11,
                       color: _isDeepAnalysis
                           ? Colors.green
-                          : AppColors.textSecondary.withOpacity(0.7),
+                          : AppColors.textSecondary.withValues(alpha: 0.7),
                       fontWeight: _isDeepAnalysis
                           ? FontWeight.bold
                           : FontWeight.normal,
@@ -466,21 +466,21 @@ class _PetCommunicationInputScreenState
         decoration: InputDecoration(
           hintText: index == 0 ? '問題 1 (必填)' : '問題 ${index + 1} (選填)',
           hintStyle: GoogleFonts.outfit(
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
           ),
           prefixIcon: Icon(
             Icons.help_outline,
-            color: AppColors.primary.withOpacity(0.5),
+            color: AppColors.primary.withValues(alpha: 0.5),
           ),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
+            borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
+            borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -503,7 +503,7 @@ class _PetCommunicationInputScreenState
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 2,
-          shadowColor: AppColors.primary.withOpacity(0.3),
+          shadowColor: AppColors.primary.withValues(alpha: 0.3),
         ),
         child: Text(
           '發送溝通請求',
@@ -519,7 +519,7 @@ class _PetCommunicationInputScreenState
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Container(
           padding: const EdgeInsets.all(32),

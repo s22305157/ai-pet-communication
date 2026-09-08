@@ -48,7 +48,7 @@ class SubscriptionService {
 
     try {
       CustomerInfo customerInfo = await Purchases.getCustomerInfo();
-      
+
       // 假設 RevenueCat 中設定的 Entitlement ID 分別為 'plus' 與 'pro'
       if (customerInfo.entitlements.all['pro']?.isActive ?? false) {
         return 'pro';
@@ -66,8 +66,9 @@ class SubscriptionService {
   Future<bool> purchasePackage(Package package) async {
     try {
       CustomerInfo customerInfo = await Purchases.purchasePackage(package);
-      return customerInfo.entitlements.all['pro']?.isActive ?? 
-             customerInfo.entitlements.all['plus']?.isActive ?? false;
+      return customerInfo.entitlements.all['pro']?.isActive ??
+          customerInfo.entitlements.all['plus']?.isActive ??
+          false;
     } catch (e) {
       debugPrint('SubscriptionService: 購買失敗 - $e');
       return false;

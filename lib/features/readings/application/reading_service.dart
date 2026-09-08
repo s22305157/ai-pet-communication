@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
-import '../domain/reading.dart';
-import '../data/readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/domain/reading.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 
 class ReadingService {
   final ReadingsRepository _repository;

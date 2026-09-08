@@ -1,10 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:ai_pet_communication/main.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
-import 'package:ai_pet_communication/models/user_model.dart';
-import 'package:ai_pet_communication/injection.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 
 class MockAuthService extends Mock implements AuthService {}
 
@@ -23,8 +21,12 @@ void main() {
     getIt.reset();
   });
 
-  testWidgets('App smoke test - Shows login screen when user is not logged in', (WidgetTester tester) async {
-    when(() => mockAuthService.getUserStream()).thenAnswer((_) => Stream.value(null));
+  testWidgets('App smoke test - Shows login screen when user is not logged in', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => mockAuthService.getUserStream(),
+    ).thenAnswer((_) => Stream.value(null));
 
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());

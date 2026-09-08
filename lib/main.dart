@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'firebase_options.dart';
-import 'services/auth_service.dart';
-import 'services/subscription_service.dart';
-import 'services/ad_service.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
-import 'screens/onboarding/onboarding_screen.dart';
-import 'models/user_model.dart';
-import 'injection.dart';
+import 'package:ai_pet_communication/firebase_options.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
+import 'package:ai_pet_communication/services/subscription_service.dart';
+import 'package:ai_pet_communication/services/ad_service.dart';
+import 'package:ai_pet_communication/features/auth/presentation/login_screen.dart';
+import 'package:ai_pet_communication/features/home/presentation/home_screen.dart';
+import 'package:ai_pet_communication/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:ai_pet_communication/models/user_model.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 
 void main() async {
-  print('DEBUG: >>> PAWLINK Final Startup Initiated <<<');
+  debugPrint('DEBUG: >>> PAWLINK Final Startup Initiated <<<');
 
   try {
     WidgetsFlutterBinding.ensureInitialized();
     setupDependencies();
-    print('DEBUG: [1] WidgetsBinding Initialized');
+    debugPrint('DEBUG: [1] WidgetsBinding Initialized');
 
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('DEBUG: [2] Firebase initialized');
+    debugPrint('DEBUG: [2] Firebase initialized');
 
     await Hive.initFlutter();
     await Hive.openBox('local_pets');
     await Hive.openBox<dynamic>('local_readings');
-    print('DEBUG: [3] Hive initialized');
+    debugPrint('DEBUG: [3] Hive initialized');
 
     try {
       await getIt<SubscriptionService>().initialize();
-      print('DEBUG: [4a] Subscription Service initialized');
+      debugPrint('DEBUG: [4a] Subscription Service initialized');
     } catch (e) {
-      print('DEBUG: [!] Subscription Error: $e');
+      debugPrint('DEBUG: [!] Subscription Error: $e');
     }
 
     try {
       await getIt<AdService>().initialize();
-      print('DEBUG: [4b] Ad Service initialized');
+      debugPrint('DEBUG: [4b] Ad Service initialized');
     } catch (e) {
-      print('DEBUG: [!] Ad Error: $e');
+      debugPrint('DEBUG: [!] Ad Error: $e');
     }
 
-    print('DEBUG: [5] Launching MyApp');
+    debugPrint('DEBUG: [5] Launching MyApp');
     runApp(const MyApp());
-  } catch (e, stack) {
-    print('CRITICAL STARTUP ERROR: $e');
+  } catch (e) {
+    debugPrint('CRITICAL STARTUP ERROR: $e');
     runApp(
       MaterialApp(
         home: Scaffold(body: Center(child: Text('啟動失敗: $e'))),

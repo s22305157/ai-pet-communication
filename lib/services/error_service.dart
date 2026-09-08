@@ -1,8 +1,9 @@
+import 'package:ai_pet_communication/features/pet/domain/models/pet_write_result.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ErrorService {
   static String getErrorMessage(dynamic error) {
+    if (error is PetWriteFailure) return error.message;
     // Firebase Auth 錯誤
     if (error is FirebaseAuthException) {
       switch (error.code) {
@@ -44,8 +45,8 @@ class ErrorService {
     }
 
     // 一般錯誤
-    return error.toString().contains('SocketException') 
-        ? '網路連線異常，請確認您的網路環境。' 
+    return error.toString().contains('SocketException')
+        ? '網路連線異常，請確認您的網路環境。'
         : '發生意外錯誤，請稍後再試。';
   }
 }

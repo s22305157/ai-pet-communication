@@ -1,6 +1,7 @@
+import '../support/pet_service_fixture.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
-import 'package:ai_pet_communication/services/auth_service.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/features/pet/data/local_pet_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
@@ -27,7 +28,7 @@ void main() {
     mockAuthService = MockAuthService();
     mockStorage = MockFirebaseStorage();
 
-    petService = PetService(
+    petService = buildPetService(
       firestore: fakeFirestore,
       localService: mockLocalService,
       authService: mockAuthService,

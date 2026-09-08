@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../constants.dart';
-import '../../pet/domain/models/pet_model.dart';
-import '../../../injection.dart';
-import '../application/chat_controller.dart';
-import '../../../widgets/pet_avatar.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
+import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
+import 'package:ai_pet_communication/widgets/pet_avatar.dart';
 
 class ChatScreen extends StatefulWidget {
   final PetModel pet;
@@ -44,7 +44,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _textController.clear();
 
     try {
-      final response = await _controller.handleUserMessage(widget.pet.petId!, text);
+      final response = await _controller.handleUserMessage(
+        widget.pet.petId,
+        text,
+      );
       if (mounted) {
         setState(() {
           _messages.add({'isUser': false, 'text': response});
@@ -54,9 +57,9 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('發生錯誤: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('發生錯誤: $e')));
       }
     }
   }
@@ -82,7 +85,11 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Text(
                   widget.pet.name,
-                  style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 Text(
                   'AI 溝通中...',
@@ -122,7 +129,9 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isUser ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.only(
@@ -133,7 +142,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -157,7 +166,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -177,7 +186,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 fillColor: AppColors.background,
                 filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
               onSubmitted: (_) => _sendMessage(),
             ),

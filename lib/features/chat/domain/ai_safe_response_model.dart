@@ -43,7 +43,9 @@ class AiSafeResponseModel {
       nextSteps: List<String>.from(map['next_steps'] ?? []),
       confidence: (map['confidence'] as num?)?.toDouble() ?? 0.0,
       needsMoreInfo: map['needs_more_info'] ?? false,
-      missingInfo: map['missing_info'] != null ? List<String>.from(map['missing_info']) : null,
+      missingInfo: map['missing_info'] != null
+          ? List<String>.from(map['missing_info'])
+          : null,
       tags: map['tags'] != null ? List<String>.from(map['tags']) : null,
     );
   }
@@ -87,11 +89,7 @@ class SafePetVoice {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'text': text,
-      'tone': tone,
-      'is_inference': isInference,
-    };
+    return {'text': text, 'tone': tone, 'is_inference': isInference};
   }
 }
 
@@ -110,7 +108,9 @@ class SafetyAlert {
     return SafetyAlert(
       hasRedFlags: map['has_red_flags'] ?? false,
       message: map['message'] ?? '',
-      redFlags: map['red_flags'] != null ? List<String>.from(map['red_flags']) : null,
+      redFlags: map['red_flags'] != null
+          ? List<String>.from(map['red_flags'])
+          : null,
     );
   }
 

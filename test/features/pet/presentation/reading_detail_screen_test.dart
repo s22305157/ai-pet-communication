@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
-import 'package:ai_pet_communication/features/pet/presentation/reading_detail_screen.dart';
-import 'package:ai_pet_communication/features/readings/data/readings_repository.dart';
+import 'package:ai_pet_communication/features/readings/presentation/reading_detail_screen.dart';
+import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/data/firestore_readings_repository.dart';
 
 void main() {
@@ -15,7 +15,11 @@ void main() {
     readingsRepository = FirestoreReadingsRepository(firestore);
   });
 
-  Widget createWidgetUnderTest({Reading? reading, String petId = 'p1', String readingId = 'r1'}) {
+  Widget createWidgetUnderTest({
+    Reading? reading,
+    String petId = 'p1',
+    String readingId = 'r1',
+  }) {
     return MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
@@ -30,7 +34,9 @@ void main() {
     );
   }
 
-  testWidgets('Displays content when reading is provided directly', (WidgetTester tester) async {
+  testWidgets('Displays content when reading is provided directly', (
+    WidgetTester tester,
+  ) async {
     final reading = Reading(
       id: 'r1',
       petId: 'p1',
@@ -48,29 +54,41 @@ void main() {
     expect(find.text('Happy'), findsOneWidget);
   });
 
-  testWidgets('Fetches reading from firestore when only readingId is provided', (WidgetTester tester) async {
-    await firestore.collection('pets').doc('p1').collection('readings').doc('r1').set({
-      'petId': 'p1',
-      'title': 'Fetched Reading',
-      'content': 'This was fetched from DB.',
-      'createdAt': DateTime(2026, 4, 1).toIso8601String(),
-    });
+  testWidgets(
+    'Fetches reading from firestore when only readingId is provided',
+    (WidgetTester tester) async {
+      await firestore
+          .collection('pets')
+          .doc('p1')
+          .collection('readings')
+          .doc('r1')
+          .set({
+            'petId': 'p1',
+            'title': 'Fetched Reading',
+            'content': 'This was fetched from DB.',
+            'createdAt': DateTime(2026, 4, 1).toIso8601String(),
+          });
 
-    // Provide no reading object, only IDs
-    await tester.pumpWidget(createWidgetUnderTest(reading: null));
-    
-    // initially shows loading
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Provide no reading object, only IDs
+      await tester.pumpWidget(createWidgetUnderTest(reading: null));
 
-    await tester.pumpAndSettle();
+      // initially shows loading
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    expect(find.text('Fetched Reading'), findsOneWidget);
-    expect(find.text('This was fetched from DB.'), findsOneWidget);
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('Displays error when reading cannot be found', (WidgetTester tester) async {
+      expect(find.text('Fetched Reading'), findsOneWidget);
+      expect(find.text('This was fetched from DB.'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Displays error when reading cannot be found', (
+    WidgetTester tester,
+  ) async {
     // DB is empty
-    await tester.pumpWidget(createWidgetUnderTest(reading: null, readingId: 'non_existent'));
+    await tester.pumpWidget(
+      createWidgetUnderTest(reading: null, readingId: 'non_existent'),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('無法讀取該則紀錄'), findsOneWidget);

@@ -5,14 +5,14 @@
 
 import 'dart:developer' as dev;
 import 'dart:convert';
-import '../data/chat_service.dart';
-import '../../readings/application/reading_service.dart';
-import '../domain/ai_response_model.dart';
-import 'ai_validator.dart';
-import 'prompt_manager.dart';
-import '../domain/ai_request_model.dart';
-import '../../knowledge/application/knowledge_retrieval_service.dart';
-import 'safety_router.dart';
+import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
+import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
+import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
+import 'package:ai_pet_communication/features/chat/application/prompt_manager.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
+import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
+import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 
 class ChatController {
   final ChatService _chatService;

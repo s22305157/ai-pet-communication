@@ -5,8 +5,8 @@ import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
 import 'package:ai_pet_communication/features/pet/presentation/pet_form_sheet.dart';
 import 'package:ai_pet_communication/features/chat/presentation/pet_communication_input_screen.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
-import 'package:ai_pet_communication/constants.dart';
-import 'package:ai_pet_communication/injection.dart';
+import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/app/injection.dart';
 
 class PetDetailController extends ChangeNotifier {
   PetModel _pet;

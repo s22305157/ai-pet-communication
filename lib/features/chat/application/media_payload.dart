@@ -1,7 +1,7 @@
 // lib/features/chat/application/media_payload.dart
 // ============================================================
 // PAWLINK - AI 媒體資料酬載 (Media Payload)
-// 
+//
 // 根據方案決定傳入的媒體資訊：
 //   free         → null（不傳任何媒體）
 //   plus / pro   → imageUrl 或 imageBase64

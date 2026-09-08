@@ -1,4 +1,4 @@
-import '../domain/ai_request_model.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 
 enum SafetyLevel { general, caution, emergency }
 
