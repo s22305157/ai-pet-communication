@@ -1,0 +1,3 @@
+# Filter configuration for encrypting knowledge content at rest in Git
+assets/ai_logic/knowledge/core_knowledge_base.md filter=kbcrypt
+assets/ai_logic/knowledge/rag_index.json filter=kbcrypt

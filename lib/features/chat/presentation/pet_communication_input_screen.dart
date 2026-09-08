@@ -11,6 +11,7 @@ import '../../../constants.dart';
 import '../../pet/domain/models/pet_model.dart';
 import '../../../injection.dart';
 import '../application/prompt_manager.dart';
+import '../application/safety_router.dart';
 import '../application/chat_controller.dart';
 import '../domain/ai_request_model.dart';
 import 'chat_ui_texts.dart';
@@ -82,12 +83,29 @@ class _PetCommunicationInputScreenState
     setState(() {
       _wordCount = storyText.length;
       _hasRedFlags =
-          PromptManager.detectRedFlags(storyText) ||
-          PromptManager.detectRedFlags(questionsText);
+          PromptManager.detectRedFlags(
+            storyText,
+            species: widget.pet.species,
+          ) ||
+          PromptManager.detectRedFlags(
+            questionsText,
+            species: widget.pet.species,
+          );
     });
   }
 
-  bool get _useSafeMode => _wordCount < 300 || _hasRedFlags;
+  bool get _useSafeMode =>
+      _hasRedFlags ||
+      PromptManager.shouldUseSafeMode(
+        story: _storyController.text.trim(),
+        questions: _questionControllers
+            .map((controller) => controller.text.trim())
+            .where((text) => text.isNotEmpty)
+            .toList(),
+        species: widget.pet.species,
+      );
+
+  bool get _isDeepAnalysis => _wordCount >= SafetyRouter.deepAnalysisThreshold;
 
   CreditService get _creditService => getIt<CreditService>();
 
@@ -123,6 +141,16 @@ class _PetCommunicationInputScreenState
       ).showSnackBar(const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')));
       return;
     }
+    final questions = _questionControllers
+        .map((controller) => controller.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (questions.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('請至少輸入一個想詢問的問題。')));
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -150,11 +178,8 @@ class _PetCommunicationInputScreenState
           personalityTraits: [widget.pet.personality],
         ),
         story: _storyController.text.trim(),
-        questions: _questionControllers
-            .map((c) => c.text.trim())
-            .where((t) => t.isNotEmpty)
-            .toList(),
-        inputMode: "free", // 暫定
+        questions: questions,
+        inputMode: _isDeepAnalysis ? "pro" : "free",
       );
 
       // 3. 發送請求
@@ -403,24 +428,27 @@ class _PetCommunicationInputScreenState
                   '$_wordCount 字',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
-                    color: _wordCount >= 300
-                        ? Colors.green
-                        : AppColors.textSecondary,
-                    fontWeight: _wordCount >= 300
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                if (_wordCount < 300) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    '(滿 300 字開啟深度模式)',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _isDeepAnalysis
+                        ? '已達 300 字，將啟用深度分析模式。'
+                        : '(滿 300 字開啟深度分析模式)',
+                    textAlign: TextAlign.right,
                     style: GoogleFonts.outfit(
                       fontSize: 11,
-                      color: AppColors.textSecondary.withOpacity(0.7),
+                      color: _isDeepAnalysis
+                          ? Colors.green
+                          : AppColors.textSecondary.withOpacity(0.7),
+                      fontWeight: _isDeepAnalysis
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -436,7 +464,7 @@ class _PetCommunicationInputScreenState
         controller: _questionControllers[index],
         style: GoogleFonts.outfit(color: AppColors.textPrimary),
         decoration: InputDecoration(
-          hintText: '問題 ${index + 1} (選填)',
+          hintText: index == 0 ? '問題 1 (必填)' : '問題 ${index + 1} (選填)',
           hintStyle: GoogleFonts.outfit(
             color: AppColors.textSecondary.withOpacity(0.5),
           ),

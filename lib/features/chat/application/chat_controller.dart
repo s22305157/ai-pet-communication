@@ -4,18 +4,27 @@
 // ============================================================
 
 import 'dart:developer' as dev;
+import 'dart:convert';
 import '../data/chat_service.dart';
 import '../../readings/application/reading_service.dart';
 import '../domain/ai_response_model.dart';
 import 'ai_validator.dart';
 import 'prompt_manager.dart';
 import '../domain/ai_request_model.dart';
+import '../../knowledge/application/knowledge_retrieval_service.dart';
+import 'safety_router.dart';
 
 class ChatController {
   final ChatService _chatService;
   final ReadingService _readingService;
+  final KnowledgeRetrievalService _knowledgeRetrievalService;
 
-  ChatController(this._chatService, this._readingService);
+  ChatController(
+    this._chatService,
+    this._readingService, [
+    KnowledgeRetrievalService? knowledgeRetrievalService,
+  ]) : _knowledgeRetrievalService =
+           knowledgeRetrievalService ?? KnowledgeRetrievalService();
 
   /// 處理完整的 AI 溝通請求 (包含重試與 Fallback 邏輯)
   Future<dynamic> handleCommunication(
@@ -33,22 +42,51 @@ class ChatController {
 
     while (retryCount <= maxRetries) {
       try {
-        // 1. 組裝 Prompt Bundle (包含是否為安全模式的判斷)
-        final bundle = PromptManager.buildMessages(request);
+        // 1. 先做安全分流，再以完整問題檢索知識。
+        final safetyDecision = SafetyRouter.evaluate(request);
+        final retrievalQuery = [
+          request.petProfile.species,
+          request.ownerProfile.mainConcern,
+          request.story,
+          ...request.questions,
+        ].where((value) => value.trim().isNotEmpty).join(' ');
+        List<KnowledgeHit> knowledgeHits;
+        try {
+          knowledgeHits = await _knowledgeRetrievalService.search(
+            query: retrievalQuery,
+            species: request.petProfile.species,
+            limit: safetyDecision.needsImmediateAction ? 5 : 4,
+          );
+        } catch (error, stackTrace) {
+          dev.log('知識庫檢索失敗，改用無檢索安全提示', error: error, stackTrace: stackTrace);
+          knowledgeHits = const [];
+        }
 
-        // 2. 呼叫 AI 服務
-        final rawResponse = await _chatService.sendMessage(
-          bundle.messages.toString(),
+        // 2. 將安全結果與可追溯知識片段組裝進 Prompt。
+        final bundle = PromptManager.buildMessages(
+          request,
+          knowledgeHits: knowledgeHits,
+          safetyDecision: safetyDecision,
         );
 
-        // 3. 根據模式進行動態驗證
+        // 3. 呼叫 AI 服務；使用 JSON 序列化保留訊息角色與跳脫字元。
+        final rawResponse = await _chatService.sendMessage(
+          jsonEncode(bundle.messages),
+        );
+
+        // 4. 根據模式進行動態驗證
         dynamic aiResponse;
         if (bundle.isSafeMode) {
-          aiResponse = AiValidator.validateSafeResponse(rawResponse);
+          final safeResponse = AiValidator.validateSafeResponse(rawResponse);
+          AiValidator.enforceSafetyDecision(
+            safeResponse,
+            bundle.safetyDecision,
+          );
+          aiResponse = safeResponse;
         } else {
           aiResponse = AiValidator.validateResponse(rawResponse);
         }
-        // 4. 記錄到資料庫 (儲存 JSON 字串)
+        // 5. 記錄到資料庫 (儲存 JSON 字串)
         ReadingPersistenceException? persistenceFailure;
         try {
           await _readingService.recordAiResponse(

@@ -22,6 +22,7 @@ import 'features/readings/data/local_readings_repository.dart';
 import 'features/readings/data/account_readings_repository.dart';
 import 'features/readings/application/reading_service.dart';
 import 'features/chat/application/chat_controller.dart';
+import 'features/knowledge/application/knowledge_retrieval_service.dart';
 import 'services/membership_action_handler.dart';
 import 'services/credit_service.dart';
 
@@ -108,6 +109,9 @@ void setupDependencies() {
 
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
   getIt.registerLazySingleton<ChatService>(() => ChatService());
+  getIt.registerLazySingleton<KnowledgeRetrievalService>(
+    () => KnowledgeRetrievalService(),
+  );
 
   getIt.registerLazySingleton<ReadingsRepository>(
     () => AccountReadingsRepository(
@@ -124,6 +128,10 @@ void setupDependencies() {
 
   // Controller 使用 Factory，使每次調用皆建立全新狀態
   getIt.registerFactory<ChatController>(
-    () => ChatController(getIt<ChatService>(), getIt<ReadingService>()),
+    () => ChatController(
+      getIt<ChatService>(),
+      getIt<ReadingService>(),
+      getIt<KnowledgeRetrievalService>(),
+    ),
   );
 }

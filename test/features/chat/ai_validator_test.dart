@@ -1,7 +1,7 @@
 // test/features/chat/ai_validator_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
-import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
+import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 
 void main() {
   group('AiValidator - Response Validation', () {
@@ -55,19 +55,27 @@ void main() {
     });
 
     test('應該能修復頭尾帶有雜質的 JSON', () {
-      const raw = '一些廢話... {"petVoice": [{"question": "Q", "answer": "A"}], "knowledgeStation": {"title": "T", "content": "C"}, "summary": "S", "tags": [], "confidence": 0.5, "tone": "calm", "version": "v1", "inputMode": "free"} ...又是廢話';
+      const raw =
+          '一些廢話... {"petVoice": [{"question": "Q", "answer": "A"}], "knowledgeStation": {"title": "T", "content": "C"}, "summary": "S", "tags": [], "confidence": 0.5, "tone": "calm", "version": "v1", "inputMode": "free"} ...又是廢話';
       final response = AiValidator.validateResponse(raw);
       expect(response.summary, "S");
     });
 
     test('當缺少必要欄位時應拋出 AiValidationException', () {
       const raw = '{"summary": "incomplete"}';
-      expect(() => AiValidator.validateResponse(raw), throwsA(isA<AiValidationException>()));
+      expect(
+        () => AiValidator.validateResponse(raw),
+        throwsA(isA<AiValidationException>()),
+      );
     });
 
     test('當型別錯誤時應拋出 AiValidationException', () {
-      const raw = '{"petVoice": "not a list", "knowledgeStation": {}, "summary": "S", "tags": [], "confidence": "high", "tone": "warm", "version": "v1", "inputMode": "free"}';
-      expect(() => AiValidator.validateResponse(raw), throwsA(isA<AiValidationException>()));
+      const raw =
+          '{"petVoice": "not a list", "knowledgeStation": {}, "summary": "S", "tags": [], "confidence": "high", "tone": "warm", "version": "v1", "inputMode": "free"}';
+      expect(
+        () => AiValidator.validateResponse(raw),
+        throwsA(isA<AiValidationException>()),
+      );
     });
   });
 
@@ -101,7 +109,10 @@ void main() {
 
     test('當缺少必要欄位時應拋出 AiValidationException', () {
       const raw = '{"version": "1.0", "mode": "safe_default"}';
-      expect(() => AiValidator.validateSafeResponse(raw), throwsA(isA<AiValidationException>()));
+      expect(
+        () => AiValidator.validateSafeResponse(raw),
+        throwsA(isA<AiValidationException>()),
+      );
     });
 
     test('當 has_red_flags 為 true 但 red_flags 為空時應拋出 AiValidationException', () {
@@ -122,7 +133,37 @@ void main() {
   "needs_more_info": false
 }
 ''';
-      expect(() => AiValidator.validateSafeResponse(raw), throwsA(isA<AiValidationException>()));
+      expect(
+        () => AiValidator.validateSafeResponse(raw),
+        throwsA(isA<AiValidationException>()),
+      );
+    });
+
+    test('急症路由不可被模型回應降級', () {
+      const raw = '''
+{
+  "version": "1.0",
+  "mode": "safe_default",
+  "disclaimer": "D",
+  "pet_voice": {"text": "T", "tone": "calm", "is_inference": true},
+  "knowledge_tips": ["K"],
+  "safety_alert": {"has_red_flags": false, "message": "看起來正常"},
+  "next_steps": ["繼續觀察"],
+  "confidence": 0.5,
+  "needs_more_info": false
+}
+''';
+      final response = AiValidator.validateSafeResponse(raw);
+      const decision = SafetyDecision(
+        level: SafetyLevel.emergency,
+        isLowInformation: false,
+        matchedRules: ['urinary_obstruction'],
+      );
+
+      expect(
+        () => AiValidator.enforceSafetyDecision(response, decision),
+        throwsA(isA<AiValidationException>()),
+      );
     });
   });
 }
