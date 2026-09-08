@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 typedef KnowledgeIndexLoader = Future<String> Function();
 
@@ -31,6 +31,20 @@ class KnowledgeHit {
     required this.score,
   });
 
+  factory KnowledgeHit.fromMap(Map<String, dynamic> map) => KnowledgeHit(
+    id: map['id'] as String,
+    documentId: map['documentId'] as String,
+    sectionId: map['sectionId'] as String,
+    title: map['title'] as String,
+    tags: List<String>.from(map['tags'] as List? ?? const []),
+    safetyLevel: map['safetyLevel'] as String,
+    content: map['content'] as String,
+    sourcePath: map['sourcePath'] as String? ?? 'protected-knowledge',
+    lineStart: (map['lineStart'] as num?)?.toInt() ?? 0,
+    lineEnd: (map['lineEnd'] as num?)?.toInt() ?? 0,
+    score: (map['score'] as num).toDouble(),
+  );
+
   Map<String, dynamic> toPromptMap({int maxContentLength = 1400}) {
     final excerpt = content.length <= maxContentLength
         ? content
@@ -48,8 +62,6 @@ class KnowledgeHit {
 }
 
 class KnowledgeRetrievalService {
-  static const _assetPath = 'assets/ai_logic/knowledge/rag_index.json';
-
   static const Map<String, String> _queryExpansions = {
     '一直叫': '吠叫 哀鳴',
     '沒有尿': '無尿 排尿 尿道阻塞',
@@ -60,11 +72,16 @@ class KnowledgeRetrievalService {
     '老貓': '高齡貓',
   };
 
-  final KnowledgeIndexLoader _loader;
+  final KnowledgeIndexLoader? _loader;
+  final FirebaseFunctions? _functions;
   Future<Map<String, dynamic>>? _cachedIndex;
 
-  KnowledgeRetrievalService({KnowledgeIndexLoader? loader})
-    : _loader = loader ?? (() => rootBundle.loadString(_assetPath));
+  KnowledgeRetrievalService({
+    KnowledgeIndexLoader? loader,
+    FirebaseFunctions? functions,
+  }) : _loader = loader,
+       _functions =
+           functions ?? (loader == null ? FirebaseFunctions.instance : null);
 
   Future<List<KnowledgeHit>> search({
     required String query,
@@ -72,6 +89,9 @@ class KnowledgeRetrievalService {
     int limit = 4,
   }) async {
     if (query.trim().isEmpty || limit <= 0) return const [];
+    if (_loader == null) {
+      return _searchRemote(query: query, species: species, limit: limit);
+    }
     final index = await _loadIndex();
     final chunks = (index['chunks'] as List).cast<Map<String, dynamic>>();
     final invertedIndex = (index['inverted_index'] as Map<String, dynamic>).map(
@@ -147,12 +167,33 @@ class KnowledgeRetrievalService {
         .toList(growable: false);
   }
 
+  Future<List<KnowledgeHit>> _searchRemote({
+    required String query,
+    required String species,
+    required int limit,
+  }) async {
+    final result = await _functions!.httpsCallable('retrieveKnowledge').call({
+      'query': query,
+      'species': species,
+      'limit': limit.clamp(1, 5),
+    });
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final hits = data['hits'];
+    if (hits is! List)
+      throw const FormatException('Invalid knowledge response');
+    return hits
+        .map(
+          (hit) => KnowledgeHit.fromMap(Map<String, dynamic>.from(hit as Map)),
+        )
+        .toList(growable: false);
+  }
+
   Future<Map<String, dynamic>> _loadIndex() {
     return _cachedIndex ??= _readAndValidateIndex();
   }
 
   Future<Map<String, dynamic>> _readAndValidateIndex() async {
-    final decoded = jsonDecode(await _loader());
+    final decoded = jsonDecode(await _loader!());
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('RAG index root must be an object');
     }

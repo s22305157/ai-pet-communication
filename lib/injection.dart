@@ -110,7 +110,7 @@ void setupDependencies() {
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
   getIt.registerLazySingleton<ChatService>(() => ChatService());
   getIt.registerLazySingleton<KnowledgeRetrievalService>(
-    () => KnowledgeRetrievalService(),
+    () => KnowledgeRetrievalService(functions: getIt<FirebaseFunctions>()),
   );
 
   getIt.registerLazySingleton<ReadingsRepository>(

@@ -1,0 +1,91 @@
+import 'dart:convert';
+
+Future<String> loadKnowledgeTestIndex() async => jsonEncode({
+  'schema_version': 1,
+  'stats': {'chunk_count': 6},
+  'chunks': [
+    _chunk(
+      id: 'doc006-litter',
+      documentId: 'doc-006',
+      title: '貓咪排尿紅旗',
+      tags: ['P'],
+      safetyLevel: 'red_flag',
+      content: '反覆進出貓砂盆、用力卻無尿可能是尿道阻塞，應立即聯絡獸醫。',
+    ),
+    _chunk(
+      id: 'doc006-multicat',
+      documentId: 'doc-006',
+      title: '多貓家庭衝突',
+      tags: ['B'],
+      content: '新貓加入後打架時，先分區並漸進交換氣味。',
+    ),
+    _chunk(
+      id: 'doc004-separation',
+      documentId: 'doc-004',
+      title: '獨處與分離困擾',
+      tags: ['B'],
+      content: '記錄犬隻獨處後開始吠叫的時間，再安排漸進練習。',
+    ),
+    _chunk(
+      id: 'lost-search',
+      documentId: 'doc-003',
+      title: '走失搜尋',
+      tags: ['S'],
+      content: '依時間與地點規劃走失搜尋範圍。',
+    ),
+    _chunk(
+      id: 'lost-record',
+      documentId: 'doc-003',
+      title: '走失線索記錄',
+      tags: ['S'],
+      content: '集中記錄目擊時間與線索。',
+    ),
+    _chunk(
+      id: 'lost-contact',
+      documentId: 'doc-003',
+      title: '走失協尋聯絡',
+      tags: ['S'],
+      content: '建立協尋聯絡窗口並持續更新。',
+    ),
+  ],
+  'inverted_index': {
+    '無尿': ['doc006-litter'],
+    '排尿': ['doc006-litter'],
+    '尿道': ['doc006-litter'],
+    '阻塞': ['doc006-litter'],
+    '貓砂': ['doc006-litter'],
+    '打架': ['doc006-multicat'],
+    '衝突': ['doc006-multicat'],
+    '新貓': ['doc006-multicat'],
+    '獨處': ['doc004-separation'],
+    '分離': ['doc004-separation'],
+    '吠叫': ['doc004-separation'],
+    '一直': ['doc004-separation'],
+    '走失': ['lost-search', 'lost-record', 'lost-contact'],
+    '搜尋': ['lost-search', 'lost-record', 'lost-contact'],
+    '記錄': ['lost-search', 'lost-record', 'lost-contact'],
+    '線索': ['lost-search', 'lost-record', 'lost-contact'],
+  },
+});
+
+Map<String, dynamic> _chunk({
+  required String id,
+  required String documentId,
+  required String title,
+  required List<String> tags,
+  String safetyLevel = 'general',
+  required String content,
+}) => {
+  'id': id,
+  'document_id': documentId,
+  'section_id': id,
+  'title': title,
+  'tags': tags,
+  'safety_level': safetyLevel,
+  'content': content,
+  'source': {
+    'path': 'assets/ai_logic/knowledge/core_knowledge_base.md',
+    'line_start': 1,
+    'line_end': 2,
+  },
+};

@@ -5,6 +5,7 @@ const {onRequest} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const creditOperations = require("./credit_operations");
 const accountOperations = require("./account_operations");
+const knowledgeRetrieval = require("./knowledge_retrieval");
 const {
   TargetValidationError,
   parseAllowedTarget,
@@ -212,3 +213,4 @@ exports.releaseExpiredCommunicationCredits =
   creditOperations.releaseExpiredCommunicationCredits;
 exports.deleteOwnAccount = accountOperations.deleteOwnAccount;
 exports.deletePetData = accountOperations.deletePetData;
+exports.retrieveKnowledge = knowledgeRetrieval.retrieveKnowledge;

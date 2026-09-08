@@ -11,6 +11,8 @@ import 'package:ai_pet_communication/features/readings/application/reading_servi
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../knowledge/knowledge_test_index.dart';
+
 class MockReadingService extends Mock implements ReadingService {}
 
 class RecordingChatService extends ChatService {
@@ -34,7 +36,9 @@ void main() {
 
   setUp(() {
     readingService = MockReadingService();
-    retrievalService = KnowledgeRetrievalService();
+    retrievalService = KnowledgeRetrievalService(
+      loader: loadKnowledgeTestIndex,
+    );
     when(
       () => readingService.recordAiResponse(
         petId: any(named: 'petId'),

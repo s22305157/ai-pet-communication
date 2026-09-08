@@ -1,11 +1,15 @@
 import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'knowledge_test_index.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late KnowledgeRetrievalService service;
-  setUp(() => service = KnowledgeRetrievalService());
+  setUp(
+    () => service = KnowledgeRetrievalService(loader: loadKnowledgeTestIndex),
+  );
 
   test('實際索引可依貓排尿急症召回安全片段', () async {
     final hits = await service.search(
