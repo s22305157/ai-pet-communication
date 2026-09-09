@@ -51,7 +51,7 @@ class HomeTopBar extends StatelessWidget {
                     final tier =
                         userSnap.data?.membershipType.toLowerCase() ?? 'free';
                     final borderColor = tier == 'pro'
-                        ? Colors.amber
+                        ? AppColors.secondary
                         : tier == 'plus'
                         ? Colors.blue
                         : Colors.grey.shade400;
@@ -132,7 +132,7 @@ class HomeTopBar extends StatelessWidget {
                       final tier =
                           userSnap.data?.membershipType.toLowerCase() ?? 'free';
                       final nameColor = tier == 'pro'
-                          ? Colors.amber.shade700
+                          ? AppColors.accent
                           : tier == 'plus'
                           ? Colors.blue.shade700
                           : AppColors.textPrimary;
@@ -211,7 +211,7 @@ class HomeTopBar extends StatelessWidget {
                             iconData = Icons.storage_rounded;
                             tooltip = '本地儲存模式 (Free)';
                           } else if (!isCloud) {
-                            iconColor = Colors.orange;
+                            iconColor = AppColors.accent;
                             iconData = Icons.cloud_off_rounded;
                             tooltip = '連線中斷，切換至本地模式';
                           } else {

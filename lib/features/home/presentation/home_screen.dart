@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('雲端連線失敗，目前已切換至本地模式。'),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppColors.accent,
               duration: Duration(seconds: 3),
             ),
           );

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
+import '../app/theme.dart';
 
 /// Membership must resolve before showing a promotion. Paid members stay ad-free.
 class FreeMemberAd extends StatelessWidget {
@@ -94,7 +95,7 @@ class _MembershipPlacementState extends State<_MembershipPlacement>
     return SafeArea(
       top: false,
       child: Material(
-        color: const Color(0xFFFFF5ED),
+        color: AppColors.surfaceSoft,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Wrap(

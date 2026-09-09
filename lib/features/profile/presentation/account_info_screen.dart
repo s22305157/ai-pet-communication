@@ -100,7 +100,7 @@ class AccountInfoScreen extends StatelessWidget {
                     context,
                     targetTier: 'Pro',
                     isUpgrade: true,
-                    color: Colors.amber,
+                    color: AppColors.secondary,
                   ),
                   const SizedBox(height: 16),
                 ],

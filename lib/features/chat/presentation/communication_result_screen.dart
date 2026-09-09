@@ -220,7 +220,7 @@ class CommunicationResultContent extends StatelessWidget {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceSoft,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -267,7 +267,7 @@ class CommunicationResultContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: isAlert
             ? Colors.redAccent.withValues(alpha: 0.05)
-            : Colors.white,
+            : AppColors.surfaceSoft,
         borderRadius: BorderRadius.circular(16),
         border: isAlert
             ? Border.all(color: Colors.redAccent.withValues(alpha: 0.2))

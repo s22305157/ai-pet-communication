@@ -123,8 +123,8 @@ class _PetFormSheetState extends State<PetFormSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.accent,
               onPrimary: Colors.white,
               onSurface: AppColors.textPrimary,
             ),

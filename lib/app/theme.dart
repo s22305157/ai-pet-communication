@@ -8,6 +8,9 @@ class AppColors {
 
   static const Color background = Colors.white; // 純白背景
   static const Color surface = Colors.white; // 表面顏色
+  static const Color surfaceSoft = Color(0xFFF0F7FA);
+  static const Color surfaceMint = Color(0xFFEDF7F5);
+  static const Color outline = Color(0xFFD4E3EA);
 
   static const Color textPrimary = Color(0xFF2D4A5E); // 主要文本色（深石板藍）
   static const Color textSecondary = Color(0xFF5A7A8E); // 次要文本色（淺石板藍）
@@ -21,6 +24,55 @@ class AppColors {
       Color(0xFFE0F2F1), // 極淺藍綠色
     ],
   );
+}
+
+class AppTheme {
+  static ThemeData get light {
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: AppColors.accent,
+          onPrimary: Colors.white,
+          primaryContainer: AppColors.surfaceSoft,
+          onPrimaryContainer: AppColors.textPrimary,
+          secondary: AppColors.secondary,
+          onSecondary: AppColors.textPrimary,
+          secondaryContainer: AppColors.surfaceMint,
+          onSecondaryContainer: AppColors.textPrimary,
+          tertiary: AppColors.textSecondary,
+          tertiaryContainer: AppColors.surfaceSoft,
+          onTertiaryContainer: AppColors.textPrimary,
+          surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
+          onSurfaceVariant: AppColors.textSecondary,
+          surfaceContainerLowest: AppColors.surface,
+          surfaceContainerLow: AppColors.surfaceSoft,
+          surfaceContainer: AppColors.surfaceSoft,
+          surfaceContainerHigh: AppColors.surfaceMint,
+          surfaceContainerHighest: AppColors.outline,
+          outline: AppColors.textSecondary,
+          outlineVariant: AppColors.outline,
+          surfaceTint: Colors.transparent,
+        );
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: 'NotoSansTC',
+      colorScheme: scheme,
+      scaffoldBackgroundColor: AppColors.background,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        surfaceTintColor: Colors.transparent,
+      ),
+      cardTheme: const CardThemeData(
+        color: AppColors.surfaceSoft,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerColor: AppColors.outline,
+    );
+  }
 }
 
 class AppStyles {

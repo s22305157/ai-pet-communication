@@ -9,6 +9,7 @@ import 'package:ai_pet_communication/features/home/presentation/home_screen.dart
 import 'package:ai_pet_communication/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/app/theme.dart';
 
 void main() async {
   debugPrint('DEBUG: >>> PAWLINK Final Startup Initiated <<<');
@@ -41,6 +42,7 @@ void main() async {
     debugPrint('CRITICAL STARTUP ERROR: $e');
     runApp(
       MaterialApp(
+        theme: AppTheme.light,
         home: Scaffold(body: Center(child: Text('啟動失敗: $e'))),
       ),
     );
@@ -58,11 +60,7 @@ class MyApp extends StatelessWidget {
         key: ValueKey(session.data?.uid),
         title: 'PAWLINK 毛孩心語',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFFF914D)),
-          useMaterial3: true,
-          fontFamily: 'NotoSansTC',
-        ),
+        theme: AppTheme.light,
         home: const AuthWrapper(),
       ),
     );
@@ -87,7 +85,7 @@ class AuthWrapper extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF914D)),
+              child: CircularProgressIndicator(color: AppColors.primary),
             ),
           );
         }

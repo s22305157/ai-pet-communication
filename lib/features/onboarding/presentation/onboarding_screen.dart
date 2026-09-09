@@ -283,7 +283,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.stars_rounded, size: 100, color: Colors.amber),
+          const Icon(
+            Icons.stars_rounded,
+            size: 100,
+            color: AppColors.secondary,
+          ),
           const SizedBox(height: 40),
           Text(
             '太棒了！',

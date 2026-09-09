@@ -490,7 +490,7 @@ class ProfileScreen extends StatelessWidget {
       case 'plus':
         return Colors.blue;
       case 'pro':
-        return Colors.amber;
+        return AppColors.secondary;
       default:
         return Colors.grey;
     }
