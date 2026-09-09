@@ -1,3 +1,5 @@
+import 'package:ai_pet_communication/services/subscription_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
@@ -37,6 +39,8 @@ class AccountInfoScreen extends StatelessWidget {
         stream: authService.getUserStream(),
         builder: (context, snapshot) {
           final userModel = snapshot.data;
+          final tier = userModel?.membershipType.toLowerCase() ?? 'free';
+          final expiresAt = userModel?.membershipExpiresAt?.toLocal();
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -51,38 +55,55 @@ class AccountInfoScreen extends StatelessWidget {
               children: [
                 _buildSectionTitle('會員與資產'),
 
-                // 1. 會員等級
-                if (userModel?.membershipType.toLowerCase() == 'free')
+                _buildSettingsCard([
+                  ListTile(
+                    leading: const Icon(
+                      Icons.workspace_premium_rounded,
+                      color: AppColors.textPrimary,
+                    ),
+                    title: Text(
+                      '會員方案 · ${tier.toUpperCase()}',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      expiresAt != null
+                          ? '有效至 ${_formatExpiry(expiresAt)}\n${userModel!.subscriptionWillRenew ? '自動續訂' : '到期後不再續訂'}'
+                          : '免費方案；既有雲端資料仍可讀取，新資料儲存於本機。',
+                    ),
+                    isThreeLine: expiresAt != null,
+                  ),
+                  _buildSettingTile(
+                    icon: Icons.refresh,
+                    title: '同步會員狀態',
+                    onTap: () => _syncMembership(context),
+                  ),
+                  if (!kIsWeb &&
+                      (defaultTargetPlatform == TargetPlatform.iOS ||
+                          defaultTargetPlatform == TargetPlatform.android))
+                    _buildSettingTile(
+                      icon: Icons.restore,
+                      title: '恢復購買',
+                      onTap: () => _restoreMembership(context),
+                    ),
+                ]),
+                const SizedBox(height: 16),
+                if (tier == 'free') ...[
                   _buildUpgradeCard(
                     context,
                     targetTier: 'Plus',
                     nextTier: 'Pro',
                     color: Colors.blue,
-                  )
-                else if (userModel?.membershipType.toLowerCase() == 'plus')
+                  ),
+                  const SizedBox(height: 16),
+                ] else if (tier == 'plus') ...[
                   _buildUpgradeCard(
                     context,
                     targetTier: 'Pro',
                     isUpgrade: true,
                     color: Colors.amber,
-                  )
-                else
-                  _buildSettingsCard([
-                    _buildSettingTile(
-                      icon: Icons.workspace_premium_rounded,
-                      title: '會員等級',
-                      trailing: Text(
-                        'Pro 尊榮會員',
-                        style: GoogleFonts.outfit(
-                          color: Colors.amber,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onTap: () {},
-                    ),
-                  ]),
-
-                const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // 2. 我的點數
                 _buildSettingsCard([
@@ -123,6 +144,42 @@ class AccountInfoScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _formatExpiry(DateTime date) {
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '${date.year} 年 ${date.month} 月 ${date.day} 日 $hour:$minute';
+  }
+
+  Future<void> _syncMembership(BuildContext context) async {
+    try {
+      await getIt<SubscriptionService>().checkEntitlementStatus();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('會員狀態已同步')));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('目前無法同步會員狀態，請稍後重試')));
+    }
+  }
+
+  Future<void> _restoreMembership(BuildContext context) async {
+    try {
+      await getIt<SubscriptionService>().restorePurchases();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已請求恢復購買，正在同步會員狀態')));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('目前無法恢復購買，請確認商店帳號並稍後重試')));
+    }
   }
 
   Widget _buildSectionTitle(String title) {
