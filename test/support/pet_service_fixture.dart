@@ -28,6 +28,7 @@ PetService buildPetService({
     ),
     avatarUploadRepository: AvatarUploadRepositoryImpl(
       remoteDataSource: remote,
+      session: authService,
     ),
     streamWatcher: PetStreamWatcher(
       remoteDataSource: remote,

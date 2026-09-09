@@ -17,7 +17,8 @@ const safe = () => ({...emergencyResponse({matched: []}),
 function harness(tier = 'free', overrides = {}) {
   const at = Date.now();
   const docs = new Map([
-    ['users/user1', {membershipTier: tier, points: 1}],
+    ['users/user1', {membershipTier: tier, points: 1, subscriptionVerified: true,
+      membershipEntitlements: {[tier]: {toMillis: () => at + 3600000}}}],
     ['pets/pet1', {owner_id: 'user1'}],
     [`users/user1/creditOperations/${requestId}`, {kind: 'communication', amount: 1, petId: 'pet1',
       status: 'reserved', expiresAt: {toMillis: () => at + 1800000}}],
@@ -68,6 +69,17 @@ test('missing tier model fails closed without taking quota or calling provider',
   await assert.rejects(h.call(), {code: 'failed-precondition'});
   assert.equal(h.calls.length, 0);
   assert(!h.docs.has('_aiRateLimits/user1'));
+});
+
+test('expired or unverified paid tiers use Free even before reconciliation runs', async () => {
+  for (const change of [{subscriptionVerified: false},
+    {membershipEntitlements: {pro: {toMillis: () => 1}}}]) {
+    const h = harness('pro');
+    Object.assign(h.docs.get('users/user1'), change);
+    await h.call();
+    assert.equal(h.calls[0].model, 'free-model');
+    assert.equal(h.calls[0].apiKey, 'fake-free-key');
+  }
 });
 test('public member rollout accepts valid signed-in accounts but still rejects anonymous and deleted accounts', async () => {
   const h = harness('plus');

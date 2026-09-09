@@ -1,106 +1,136 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-class SubscriptionService {
+class SubscriptionService with WidgetsBindingObserver {
   static final SubscriptionService _instance = SubscriptionService._internal();
   factory SubscriptionService() => _instance;
   SubscriptionService._internal();
 
-  // ── 配置區域 (請在此填寫您的 RevenueCat API Keys) ──────────────────────────
-  static const String _appleApiKey = 'appl_placeholder'; // iOS API Key
-  static const String _googleApiKey = 'goog_placeholder'; // Android API Key
-  // ────────────────────────────────────────────────────────────────────────
-
+  static const _appleApiKey = String.fromEnvironment(
+    'REVENUECAT_APPLE_API_KEY',
+  );
+  static const _googleApiKey = String.fromEnvironment(
+    'REVENUECAT_GOOGLE_API_KEY',
+  );
+  bool _started = false;
   bool _isInitialized = false;
+  String? _sdkUid;
+  Future<void> _accountQueue = Future.value();
+  Timer? _refreshTimer;
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
-
-    try {
-      if (kIsWeb) {
-        debugPrint('SubscriptionService: Web 平台暫不支援 purchases_flutter');
-        return;
+    if (_started) return;
+    _started = true;
+    WidgetsBinding.instance.addObserver(this);
+    if (!kIsWeb) {
+      final key = defaultTargetPlatform == TargetPlatform.iOS
+          ? _appleApiKey
+          : defaultTargetPlatform == TargetPlatform.android
+          ? _googleApiKey
+          : '';
+      if (key.isNotEmpty) {
+        try {
+          await Purchases.configure(PurchasesConfiguration(key));
+          _isInitialized = true;
+          Purchases.addCustomerInfoUpdateListener((_) => _scheduleRefresh());
+        } catch (_) {
+          debugPrint('訂閱商店尚未完成設定，仍會檢查後端會員狀態。');
+        }
       }
-
-      await Purchases.setLogLevel(LogLevel.debug);
-
-      PurchasesConfiguration configuration;
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        configuration = PurchasesConfiguration(_googleApiKey);
-      } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-        configuration = PurchasesConfiguration(_appleApiKey);
-      } else {
-        return;
-      }
-
-      await Purchases.configure(configuration);
-      _isInitialized = true;
-      debugPrint('SubscriptionService: RevenueCat 初始化成功');
-    } catch (e) {
-      debugPrint('SubscriptionService: 初始化失敗 - $e');
     }
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _refreshTimer?.cancel();
+      // Serialize SDK identity changes so slow login cannot replace a newer account.
+      _accountQueue = _accountQueue
+          .then((_) async {
+            if (FirebaseAuth.instance.currentUser?.uid != user?.uid) return;
+            if (_isInitialized) {
+              if (user == null) {
+                if (_sdkUid != null) await Purchases.logOut();
+                _sdkUid = null;
+              } else {
+                await Purchases.logIn(user.uid);
+                _sdkUid = user.uid;
+              }
+            }
+            if (user != null) _scheduleRefresh();
+          })
+          .catchError((Object _) {
+            debugPrint('訂閱帳號同步失敗，將在返回 App 時重試。');
+            _scheduleRefresh();
+          });
+    });
   }
 
-  /// 獲取當前用戶的權限狀態
-  /// 返回 'free', 'plus', 或 'pro'
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(const Duration(seconds: 2), () async {
+      if (FirebaseAuth.instance.currentUser == null) return;
+      try {
+        if (_isInitialized) await _requireStoreAccount();
+        await checkEntitlementStatus();
+      } catch (_) {
+        // Provider failure must not rewrite membership as Free on the client.
+        debugPrint('會員同步暫時失敗，稍後重試。');
+        _refreshTimer = Timer(const Duration(seconds: 30), _scheduleRefresh);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _scheduleRefresh();
+  }
+
   Future<String> checkEntitlementStatus() async {
-    if (!_isInitialized) return 'free';
-
-    try {
-      CustomerInfo customerInfo = await Purchases.getCustomerInfo();
-
-      // 假設 RevenueCat 中設定的 Entitlement ID 分別為 'plus' 與 'pro'
-      if (customerInfo.entitlements.all['pro']?.isActive ?? false) {
-        return 'pro';
-      } else if (customerInfo.entitlements.all['plus']?.isActive ?? false) {
-        return 'plus';
-      }
-    } catch (e) {
-      debugPrint('SubscriptionService: 獲取權限失敗 - $e');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return 'free';
+    final result = await FirebaseFunctions.instance
+        .httpsCallable('syncSubscription')
+        .call();
+    if (FirebaseAuth.instance.currentUser?.uid != uid) {
+      throw StateError('帳號已變更');
     }
-
-    return 'free';
+    return (result.data as Map)['membershipTier'] as String;
   }
 
-  /// 發起購買流程
-  Future<bool> purchasePackage(Package package) async {
-    try {
-      CustomerInfo customerInfo = await Purchases.purchasePackage(package);
-      return customerInfo.entitlements.all['pro']?.isActive ??
-          customerInfo.entitlements.all['plus']?.isActive ??
-          false;
-    } catch (e) {
-      debugPrint('SubscriptionService: 購買失敗 - $e');
-      return false;
-    }
-  }
-
-  /// 恢復購買
-  Future<void> restorePurchases() async {
-    try {
-      await Purchases.restorePurchases();
-    } catch (e) {
-      debugPrint('SubscriptionService: 恢復購買失敗 - $e');
-    }
-  }
-
-  /// 登入 RevenueCat (關聯 App 用戶 ID)
-  Future<void> logIn(String uid) async {
-    if (!_isInitialized) return;
-    try {
+  Future<void> _requireStoreAccount() async {
+    await _accountQueue;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (!_isInitialized || uid == null) throw StateError('請先登入並完成商店設定');
+    if (_sdkUid != uid) {
       await Purchases.logIn(uid);
-    } catch (e) {
-      debugPrint('SubscriptionService: RevenueCat 登入失敗 - $e');
+      _sdkUid = uid;
+    }
+    if (FirebaseAuth.instance.currentUser?.uid != uid) {
+      throw StateError('帳號已變更');
     }
   }
 
-  /// 登出 RevenueCat
-  Future<void> logOut() async {
-    if (!_isInitialized) return;
-    try {
-      await Purchases.logOut();
-    } catch (e) {
-      debugPrint('SubscriptionService: RevenueCat 登出失敗 - $e');
+  Future<bool> purchasePackage(Package package) async {
+    await _requireStoreAccount();
+    final uid = _sdkUid;
+    final info = await Purchases.purchasePackage(package);
+    if (FirebaseAuth.instance.currentUser?.uid != uid) {
+      throw StateError('帳號已變更');
     }
+    _scheduleRefresh();
+    // SDK confirms purchase only; server-verified Firestore controls access.
+    return (info.entitlements.all['pro']?.isActive ?? false) ||
+        (info.entitlements.all['plus']?.isActive ?? false);
+  }
+
+  Future<void> restorePurchases() async {
+    await _requireStoreAccount();
+    final uid = _sdkUid;
+    await Purchases.restorePurchases();
+    if (FirebaseAuth.instance.currentUser?.uid != uid) {
+      throw StateError('帳號已變更');
+    }
+    _scheduleRefresh();
   }
 }

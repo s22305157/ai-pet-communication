@@ -8,7 +8,26 @@ class UserModel {
   String? get photoURL => photoUrl;
 
   final int points;
-  final String membershipTier;
+  final String storedMembershipTier;
+  final bool subscriptionVerified;
+  final Map<String, DateTime> membershipEntitlements;
+  final bool hadPaidMembership;
+  final bool subscriptionWillRenew;
+
+  String tierAt(DateTime now) {
+    if (!subscriptionVerified) return 'free';
+    for (final tier in ['pro', 'plus']) {
+      if (membershipEntitlements[tier]?.isAfter(now) ?? false) return tier;
+    }
+    return 'free';
+  }
+
+  String get membershipTier => tierAt(DateTime.now());
+  DateTime? get membershipExpiresAt => membershipEntitlements[membershipTier];
+  bool get canReadCloudArchive =>
+      hadPaidMembership ||
+      storedMembershipTier == 'plus' ||
+      storedMembershipTier == 'pro';
 
   // 向後相容別名 (舊代碼使用 membershipType)
   String get membershipType => membershipTier;
@@ -23,11 +42,15 @@ class UserModel {
     required this.displayName,
     this.photoUrl,
     this.points = 0,
-    this.membershipTier = 'free',
+    String membershipTier = 'free',
+    this.subscriptionVerified = false,
+    this.membershipEntitlements = const {},
+    this.hadPaidMembership = false,
+    this.subscriptionWillRenew = false,
     this.hasCompletedOnboarding = false,
     this.createdAt,
     this.lastLoginAt,
-  });
+  }) : storedMembershipTier = membershipTier;
 
   UserModel copyWith({
     String? displayName,
@@ -43,7 +66,11 @@ class UserModel {
       displayName: displayName ?? this.displayName,
       photoUrl: photoUrl ?? this.photoUrl,
       points: points ?? this.points,
-      membershipTier: membershipTier ?? this.membershipTier,
+      membershipTier: membershipTier ?? storedMembershipTier,
+      subscriptionVerified: subscriptionVerified,
+      membershipEntitlements: membershipEntitlements,
+      hadPaidMembership: hadPaidMembership,
+      subscriptionWillRenew: subscriptionWillRenew,
       hasCompletedOnboarding:
           hasCompletedOnboarding ?? this.hasCompletedOnboarding,
       createdAt: createdAt,

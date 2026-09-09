@@ -63,6 +63,8 @@ void main() {
         uid: 'user-1',
         email: 'test@example.com',
         displayName: 'test',
+        subscriptionVerified: true,
+        membershipEntitlements: {'plus': DateTime(2100)},
         membershipTier: 'plus',
       ),
     );

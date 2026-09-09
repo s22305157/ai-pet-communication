@@ -29,8 +29,14 @@ class Session implements CurrentSession {
   String tier = 'free';
   final changes = StreamController<String?>.broadcast();
   @override
-  Future<UserModel?> getUserData() async =>
-      UserModel(uid: uid, email: '', displayName: uid, membershipTier: tier);
+  Future<UserModel?> getUserData() async => UserModel(
+    uid: uid,
+    email: '',
+    displayName: uid,
+    subscriptionVerified: true,
+    membershipEntitlements: {tier: DateTime(2100)},
+    membershipTier: tier,
+  );
   @override
   Stream<String?> get userIdChanges => changes.stream;
 }

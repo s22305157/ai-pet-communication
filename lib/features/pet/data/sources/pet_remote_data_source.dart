@@ -1,5 +1,6 @@
 import 'package:ai_pet_communication/features/pet/data/mappers/pet_firestore_mapper.dart';
 import 'dart:typed_data';
+import 'package:uuid/uuid.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_write_result.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -31,6 +32,7 @@ class PetRemoteDataSource {
   }
 
   Future<void> setPet(String petId, PetModel pet) async {
+    pet = await _uploadLocalAvatar(pet);
     final ref = _db.collection('pets').doc(petId);
     await _db.runTransaction((tx) async {
       final existing = await tx.get(ref);
@@ -44,6 +46,7 @@ class PetRemoteDataSource {
     PetModel pet, {
     DateTime? expectedUpdatedAt,
   }) async {
+    pet = await _uploadLocalAvatar(pet);
     final ref = _db.collection('pets').doc(petId);
     await _db.runTransaction((tx) async {
       final document = await tx.get(ref);
@@ -60,8 +63,18 @@ class PetRemoteDataSource {
   Future<void> deletePet(String petId, {String? avatarUrl}) async {
     await _functions.httpsCallable('deletePetData').call(<String, dynamic>{
       'petId': petId,
-      'avatarUrl': avatarUrl,
+      'avatarUrl': avatarUrl?.startsWith('data:') == true ? null : avatarUrl,
     });
+  }
+
+  Future<PetModel> _uploadLocalAvatar(PetModel pet) async {
+    if (!pet.avatarUrl.startsWith('data:')) return pet;
+    if (pet.avatarUrl.length > maxAvatarSizeBytes * 4 / 3 + 256) {
+      throw ArgumentError('Pet avatar must not exceed 10 MiB.');
+    }
+    final bytes = Uri.parse(pet.avatarUrl).data!.contentAsBytes();
+    final url = await uploadPetAvatar(pet.ownerId, const Uuid().v4(), bytes);
+    return pet.copyWith(avatarUrl: url);
   }
 
   Future<DateTime?> getPetDeletionTime(String petId) async {

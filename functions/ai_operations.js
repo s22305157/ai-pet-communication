@@ -5,6 +5,7 @@ const {defineSecret, defineString, defineBoolean} = require('firebase-functions/
 const {validateRequest, route, emergencyResponse} = require('./ai_contract');
 const {generate} = require('./openai_provider');
 const {searchKnowledge} = require('./knowledge_retrieval');
+const {effectiveTier} = require('./subscription_policy');
 
 const apiKey = defineSecret('OPENAI_API_KEY');
 // The existing OPENAI_API_KEY was supplied for GPT-5.4 mini (Free / Plus).
@@ -54,8 +55,8 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
         if (operation.get('status') === 'completed') return {cached: operation.get('response')};
         throw new HttpsError('failed-precondition', '此請求已處理或仍在處理中，請重新開始');
       }
-      const tier = user.get('membershipTier');
-      if (!['free', 'plus', 'pro'].includes(tier)) throw new HttpsError('permission-denied', '此方案尚未開放 AI 溝通');
+      if (!['free', 'plus', 'pro'].includes(user.get('membershipTier'))) throw new HttpsError('permission-denied', '此方案尚未開放 AI 溝通');
+      const tier = effectiveTier(user.data(), timestamp);
       const selectedModel = settings.models[tier]?.trim();
       if (!selectedModel) throw new HttpsError('failed-precondition', '此方案的 AI 模型尚未設定');
       const selectedKey = settings.apiKeys?.[tier];

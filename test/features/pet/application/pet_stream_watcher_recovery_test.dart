@@ -42,6 +42,52 @@ void main() {
 
   setUp(() => box.clear());
 
+  test(
+    'downgraded member imports missing archive pets without overwriting local edits',
+    () async {
+      const uid = 'owner-a';
+      final local = LocalPetService(box: box);
+      final remote = MockPetRemoteDataSource();
+      final auth = MockAuthService();
+      final user = UserModel(
+        uid: uid,
+        email: '',
+        displayName: '',
+        membershipTier: 'free',
+        hadPaidMembership: true,
+      );
+      when(() => auth.getUserData()).thenAnswer((_) async => user);
+      when(() => auth.userIdChanges).thenAnswer((_) => Stream.value(uid));
+      await local.updatePet(
+        uid,
+        'edited',
+        pet('edited').copyWith(name: 'local edit'),
+      );
+      await local.markPendingDelete(uid, 'deleted');
+      await local.clearPendingOperation(uid, 'deleted');
+      when(() => remote.watchPetsByOwner(uid)).thenAnswer(
+        (_) => Stream.value([pet('edited'), pet('archive'), pet('deleted')]),
+      );
+      final sync = PetSyncManager(
+        localService: local,
+        remoteDataSource: remote,
+      );
+      final watcher = PetStreamWatcher(
+        remoteDataSource: remote,
+        localService: local,
+        authService: auth,
+        syncManager: sync,
+      );
+      final result = await watcher.watchPetsByOwner(uid).first;
+      expect(result.map((p) => p.petId), containsAll(['edited', 'archive']));
+      expect(result.map((p) => p.petId), isNot(contains('deleted')));
+      expect(result.singleWhere((p) => p.petId == 'edited').name, 'local edit');
+      verify(() => remote.watchPetsByOwner(uid)).called(1);
+      verifyNoMoreInteractions(remote);
+      sync.dispose();
+    },
+  );
+
   tearDownAll(() async {
     await box.deleteFromDisk();
     await hiveDirectory.delete(recursive: true);
@@ -59,6 +105,8 @@ void main() {
         uid: uid,
         email: 'a@example.com',
         displayName: 'A',
+        subscriptionVerified: true,
+        membershipEntitlements: {'pro': DateTime(2100)},
         membershipTier: 'pro',
       );
       when(() => auth.getUserData()).thenAnswer((_) async => user);

@@ -40,6 +40,8 @@ void main() {
               email: 'test@example.com',
               displayName: 'test',
               points: points,
+              subscriptionVerified: true,
+              membershipEntitlements: {tier: DateTime(2100)},
               membershipTier: tier,
             ),
           );

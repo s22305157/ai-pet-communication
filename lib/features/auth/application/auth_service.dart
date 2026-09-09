@@ -33,6 +33,26 @@ class AuthService implements CurrentSession {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
   _userDocumentSubscription;
   int _authGeneration = 0;
+  Timer? _membershipExpiryTimer;
+
+  void _publishUser(UserModel user, int generation) {
+    _membershipExpiryTimer?.cancel();
+    _userSubject.add(user);
+    final expiry = user.membershipExpiresAt;
+    if (expiry == null) return;
+    final delay = expiry.difference(DateTime.now());
+    // Cap long timers for Web, and recalculate when the timer fires.
+    _membershipExpiryTimer = Timer(
+      delay > const Duration(days: 1)
+          ? const Duration(days: 1)
+          : (delay.isNegative
+                ? Duration.zero
+                : delay + const Duration(milliseconds: 1)),
+      () {
+        if (generation == _authGeneration) _publishUser(user, generation);
+      },
+    );
+  }
 
   @override
   Stream<String?> get userIdChanges =>
@@ -54,6 +74,7 @@ class AuthService implements CurrentSession {
 
   Future<void> _switchUserDocument(User? user) async {
     final generation = ++_authGeneration;
+    _membershipExpiryTimer?.cancel();
     final previousSubscription = _userDocumentSubscription;
     _userDocumentSubscription = null;
     await previousSubscription?.cancel();
@@ -73,7 +94,10 @@ class AuthService implements CurrentSession {
         if (generation != _authGeneration) return;
         if (snapshot.exists) {
           try {
-            _userSubject.add(UserMapper.fromMap(snapshot.data()!, user.uid));
+            _publishUser(
+              UserMapper.fromMap(snapshot.data()!, user.uid),
+              generation,
+            );
           } catch (error, stack) {
             _userSubject.addError(error, stack);
           }
@@ -154,6 +178,7 @@ class AuthService implements CurrentSession {
   }
 
   Future<void> signOut() async {
+    _membershipExpiryTimer?.cancel();
     final generation = ++_authGeneration;
     final previousSubscription = _userDocumentSubscription;
     _userDocumentSubscription = null;
@@ -218,6 +243,7 @@ class AuthService implements CurrentSession {
   }
 
   Future<void> dispose() async {
+    _membershipExpiryTimer?.cancel();
     ++_authGeneration;
     await _authStateSubscription?.cancel();
     await _userDocumentSubscription?.cancel();

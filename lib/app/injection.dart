@@ -104,6 +104,7 @@ void setupDependencies() {
   getIt.registerLazySingleton<AvatarUploadRepository>(
     () => AvatarUploadRepositoryImpl(
       remoteDataSource: getIt<PetRemoteDataSource>(),
+      session: getIt<AuthService>(),
     ),
   );
 

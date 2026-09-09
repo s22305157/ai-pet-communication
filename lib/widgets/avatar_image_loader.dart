@@ -8,6 +8,14 @@ class AvatarImageLoader extends ChangeNotifier {
     : _fetch = fetch ?? _download;
   static const maxBytes = 10 * 1024 * 1024;
   static Future<http.Response> _download(Uri uri) async {
+    if (uri.scheme == 'data') {
+      if (uri.toString().length > maxBytes * 4 / 3 + 256) {
+        throw StateError('Image exceeds size limit');
+      }
+      final bytes = uri.data!.contentAsBytes();
+      if (bytes.length > maxBytes) throw StateError('Image exceeds size limit');
+      return http.Response.bytes(bytes, 200);
+    }
     if (uri.scheme != 'https' && uri.scheme != 'http') {
       throw ArgumentError('Invalid image URL');
     }

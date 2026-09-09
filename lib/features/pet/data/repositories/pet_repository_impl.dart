@@ -42,8 +42,17 @@ class PetRepositoryImpl implements PetRepository {
     final user = await _authService.getUserData();
     if (user == null) return null;
 
+    if (user.membershipTier == 'free') {
+      final local = await _localService.getPet(user.uid, petId);
+      if ((await _authService.getUserData())?.uid != user.uid) return null;
+      if (local != null || _localService.hasTombstone(user.uid, petId)) {
+        return local;
+      }
+    }
+
     try {
-      if (const StoragePolicy().usesCloud(user.membershipType)) {
+      if (const StoragePolicy().usesCloud(user.membershipType) ||
+          user.canReadCloudArchive) {
         final pet = await _remoteDataSource.getPet(petId);
         if (pet != null && pet.ownerId == user.uid) {
           if ((await _authService.getUserData())?.uid != user.uid) return null;

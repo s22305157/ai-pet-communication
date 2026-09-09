@@ -43,6 +43,25 @@ class PetStreamWatcher {
     }
 
     if (!const StoragePolicy().usesCloud(user.membershipType)) {
+      if (user.canReadCloudArchive) {
+        try {
+          final archive = await _remoteDataSource
+              .watchPetsByOwner(uid)
+              .first
+              .timeout(const Duration(seconds: 8));
+          for (final pet in archive) {
+            if ((await _authService.getUserData())?.uid != uid) return;
+            // Preserve local edits and deletions made after downgrade.
+            if (pet.ownerId == uid &&
+                !_localService.hasTombstone(uid, pet.petId) &&
+                await _localService.getPet(uid, pet.petId) == null) {
+              await _localService.cacheCloudPet(uid, pet);
+            }
+          }
+        } catch (error) {
+          debugPrint('既有雲端資料暫時無法讀取，保留本機資料: $error');
+        }
+      }
       try {
         await _syncManager.syncPendingOperations(uid, includeUpserts: false);
       } catch (error) {
@@ -101,6 +120,11 @@ class PetStreamWatcher {
             .watchPetsByOwner(uid)
             .asyncMap((snapshot) async {
               if (!active()) return <PetModel>[];
+              final user = await _authService.getUserData();
+              if (user?.uid != uid) return <PetModel>[];
+              if (user!.membershipTier == 'free') {
+                return _localService.getAllPets(uid);
+              }
               await _syncManager.applyCloudSnapshot(uid, snapshot);
               if (!active()) return <PetModel>[];
               await _syncManager.syncPendingOperations(uid);

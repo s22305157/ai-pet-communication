@@ -1,6 +1,7 @@
 import 'package:ai_pet_communication/core/storage/account_cleanup.dart';
 import 'package:ai_pet_communication/features/readings/domain/local_readings_store.dart';
 import 'package:hive/hive.dart';
+import 'dart:async';
 
 import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 
@@ -43,11 +44,19 @@ class LocalReadingsRepository
   }
 
   @override
-  Stream<List<Reading>> watchReadings(String uid, String petId) async* {
-    yield getReadings(uid, petId);
-    await for (final _ in _box.watch()) {
-      yield getReadings(uid, petId);
-    }
+  Stream<List<Reading>> watchReadings(String uid, String petId) {
+    late final StreamController<List<Reading>> controller;
+    StreamSubscription<BoxEvent>? subscription;
+    controller = StreamController<List<Reading>>(
+      onListen: () {
+        subscription = _box.watch().listen((_) {
+          controller.add(getReadings(uid, petId));
+        }, onError: controller.addError);
+        controller.add(getReadings(uid, petId));
+      },
+      onCancel: () => subscription?.cancel(),
+    );
+    return controller.stream;
   }
 
   @override

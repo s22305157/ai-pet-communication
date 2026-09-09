@@ -110,7 +110,12 @@ class AuthWrapper extends StatelessWidget {
           return const OnboardingScreen();
         }
 
-        return HomeScreen(key: ValueKey(user.uid), user: user);
+        return HomeScreen(
+          key: ValueKey(
+            '${user.uid}:${user.membershipTier}:${user.canReadCloudArchive}',
+          ),
+          user: user,
+        );
       },
     );
   }

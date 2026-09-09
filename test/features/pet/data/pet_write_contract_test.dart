@@ -49,6 +49,8 @@ void main() {
         uid: 'u',
         email: '',
         displayName: '',
+        subscriptionVerified: true,
+        membershipEntitlements: {'pro': DateTime(2100)},
         membershipTier: 'pro',
       ),
     );

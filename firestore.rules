@@ -8,6 +8,13 @@ service cloud.firestore {
     function activeAccount() {
       return notDeleted() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
+    function paidMembership() {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let entitlements = user.get('membershipEntitlements', {});
+      return user.get('subscriptionVerified', false) == true &&
+        (entitlements.get('plus', request.time) > request.time ||
+         entitlements.get('pro', request.time) > request.time);
+    }
     function text(value, limit) { return value is string && value.size() <= limit; }
     function optionalText(value, limit) { return value == null || text(value, limit); }
     function validUser(data) {
@@ -44,9 +51,9 @@ service cloud.firestore {
     }
     match /pets/{petId} {
       allow read: if activeAccount() && (resource == null || resource.data.owner_id == request.auth.uid);
-      allow create: if activeAccount() && livePet(petId) && validPet(request.resource.data, petId)
+      allow create: if activeAccount() && paidMembership() && livePet(petId) && validPet(request.resource.data, petId)
         && request.resource.data.created_at is timestamp;
-      allow update: if activeAccount() && livePet(petId)
+      allow update: if activeAccount() && paidMembership() && livePet(petId)
         && resource.data.owner_id == request.auth.uid && validPet(request.resource.data, petId)
         && request.resource.data.get('created_at', null) == resource.data.get('created_at', null);
       allow delete: if false;
@@ -64,7 +71,7 @@ service cloud.firestore {
             && optionalText(data.updatedAt, 40);
         }
         allow read, delete: if ownsParent();
-        allow create, update: if ownsParent() && validReading(request.resource.data);
+        allow create, update: if ownsParent() && paidMembership() && validReading(request.resource.data);
       }
     }
     match /petTombstones/{petId} {

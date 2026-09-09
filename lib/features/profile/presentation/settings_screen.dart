@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
 import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/services/subscription_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -43,6 +45,31 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(AppStyles.padding),
             children: [
               const SizedBox(height: 16),
+              _buildSectionTitle('會員方案'),
+              _buildSettingsCard([
+                ListTile(
+                  title: Text(type.toUpperCase()),
+                  subtitle: Text(
+                    user?.membershipExpiresAt != null
+                        ? '有效至 ${user!.membershipExpiresAt!.toLocal()}\n${user.subscriptionWillRenew ? '自動續訂' : '到期後不再續訂'}'
+                        : '免費方案；既有雲端資料仍可讀取，新資料儲存於本機。',
+                  ),
+                ),
+                _buildSettingTile(
+                  icon: Icons.refresh,
+                  title: '同步會員狀態',
+                  onTap: () => _syncMembership(context),
+                ),
+                if (!kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.android))
+                  _buildSettingTile(
+                    icon: Icons.restore,
+                    title: '恢復購買',
+                    onTap: () => _restoreMembership(context),
+                  ),
+              ]),
+              const SizedBox(height: 24),
               _buildSectionTitle('資料與同步'),
               _buildSettingsCard([
                 _buildSettingTile(
@@ -69,7 +96,7 @@ class SettingsScreen extends StatelessWidget {
                 _buildSettingTile(
                   icon: Icons.info_outline_rounded,
                   title: '版本號',
-                  trailing: const Text('0.2.4'),
+                  trailing: const Text('0.2.5'),
                 ),
               ]),
 
@@ -81,6 +108,36 @@ class SettingsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _syncMembership(BuildContext context) async {
+    try {
+      await getIt<SubscriptionService>().checkEntitlementStatus();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('會員狀態已同步')));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('目前無法同步會員狀態，請稍後重試')));
+    }
+  }
+
+  Future<void> _restoreMembership(BuildContext context) async {
+    try {
+      await getIt<SubscriptionService>().restorePurchases();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已請求恢復購買，正在同步會員狀態')));
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('目前無法恢復購買，請確認商店帳號並稍後重試')));
+    }
   }
 
   Widget _buildLogoutButton(BuildContext context, AuthService authService) {

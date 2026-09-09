@@ -10,6 +10,17 @@ class UserMapper {
     points: map['points'] as int? ?? 0,
     membershipTier:
         (map['membershipTier'] ?? map['membershipType']) as String? ?? 'free',
+    subscriptionVerified: map['subscriptionVerified'] == true,
+    membershipEntitlements: {
+      for (final entry
+          in (map['membershipEntitlements'] is Map
+              ? (map['membershipEntitlements'] as Map).entries
+              : <MapEntry<dynamic, dynamic>>[]))
+        if (entry.key is String && entry.value is Timestamp)
+          entry.key as String: (entry.value as Timestamp).toDate(),
+    },
+    hadPaidMembership: map['hadPaidMembership'] == true,
+    subscriptionWillRenew: map['subscriptionWillRenew'] == true,
     hasCompletedOnboarding: map['hasCompletedOnboarding'] as bool? ?? false,
     createdAt: (map['createdAt'] as Timestamp?)?.toDate(),
     lastLoginAt: (map['lastLoginAt'] as Timestamp?)?.toDate(),

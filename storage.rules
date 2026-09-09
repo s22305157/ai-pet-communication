@@ -17,9 +17,17 @@ service firebase.storage {
         );
     }
 
+    function paidMembership(uid) {
+      let user = firestore.get(/databases/(default)/documents/users/$(uid)).data;
+      let entitlements = user.get('membershipEntitlements', {});
+      return user.get('subscriptionVerified', false) == true &&
+        (entitlements.get('plus', request.time) > request.time ||
+         entitlements.get('pro', request.time) > request.time);
+    }
+
     match /pets/{uid}/{fileName} {
       allow read: if isOwner(uid);
-      allow create, update: if isOwner(uid) && isValidPetAvatar(fileName);
+      allow create, update: if isOwner(uid) && paidMembership(uid) && isValidPetAvatar(fileName);
       allow delete: if isOwner(uid);
     }
   }
