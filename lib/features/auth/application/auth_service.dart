@@ -198,7 +198,7 @@ class AuthService implements CurrentSession {
       if (user != null) {
         final doc = await _db.collection('users').doc(user.uid).get();
         if (!doc.exists) {
-          return _ensureUser(user);
+          return await _ensureUser(user);
         } else {
           await _db.collection('users').doc(user.uid).update({
             'lastLoginAt': FieldValue.serverTimestamp(),
