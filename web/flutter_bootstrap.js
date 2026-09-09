@@ -4,7 +4,7 @@
 // A distinct URL lets existing service-worker clients load this repaired build.
 for (const build of _flutter.buildConfig.builds) {
   if (build.mainJsPath) {
-    build.mainJsPath += '?release=0.2.7';
+    build.mainJsPath += '?release=0.2.7-gray1';
   }
 }
 _flutter.loader.load({

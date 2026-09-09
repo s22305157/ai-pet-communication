@@ -126,12 +126,14 @@ class _CardTile extends StatelessWidget {
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => _CardDetailScreen(card: card)),
+        MaterialPageRoute<void>(
+          builder: (_) => _CardDetailScreen(card: card, collected: collected),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardImage(card: card),
+          _CardImage(card: card, collected: collected),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -163,7 +165,8 @@ class _CardTile extends StatelessWidget {
 
 class _CardDetailScreen extends StatelessWidget {
   final PlanetCard card;
-  const _CardDetailScreen({required this.card});
+  final bool collected;
+  const _CardDetailScreen({required this.card, required this.collected});
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -177,7 +180,7 @@ class _CardDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CardImage(card: card),
+                _CardImage(card: card, collected: collected),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.zoom_in),
@@ -190,7 +193,12 @@ class _CardDetailScreen extends StatelessWidget {
                           child: InteractiveViewer(
                             minScale: 1,
                             maxScale: 5,
-                            child: Center(child: _CardImage(card: card)),
+                            child: Center(
+                              child: _CardImage(
+                                card: card,
+                                collected: collected,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -227,16 +235,43 @@ class _CardDetailScreen extends StatelessWidget {
 
 class _CardImage extends StatelessWidget {
   final PlanetCard card;
-  const _CardImage({required this.card});
+  final bool collected;
+  const _CardImage({required this.card, required this.collected});
 
   @override
   Widget build(BuildContext context) => AspectRatio(
     aspectRatio: 2 / 3,
-    child: Image.asset(
-      card.imageAsset,
-      fit: BoxFit.contain,
-      semanticLabel: '${card.title}：${card.knowledgePoint}',
-      errorBuilder: (_, _, _) => const Center(child: Text('卡片圖片暫時無法載入')),
+    child: ColorFiltered(
+      colorFilter: collected
+          ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+          : const ColorFilter.matrix([
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0.2126,
+              0.7152,
+              0.0722,
+              0,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+            ]),
+      child: Image.asset(
+        card.imageAsset,
+        fit: BoxFit.contain,
+        semanticLabel: '${card.title}：${card.knowledgePoint}',
+        errorBuilder: (_, _, _) => const Center(child: Text('卡片圖片暫時無法載入')),
+      ),
     ),
   );
 }
