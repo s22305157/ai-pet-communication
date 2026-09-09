@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE finished PAWLINK knowledge collectible card 014, portrait 2:3. Reference image is STYLE/LAYOUT reference ONLY: match pale blue/mint rounded frame, delicate paw and leaf ornaments, ivory panels, dark slate Traditional Chinese typography and branding. Completely new central photograph and text.
+Knowledge basis: project Doc-006 environmental management summary: put away thread, needles, dental floss, rubber bands, plastics and medicines; check toy components and curtain cords. Focus ONLY on prevention by storing small household objects securely. Not ingestion or medical treatment.
+Central photograph: authentic candid home organizing moment. Foreground: ordinary adult at a wooden cabinet, casual muted blue cotton sleeve and realistic forearms/hands visible. A sturdy translucent small organizer box with a solid hinged lid on the cabinet holds two neatly wound sewing-thread spools and a few rubber bands entirely INSIDE its compartments. No needles visible, no loose string ends, no items on floor. One anatomically natural hand holds box stable while other hand is lowering hinged lid to close and latch it. Lid remains only slightly ajar so contents can still be glimpsed; capture believable closing gesture, physically correct hinges and latch, no hand through lid, no extra fingers. Behind box is a partially open cabinet cupboard that will store it, not an exposed open shelf. Midground right, a relaxed adult orange-and-white cat sits on floor a clear distance from cabinet and objects, looking toward caregiver, not reaching for box or chewing anything. Show cat completely with natural anatomy. Composition makes putting small objects away into closed storage unmistakable. No toys resembling dangerous rubber bands, no scattered supplies, no pills, no needles or sharp objects, no string in cat's mouth, no plants. Quiet everyday neutral room, subtle natural daylight and real materials.
+Look: believable unposed DSLR pet lifestyle photography, natural human skin and clothing, realistic fur and proportions, coherent object geometry and perspective, restrained soft lighting, no painted center, CGI, plastic fur, overly smooth hands, giant eyes, fantasy glow or HDR. Border only may retain paper texture.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Title "小東西收好"
+Category "居家與安全"
+First-person footer "我會好奇，請幫我把小東西收好。"
+Knowledge caption two centered lines "收好線材、橡皮筋等小物，" / "減少貓咪誤食的機會。"
+Serial "014"
+Accurate fully readable Traditional Chinese, no extra text, no clipping. Same layout hierarchy: header ~17%, photo ~62%, footer ~21%. One flat finished card, not physical mockup.

@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Generate ONE new finished PAWLINK collectible knowledge card 003, portrait 2:3. Input reference is a STYLE/LAYOUT reference ONLY, not an edit target. Match its pale blue and mint rounded card frame, delicate paw and leaf decorations, ivory header and footer, dark slate Traditional Chinese typography, brand size and placement. NEW scene and new exact text below.
+Central image: realistic candid indoor pet photography, a beautiful adult silver-gray tabby with white chin resting comfortably inside a cozy semi-enclosed natural woven cat cave, set securely on the floor in a quiet corner beside a low wooden cabinet. The cave has one broad unobstructed entrance large enough for the cat to freely leave, soft familiar oatmeal linen cushion within. Camera at cat eye level, cat face and two naturally resting front paws visible near entrance, body curled comfortably inside, relaxed ears, half-closed sleepy eyes, realistic face and whiskers, no human-like smile. Entire cave and its opening visible, inviting interior with realistic soft shadow, accessible clear floor in front. Subtle warm daylight from off-frame, natural wooden floor, neutral cream wall, a folded blanket on cabinet. Cat and refuge are main subjects filling scene. No people, no hands reaching in, no closed cage, no clutter blocking exit, no hanging strings, no plants, no anthropomorphic fantasy effects.
+Knowledge basis: project Doc-006 environment summary: provide safe stable hiding places and preserve an undisturbed resting area. This is a healthy everyday resting scene, not a depiction of hiding due to illness or fear. Original photograph-style image, do not reproduce a book illustration.
+Look: genuine ordinary-home DSLR lifestyle photography, honest natural fur and wicker detail, true feline anatomy, restrained window light, unretouched materials, no illustrated brush strokes, no CGI, no plastic textures, no overly smooth AI appearance, no oversaturated teal/orange grading, no dramatic halo or sparkles. Frame can retain paper design texture but photo should look real.
+Text verbatim in Traditional Chinese:
+Top brand: "PAWLINK"
+Main title: "我的小角落"
+Category: "安心與休息"
+Footer first-person line: "讓我在這裡，安靜休息一下。"
+Smaller knowledge caption, two centered lines: "提供藏身處，" / "保留不被打擾的休息空間。"
+Serial: "003"
+Keep typography fully legible, centered, no missing characters or clipped text, same series hierarchy as reference. Header about 17%, central photograph 62%, footer 21%. One flat complete card only, no physical mockup, no additional text.

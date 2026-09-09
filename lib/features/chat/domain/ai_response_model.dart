@@ -7,6 +7,9 @@ import 'dart:convert';
 
 /// AI 寵物溝通回應模型
 class AiResponseModel {
+  final List<String> matchedCardIds;
+  final List<String> newCardIds;
+
   /// 寵物心語列表 (1~5 筆)
   final List<PetVoiceItem> petVoice;
 
@@ -32,6 +35,8 @@ class AiResponseModel {
   final String inputMode;
 
   const AiResponseModel({
+    this.matchedCardIds = const [],
+    this.newCardIds = const [],
     required this.petVoice,
     required this.knowledgeStation,
     required this.summary,
@@ -45,6 +50,10 @@ class AiResponseModel {
   /// 從 Map 建立模型
   factory AiResponseModel.fromMap(Map<String, dynamic> map) {
     return AiResponseModel(
+      matchedCardIds: List<String>.from(
+        map['planetAward']?['matchedCardIds'] ?? [],
+      ),
+      newCardIds: List<String>.from(map['planetAward']?['newCardIds'] ?? []),
       petVoice: (map['petVoice'] as List)
           .map((item) => PetVoiceItem.fromMap(item))
           .toList(),
@@ -61,6 +70,10 @@ class AiResponseModel {
   /// 轉換為 Map
   Map<String, dynamic> toMap() {
     return {
+      'planetAward': {
+        'matchedCardIds': matchedCardIds,
+        'newCardIds': newCardIds,
+      },
       'petVoice': petVoice.map((x) => x.toMap()).toList(),
       'knowledgeStation': knowledgeStation.toMap(),
       'summary': summary,

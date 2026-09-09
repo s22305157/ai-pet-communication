@@ -14,6 +14,19 @@ const safe = () => ({...emergencyResponse({matched: []}),
   safety_alert: {has_red_flags: false, message: '資料不足，請持續觀察。', red_flags: []},
   next_steps: ['請記錄活動與食慾變化。']});
 
+test('awards persist atomically, ignore supplied IDs and deduplicate retries and later requests', async () => {
+  const h = harness('free', {provider: async () => ({...safe(),
+    knowledge_tips: ['翻肚不代表同意摸肚子。'], planetAward: {newCardIds: ['001']}})});
+  const first = await h.call({...payload(), cardIds: ['001']});
+  assert.deepEqual(JSON.parse(first.response).planetAward, {matchedCardIds: ['020'], newCardIds: ['020']});
+  assert(h.docs.has('users/user1/planetCards/020'));
+  assert(!h.docs.has('users/user1/planetCards/001'));
+  assert.deepEqual(await h.call({...payload(), cardIds: ['001']}), first);
+  const later = await h.call({...payload(), requestId: 'request-0000000002'});
+  assert.deepEqual(JSON.parse(later.response).planetAward, {matchedCardIds: ['020'], newCardIds: []});
+  assert.equal(h.docs.get('users/user1/planetCards/020').firstRequestId, requestId);
+});
+
 function harness(tier = 'free', overrides = {}) {
   const at = Date.now();
   const docs = new Map([
@@ -49,6 +62,24 @@ function harness(tier = 'free', overrides = {}) {
     provider: async args => { calls.push(args); return safe(); }, ...overrides});
   return {docs, settings, calls, handler, call: (data = payload()) => handler({auth: {uid: 'user1'}, data})};
 }
+
+test('concurrent distinct communications collect a card once', async () => {
+  const h = harness('free', {provider: async () => ({...safe(), knowledge_tips: ['線繩玩具用後收妥。']})});
+  const results = await Promise.all([h.call(), h.call({...payload(), requestId: 'request-0000000002'})]);
+  assert.equal(results.flatMap(r => JSON.parse(r.response).planetAward.newCardIds).length, 1);
+  assert(h.docs.has('users/user1/planetCards/019'));
+});
+
+test('account deletion during generation cannot create a collection', async () => {
+  let h;
+  h = harness('free', {provider: async () => {
+    h.docs.set('_deletedUsers/user1', {});
+    return {...safe(), knowledge_tips: ['翻肚不代表同意摸肚子。']};
+  }});
+  await assert.rejects(h.call(), {code: 'permission-denied'});
+  assert(!h.docs.has('users/user1/planetCards/020'));
+  assert.equal(h.docs.get(`users/user1/aiRequests/${requestId}`).status, 'failed');
+});
 
 test('all tiers share Luna and credentials while ignoring forged model/tier', async () => {
   for (const tier of ['free', 'plus', 'pro']) {
@@ -138,7 +169,8 @@ test('concurrent duplicate calls use the provider once; completed retries return
   assert(results.some(result => result.status === 'fulfilled'));
   const cached = await h.call();
   assert.equal(h.calls.length, 1);
-  assert.equal(cached.response, JSON.stringify(safe()));
+  assert.equal(cached.response, results.find(result => result.status === 'fulfilled').value.response);
+  assert.deepEqual(JSON.parse(cached.response), {...safe(), planetAward: {matchedCardIds: [], newCardIds: []}});
   const altered = payload(); altered.request.story = '另一個故事';
   await assert.rejects(h.call(altered), {code: 'already-exists'});
 });

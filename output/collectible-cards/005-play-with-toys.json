@@ -1,0 +1,24 @@
+{
+  "id": "005",
+  "title": "玩具才是獵物",
+  "category": "遊戲與陪伴",
+  "species": "cat",
+  "image": "../../assets/cards/005-play-with-toys.png",
+  "prompt": "005-play-with-toys.prompt.txt",
+  "petVoice": "陪我追追玩具，再讓我抓到它。",
+  "knowledgePoint": "用玩具陪貓咪玩，不把手腳當獵物。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "活動空間、抓磨與日常陪伴／遊戲",
+    "verifiedAgainst": "scratch/doc006_append.md:35-42",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["用玩具互動", "手腳不當獵物", "可捕捉的遊戲", "逗貓玩具監督"],
+    "exclude": "Do not assume all biting or aggression is play. Match the specific knowledge advice, not biting alone."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

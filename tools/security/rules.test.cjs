@@ -5,6 +5,18 @@ const {initializeTestEnvironment, assertSucceeds, assertFails} = require('@fireb
 const {doc, setDoc, getDoc, getDocs, collection, query, where, updateDoc, deleteDoc, serverTimestamp, Timestamp} = require('firebase/firestore');
 const {ref, uploadBytes, getBytes} = require('firebase/storage');
 let env;
+test('planet collection is owner-readable and server-write-only', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'users/a/planetCards/020'), {cardId: '020'});
+  });
+  const a = env.authenticatedContext('a').firestore();
+  await assertSucceeds(getDocs(collection(a, 'users/a/planetCards')));
+  await assertFails(getDoc(doc(env.authenticatedContext('b').firestore(), 'users/a/planetCards/020')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'users/a/planetCards/020')));
+  await assertFails(setDoc(doc(a, 'users/a/planetCards/001'), {cardId: '001'}));
+  await assertFails(updateDoc(doc(a, 'users/a/planetCards/020'), {cardId: '001'}));
+  await assertFails(deleteDoc(doc(a, 'users/a/planetCards/020')));
+});
 const user = uid => ({uid, email: `${uid}@example.test`, displayName: uid, photoUrl: null,
   points: 1, membershipTier: 'free', hasCompletedOnboarding: false,
   createdAt: Timestamp.now(), lastLoginAt: Timestamp.now()});

@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE new PAWLINK collectible knowledge card 005, portrait 2:3. Input is a STYLE AND LAYOUT reference only. Match same pale blue and mint rounded border, understated paw/leaf decoration, ivory header/footer panels and dark slate Traditional Chinese typography. Entirely NEW photographic scene and text.
+Central photograph: a candid ordinary-home moment at floor level. A healthy adult brown tabby with white chest and paws in a natural playful low crouch, full body visible, reaching one front paw toward a soft fabric mouse lure resting on wooden floor, about to catch it. Correct four-limb feline anatomy, attentive natural eyes, relaxed forward ears, not angry or terrified. A thin clearly visible toy cord runs from the lure up to a long wand held by an ordinary adult seated on the sofa at the upper right edge. Show a modest portion of the adult's sleeve, one anatomically natural hand gripping the handle, and casually clothed seated legs in background. Person's hand and feet remain well away from the cat's target and are NOT offered as prey. Person is supervising play. Rod, single cord and lure form a physically coherent toy, cord not wrapped around cat and no slack loops near neck. Lure is soft sewn fabric with embroidered details, no detachable beads. Cat is focal point, human secondary, neutral cozy interior, soft restrained natural daylight. Clear negative space around toy so knowledge story is visible.
+Knowledge basis: Doc-006 environment/play summary: short interactive play with catchable toys, never use human hands or feet as prey; supervise string toys and put away afterward. Original imagery, not a reproduced book illustration.
+Look: believable DSLR pet lifestyle photography with real fur, subtle skin texture, everyday fabric folds, true anatomy, subdued warm lighting, no airbrushed human, no porcelain skin, no plastic fur, CGI, fantasy glow, cartoon, painterly strokes or exaggerated eyes. Only the card border may have subtle paper texture.
+Exact text in Traditional Chinese:
+Brand "PAWLINK"
+Title "玩具才是獵物"
+Category "遊戲與陪伴"
+First-person footer "陪我追追玩具，再讓我抓到它。"
+Smaller caption two centered lines "用玩具陪貓咪玩，" / "不把手腳當獵物。"
+Serial "005"
+No additional text, fully legible Chinese, no clipping. Reference layout roughly header 17%, photo 62%, footer 21%. Single flat finished card, no mockup.

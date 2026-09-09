@@ -1,0 +1,24 @@
+{
+  "id": "009",
+  "title": "做到了，我很棒",
+  "category": "學習與獎勵",
+  "species": "cat",
+  "image": "../../assets/cards/009-gentle-reward-v3.png",
+  "prompt": "009-gentle-reward-v3.prompt.txt",
+  "petVoice": "陪我慢慢練習，適時給予鼓勵。",
+  "knowledgePoint": "把練習拆成小步驟，及時獎勵自願的動作。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-interaction",
+    "topic": "獎勵、撫摸與攻擊情境／練習",
+    "verifiedAgainst": "scratch/doc006_append.md:53-58",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["及時獎勵", "自願行為", "拆小步練習", "正向學習"],
+    "exclude": "Do not match food mentions alone or recommend withholding meals to obtain obedience."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

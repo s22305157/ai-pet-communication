@@ -1,0 +1,24 @@
+{
+  "id": "018",
+  "title": "轉身也自在",
+  "category": "貓砂與空間",
+  "species": "cat",
+  "image": "../../assets/cards/018-room-to-turn.png",
+  "prompt": "018-room-to-turn.prompt.txt",
+  "petVoice": "給我寬敞一點，轉身也能自在。",
+  "knowledgePoint": "選擇大小合適的貓砂盆，讓貓咪能輕鬆轉身。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-litter",
+    "topic": "貓砂配置／盆體大小",
+    "verifiedAgainst": "scratch/doc006_append.md:44-49",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["貓砂盆尺寸", "砂盆轉身空間", "依體型選砂盆"],
+    "exclude": "Do not assume all elimination problems are caused by tray size or suggest resizing replaces assessment."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

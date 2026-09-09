@@ -12,6 +12,8 @@ import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
 import 'package:ai_pet_communication/features/chat/presentation/chat_ui_texts.dart';
 import 'communication_display.dart';
+import 'package:ai_pet_communication/features/planet/domain/planet_card.dart';
+import 'package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart';
 
 class CommunicationResultScreen extends StatelessWidget {
   final dynamic result; // AiResponseModel or AiSafeResponseModel
@@ -78,6 +80,29 @@ class CommunicationResultContent extends StatelessWidget {
         _buildSafeResult(result as AiSafeResponseModel)
       else
         _buildStandardResult(result as AiResponseModel),
+      const SizedBox(height: 24),
+      if ((result.matchedCardIds as List<String>).isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Text(
+            '本次知識卡：${planetCards.where((card) => (result.matchedCardIds as List<String>).contains(card.id)).map((card) => '${card.title}（${(result.newCardIds as List<String>).contains(card.id) ? '本次新收藏' : '已收藏'}）').join('、')}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const PetPlanetScreen()),
+          ),
+          icon: const Icon(Icons.auto_stories_outlined),
+          label: const Text('查看寵物星球圖鑑', textAlign: TextAlign.center),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.accent,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+        ),
+      ),
     ],
   );
 

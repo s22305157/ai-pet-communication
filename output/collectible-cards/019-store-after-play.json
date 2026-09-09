@@ -1,0 +1,32 @@
+{
+  "id": "019",
+  "title": "玩完收起來",
+  "category": "玩具與收納",
+  "species": "cat",
+  "image": "../../assets/cards/019-store-after-play.png",
+  "prompt": "019-store-after-play.prompt.txt",
+  "petVoice": "今天先玩到這裡，下次再陪我玩。",
+  "knowledgePoint": "線繩玩具需有人監督，玩完收妥，避免自行啃咬。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "遊戲／線繩玩具監督與收納",
+    "verifiedAgainst": "scratch/doc006_append.md:35-42",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": [
+      "線繩玩具監督",
+      "逗貓棒用後收納",
+      "避免自行啃咬玩具線繩"
+    ],
+    "exclude": "Generic play alone is insufficient; match supervised string-toy use or after-play storage."
+  },
+  "generation": {
+    "tool": "built-in image_gen",
+    "modelVersion": "not exposed by tool",
+    "date": "2026-09-09"
+  },
+  "status": "available in local catalog; automatic award flow not implemented"
+}

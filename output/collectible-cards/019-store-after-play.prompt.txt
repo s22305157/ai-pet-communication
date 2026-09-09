@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE finished PAWLINK knowledge collectible card 019, portrait 2:3. Input reference is STYLE/LAYOUT reference only: match pale blue/mint rounded frame, delicate paw/leaf ornaments, ivory panels and dark slate Traditional Chinese typography. Entirely new photograph and exact text below.
+Knowledge basis: project Doc-006 play summary: string toys require supervision and must be put away after use. Distinct topic from chasing toys and storing household rubber bands: this scene specifically shows END OF PLAY and storing a cat wand safely.
+Central photo: candid realistic home moment after play. Foreground left an ordinary adult in muted sage cotton top sits beside a low wooden cabinet, partial torso and realistic hands visible. An extended shallow cabinet drawer contains a recognizable cat wand laid completely flat inside: dark short handle, thin straight shaft, cord neatly wound around a small built-in holder, attached soft fabric mouse lure resting inside. Drawer is long enough to contain entire wand, no protruding shaft or dangling string. One hand resting on drawer front begins gently pushing drawer closed, other on own knee; opening still wide enough to see wand, coherent drawer geometry and hand contact. Midground right an adult calico cat calmly rests on a soft floor cushion, clearly separated from closing drawer, natural paws, tail and relaxed ears, not reaching after toy. Story: play has ended, human stores string toy, cat rests. No loose strings on floor, no cord near cat, no pinched fingers, no toy aimed toward cat, no duplicate hands or animals. Neutral lived-in room, natural wood floor, soft daylight, no plants or extra props.
+Photographic style: authentic unposed DSLR pet lifestyle photography, true material textures, real unretouched skin and cotton folds, natural fur and anatomy, coherent furniture perspective, restrained light, no illustration, CGI, plastic cat or hands, exaggerated eyes, fantasy glow, HDR or overly glossy AI finish. Frame only may have paper texture.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Title "玩完收起來"
+Category "玩具與收納"
+First-person footer "今天先玩到這裡，下次再陪我玩。"
+Knowledge caption two centered lines "線繩玩具需有人監督，" / "玩完收妥，避免自行啃咬。"
+Serial "019"
+Correct fully legible Traditional Chinese, no additional text, no clipping. Header ~17%, photo ~62%, footer ~21%. One flat finished card, no physical mockup.

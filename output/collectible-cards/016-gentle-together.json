@@ -1,0 +1,24 @@
+{
+  "id": "016",
+  "title": "一起學會溫柔",
+  "category": "孩子與互動",
+  "species": "cat",
+  "image": "../../assets/cards/016-gentle-together.png",
+  "prompt": "016-gentle-together.prompt.txt",
+  "petVoice": "慢慢陪我就好，讓我自在走動。",
+  "knowledgePoint": "孩子與貓咪互動時，由成人在旁引導，不追逐或強抱。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-interaction",
+    "topic": "兒童與來客",
+    "verifiedAgainst": "scratch/doc006_append.md:54-60",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["兒童互動監督", "不追逐強抱", "孩子尊重貓咪空間"],
+    "exclude": "Do not imply supervision alone makes an interaction safe after a known bite history."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

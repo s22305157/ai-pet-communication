@@ -1,0 +1,24 @@
+{
+  "id": "008",
+  "title": "乾淨的小廁所",
+  "category": "貓砂與清潔",
+  "species": "cat",
+  "image": "../../assets/cards/008-clean-litter.png",
+  "prompt": "008-clean-litter.prompt.txt",
+  "petVoice": "我想要乾淨、舒服的如廁空間。",
+  "knowledgePoint": "每天清除排泄物，不靠香味掩蓋髒污。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-litter",
+    "topic": "貓砂配置與排泄異常／日常清潔",
+    "verifiedAgainst": "scratch/doc006_append.md:44-49",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["貓砂盆日常清潔", "每天清除排泄物", "不以香味掩蓋髒污"],
+    "exclude": "Do not match urinary symptoms alone or imply cleaning resolves new elimination problems."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

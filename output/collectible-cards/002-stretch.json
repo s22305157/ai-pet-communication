@@ -1,0 +1,25 @@
+{
+  "id": "002",
+  "title": "伸個懶腰",
+  "category": "抓磨與環境",
+  "species": "cat",
+  "image": "../../assets/cards/002-stretch.png",
+  "prompt": "002-stretch.prompt.txt",
+  "petVoice": "讓我伸展一下，也磨磨爪子。",
+  "knowledgePoint": "提供穩固抓柱，讓貓咪自在伸展身體。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "活動空間、抓磨與日常陪伴／選貓抓柱",
+    "printedPages": "102–107",
+    "verifiedAgainst": ["KNOWLEDGE_DOC006_2026-09-08.md", "scratch/doc006_append.md:35-41"],
+    "verificationNote": "Checked ingestion record and existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["抓磨需求", "穩固抓柱", "伸展身體", "抓磨環境配置"],
+    "exclude": "Do not match generic stretching or exercise alone."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

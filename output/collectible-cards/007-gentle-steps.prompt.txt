@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE finished PAWLINK knowledge collectible card 007, portrait 2:3. Input image is STYLE AND LAYOUT reference only. Match pale blue and mint rounded card border, delicate paw/leaf ornaments, ivory panels, dark slate Traditional Chinese typography, same series branding. Replace entire central photograph and card-specific text.
+Knowledge topic: adapt home access to cat age and mobility, stable steps with non-slip surfaces. Based on project Doc-006 environment and senior adaptation summary. Show accessible environment rather than athletic jumping; no claim of treating illness.
+Central scene: candid realistic indoor DSLR photograph of an adult silver tabby-and-white cat calmly walking up a sturdy broad wooden pet staircase toward a low cozy sofa resting spot. Three shallow wide closed-riser steps with securely fitted oatmeal non-slip carpet treads, continuous sensible geometry, stable broad base on a flat floor. Stairs lead flush to the sofa seat without a dangerous gap, low height, not a steep tower. Cat in full natural side/three-quarter view, four anatomically correct legs, hind paws on lower tread and front paws on next tread, body supported and relaxed, no leaping, no exaggerated long limbs. Cat looks toward a simple cushion on sofa. Eye-level slightly elevated camera shows the complete staircase and all treads clearly, cat main subject with steps prominent. Ordinary cozy home, neutral linen sofa and wooden floor, soft off-frame daylight, quiet mood. No people, no high shelves, no open windows, no plants, no tiny unstable stools, no medical equipment.
+Look: authentic lifestyle pet photography, natural coat texture, believable perspective and materials, restrained daylight and color, no illustration, oil/watercolor strokes, CGI, glossy plastic fur, huge eyes, fantasy glow, artificial smoothing or HDR. Frame may have subtle paper texture only.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Main title "一步一步上去"
+Category "動線與照護"
+First-person footer "有了小階梯，我可以慢慢上去。"
+Knowledge caption two centered lines "設置穩固階梯與防滑面，" / "配合貓咪的行動能力。"
+Serial "007"
+Perfectly readable Traditional Chinese, no extra text or clipping. Header about 17%, photograph 62%, footer 21%. Single flat finished card, not physical mockup.

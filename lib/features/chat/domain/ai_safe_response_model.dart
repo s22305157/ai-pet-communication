@@ -6,6 +6,8 @@
 import 'dart:convert';
 
 class AiSafeResponseModel {
+  final List<String> matchedCardIds;
+  final List<String> newCardIds;
   final String version;
   final String mode;
   final String disclaimer;
@@ -19,6 +21,8 @@ class AiSafeResponseModel {
   final List<String>? tags;
 
   const AiSafeResponseModel({
+    this.matchedCardIds = const [],
+    this.newCardIds = const [],
     required this.version,
     required this.mode,
     required this.disclaimer,
@@ -34,6 +38,10 @@ class AiSafeResponseModel {
 
   factory AiSafeResponseModel.fromMap(Map<String, dynamic> map) {
     return AiSafeResponseModel(
+      matchedCardIds: List<String>.from(
+        map['planetAward']?['matchedCardIds'] ?? [],
+      ),
+      newCardIds: List<String>.from(map['planetAward']?['newCardIds'] ?? []),
       version: map['version'] ?? '1.0',
       mode: map['mode'] ?? 'safe_default',
       disclaimer: map['disclaimer'] ?? '',
@@ -52,6 +60,10 @@ class AiSafeResponseModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'planetAward': {
+        'matchedCardIds': matchedCardIds,
+        'newCardIds': newCardIds,
+      },
       'version': version,
       'mode': mode,
       'disclaimer': disclaimer,

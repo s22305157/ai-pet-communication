@@ -1,0 +1,24 @@
+{
+  "id": "012",
+  "title": "有人來看我",
+  "category": "外出與照護",
+  "species": "cat",
+  "image": "../../assets/cards/012-daily-visit.png",
+  "prompt": "012-daily-visit.prompt.txt",
+  "petVoice": "你不在家時，也想有人來看看我。",
+  "knowledgePoint": "外出過夜時，安排可信任的人每日實際探視。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-care",
+    "topic": "外出過夜／照護空檔",
+    "verifiedAgainst": "scratch/doc006_append.md:80-87",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["外出過夜照護", "每日實際探視", "可信任照護者", "自動設備不能取代照護"],
+    "exclude": "Do not match all owner absences or imply once daily is sufficient for every cat."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

@@ -6,6 +6,7 @@ const {validateRequest, route, emergencyResponse} = require('./ai_contract');
 const {generate} = require('./openai_provider');
 const {searchKnowledge} = require('./knowledge_retrieval');
 const {effectiveTier} = require('./subscription_policy');
+const {matchPlanetCards} = require('./planet_cards');
 
 // Reuse the existing Luna credential for every tier; keep it in Secret Manager.
 const apiKey = defineSecret('OPENAI_API_KEY_PRO');
@@ -90,11 +91,20 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
         value = await provider({apiKey: settings.apiKey, model: claim.model,
           request: input.request, decision, knowledge});
       }
-      const response = JSON.stringify(value);
+      const matchedCardIds = matchPlanetCards(value, input.request.petProfile.species, decision.level);
+      let response;
       await db.runTransaction(async tx => {
         const [user, deleted, tombstone] = await Promise.all(
           [userRef, deletedRef, tombstoneRef].map(ref => tx.get(ref)));
         if (!user.exists || deleted.exists || tombstone.exists) throw new HttpsError('permission-denied', 'Account or pet is inactive');
+        const cardRefs = matchedCardIds.map(id => userRef.collection('planetCards').doc(id));
+        const cards = await Promise.all(cardRefs.map(ref => tx.get(ref)));
+        const newCardIds = matchedCardIds.filter((id, i) => !cards[i].exists);
+        response = JSON.stringify({...value, planetAward: {matchedCardIds, newCardIds}});
+        cards.forEach((card, i) => {
+          if (!card.exists) tx.create(cardRefs[i], {cardId: matchedCardIds[i],
+            firstRequestId: requestId, petId, collectedAt: FieldValue.serverTimestamp(), ruleVersion: 1});
+        });
         tx.update(operationRef, {status: 'completed', response, completedAt: FieldValue.serverTimestamp()});
       });
       return {response};

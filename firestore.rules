@@ -23,6 +23,10 @@ service cloud.firestore {
         && (!('onboardingAnswers' in data) || data.onboardingAnswers is map);
     }
     match /users/{userId} {
+      match /planetCards/{cardId} {
+        allow read: if activeAccount() && request.auth.uid == userId;
+        allow write: if false;
+      }
       allow read: if notDeleted() && request.auth.uid == userId;
       allow create: if notDeleted() && request.auth.uid == userId
         && request.resource.data.keys().hasAll(['uid', 'email', 'displayName', 'photoUrl', 'points', 'membershipTier', 'hasCompletedOnboarding', 'createdAt', 'lastLoginAt'])

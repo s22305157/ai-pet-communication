@@ -1,0 +1,24 @@
+{
+  "id": "017",
+  "title": "找找小點心",
+  "category": "尋食與探索",
+  "species": "cat",
+  "image": "../../assets/cards/017-gentle-foraging-v2.png",
+  "prompt": "017-gentle-foraging-v2.prompt.txt",
+  "petVoice": "讓我聞一聞，找找藏好的小點心。",
+  "knowledgePoint": "提供安全、容易上手的尋食活動，依反應調整難度並保留休息。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "遊戲／安全尋食",
+    "verifiedAgainst": "scratch/doc006_append.md:35-42",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["安全尋食", "尋食活動難度", "益智餵食探索"],
+    "exclude": "Do not match appetite problems alone or require food deprivation to motivate participation."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

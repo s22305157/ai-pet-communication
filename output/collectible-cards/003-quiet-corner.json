@@ -1,0 +1,24 @@
+{
+  "id": "003",
+  "title": "我的小角落",
+  "category": "安心與休息",
+  "species": "cat",
+  "image": "../../assets/cards/003-quiet-corner.png",
+  "prompt": "003-quiet-corner.prompt.txt",
+  "petVoice": "讓我在這裡，安靜休息一下。",
+  "knowledgePoint": "提供藏身處，保留不被打擾的休息空間。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "活動空間、抓磨與日常陪伴／生活配置",
+    "verifiedAgainst": "scratch/doc006_append.md:35-40",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["安全藏身處", "不被打擾的休息區", "休息空間配置"],
+    "exclude": "Do not match hiding behavior alone or assume unexplained withdrawal is normal rest."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

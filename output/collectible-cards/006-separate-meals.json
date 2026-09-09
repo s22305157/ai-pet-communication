@@ -1,0 +1,23 @@
+{
+  "id": "006",
+  "title": "各自的小餐桌",
+  "category": "多貓與資源",
+  "species": "cat",
+  "image": "../../assets/cards/006-separate-meals.png",
+  "prompt": "006-separate-meals.prompt.txt",
+  "petVoice": "有自己的位置，我想慢慢吃。",
+  "knowledgePoint": "分開安排用餐位置，讓每隻貓都能自在進食。",
+  "source": {
+    "document": "Doc-006",
+    "topic": "多貓／資源分散",
+    "verifiedAgainst": "scratch/doc006_append.md:28-32",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["多貓資源分散", "分開餵食", "用餐位置分散", "食物資源競爭"],
+    "exclude": "Do not match appetite changes alone or infer that all eating problems are resource competition."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

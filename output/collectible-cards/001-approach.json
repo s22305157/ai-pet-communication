@@ -1,0 +1,21 @@
+{
+  "id": "001",
+  "title": "等我靠近",
+  "category": "互動與界線",
+  "species": "cat",
+  "seriesTargetMinimum": 100,
+  "image": "../../assets/cards/001-approach-v2.png",
+  "prompt": "001-approach-v2.prompt.txt",
+  "petVoice": "給我一點空間，讓我自己走近你。",
+  "knowledgePoint": "尊重貓咪的距離，讓牠選擇是否互動。",
+  "source": {
+    "document": "Doc-006",
+    "topic": "Q25 主動靠近與保持距離",
+    "printedPage": 174,
+    "verifiedAgainst": "KNOWLEDGE_DOC006_2026-09-08.md",
+    "verificationNote": "Based on current repository ingestion record; encrypted knowledge corpus was not decrypted in this turn."
+  },
+  "suggestedMatchTopics": ["主動靠近", "保持距離", "互動界線", "強迫接觸"],
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "v2 realistic person; available in pet planet catalog; collection award flow not implemented"
+}

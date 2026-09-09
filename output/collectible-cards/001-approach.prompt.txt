@@ -1,0 +1,15 @@
+Use case: illustration-story
+Asset type: PAWLINK pet knowledge collectible card 001, the first of a planned series of at least 100. Generate ONE finished portrait card, 2:3 aspect ratio, flat straight-on full-bleed artwork, not a mockup photographed on a table.
+Primary request: A beautiful emotionally warm collectible card conveying the knowledge point "let the cat choose to approach; respect its distance", from the project's Doc-006 cat behavior knowledge entry Q25. The image itself must clearly tell this story.
+Scene: A tranquil lived-in home in warm daylight. A person sits quietly sideways on the floor, relaxed shoulders, hands resting in their own lap without reaching, leaving generous open floor space. A charming orange-and-white adult cat voluntarily takes a gentle step toward the seated person, all four limbs anatomically correct, relaxed upright softly curved tail, natural calm ears. Clear space remains between person and cat. A safe open hiding nook in the background. Cat is the main focal point, person secondary, faces and body language legible. No grabbing, holding, staring, feeding lure, human hand touching the cat, frightened posture, collars with bells, magical mind-reading effects.
+Style/medium: premium illustrated storybook collectible, refined gouache and colored pencil texture, expressive but anatomically plausible cat, subtle paper grain, carefully designed rounded decorative border with tiny understated paw and leaf motifs, charming visual narrative rather than infographic. Gentle sophisticated detail and clean typography, beautiful enough to collect, readable on a phone.
+Color palette: existing PAWLINK pale blue #7BB3D1, mint green #7EC8B7, deep slate #2D4A5E, warm ivory with small warm orange accents from cat fur.
+Composition: top 14 percent elegant title and brand; central 65 percent richly drawn scene; bottom 21 percent airy ivory text panel. Strong hierarchy and generous margins. No extra panels, no duplicate cat, no star ratings or rarity.
+Text (verbatim, Traditional Chinese, accurately rendered):
+Top small brand: "PAWLINK"
+Main title: "等我靠近"
+Small category: "互動與界線"
+Bottom gentle first-person line: "給我一點空間，讓我自己走近你。"
+Separate smaller knowledge caption: "尊重貓咪的距離，讓牠選擇是否互動。"
+Bottom serial: "001"
+Constraints: one finished collectible card only. Traditional Chinese only except brand. No additional text. The first-person line is illustrative creative copy, not a claim to know an animal's thoughts. Original illustration; do not reproduce book illustrations.

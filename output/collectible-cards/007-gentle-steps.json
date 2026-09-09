@@ -1,0 +1,23 @@
+{
+  "id": "007",
+  "title": "一步一步上去",
+  "category": "動線與照護",
+  "species": "cat",
+  "image": "../../assets/cards/007-gentle-steps.png",
+  "prompt": "007-gentle-steps.prompt.txt",
+  "petVoice": "有了小階梯，我可以慢慢上去。",
+  "knowledgePoint": "設置穩固階梯與防滑面，配合貓咪的行動能力。",
+  "source": {
+    "document": "Doc-006",
+    "topic": "生活配置／高齡適應",
+    "verifiedAgainst": ["scratch/doc006_append.md:40", "scratch/doc006_append.md:72-76"],
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["穩固階梯", "防滑動線", "高齡環境適應", "活動空間可及性"],
+    "exclude": "Do not match age or reduced jumping alone; this environmental adaptation is not a diagnosis or treatment."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

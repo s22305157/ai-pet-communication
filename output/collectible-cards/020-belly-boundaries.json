@@ -1,0 +1,31 @@
+{
+  "id": "020",
+  "title": "看看我的小肚肚",
+  "category": "肢體與界線",
+  "species": "cat",
+  "image": "../../assets/cards/020-belly-boundaries.png",
+  "prompt": "020-belly-boundaries.prompt.txt",
+  "petVoice": "陪我躺一下，先別急著摸肚肚。",
+  "knowledgePoint": "翻肚不代表同意摸肚子，尊重貓咪的選擇與界線。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-signals",
+    "topic": "個體選擇與身體訊號／翻肚不是摸肚許可",
+    "verifiedAgainst": "scratch/doc006_append.md",
+    "verificationNote": "Checked local knowledge summary; encrypted corpus not decrypted."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": [
+      "翻肚與觸摸界線",
+      "露肚不等於摸肚許可"
+    ],
+    "exclude": "Do not infer trust or consent from posture alone."
+  },
+  "generation": {
+    "tool": "built-in image_gen",
+    "modelVersion": "not exposed by tool",
+    "date": "2026-09-09"
+  },
+  "status": "available in local catalog; automatic award flow not implemented"
+}

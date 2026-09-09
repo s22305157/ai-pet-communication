@@ -9,6 +9,7 @@ import 'package:ai_pet_communication/app/injection.dart';
 import 'package:ai_pet_communication/widgets/authenticated_network_image.dart';
 import 'package:ai_pet_communication/features/profile/presentation/account_info_screen.dart';
 import 'package:ai_pet_communication/features/profile/presentation/settings_screen.dart';
+import 'package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -261,6 +262,19 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
+                _buildMenuItem(
+                  icon: Icons.auto_stories_outlined,
+                  title: '寵物星球圖鑑',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => const PetPlanetScreen(),
+                      ),
+                    );
+                  },
+                ),
+
                 // 3. 其他選單
                 _buildMenuItem(
                   icon: Icons.notifications_none_rounded,
@@ -346,7 +360,7 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  '版本號 0.2.6',
+                  '版本號 0.2.7',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: AppColors.textSecondary.withValues(alpha: 0.5),

@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE finished PAWLINK knowledge collectible card 011, portrait 2:3. Input is STYLE AND LAYOUT reference only: match pale blue/mint rounded border, delicate paw/leaf ornaments, ivory header/footer, dark slate Traditional Chinese typography. Entirely new photographic scene and text.
+Knowledge topic: gradual introductions between cats, starting separated and advancing based on comfort, with ability to retreat. Project Doc-006 multicat introduction summary. Scene depicts a later brief supervised visual-introduction stage through a barrier, NOT immediate face-to-face contact on arrival.
+Central photograph: credible candid home photography of TWO adult domestic cats on opposite sides of a securely fitted FULL-HEIGHT fine-mesh pet screen door filling a normal doorway from floor to lintel. Screen latched, no gap underneath or at edges, visibly sturdy frame, allows vision while preventing physical contact; not a low baby gate they could jump. Foreground left orange-and-white cat resting on paws in relaxed three-quarter profile about a meter back from screen; background right silver tabby calmly sitting inside adjacent room also well back from screen. Cats' bodies angled slightly sideways, normal ears, no hard staring, lunging, hissing or nose-to-nose contact. Both cats fully visible despite mesh, natural proportions and correct perspective. Each side has generous clear floor and its own visible retreat route and simple resting nook away from doorway. Camera oblique enough to show doorway separation clearly, mesh visible and physically plausible, not bars cutting through cats. An ordinary seated adult partially visible at far foreground right, just clothed bent knees and hand resting on lap, calmly supervising without reaching for either cat. Neutral home with light wooden floors, soft daylight, no food bowls or toys in doorway, no plants. Main story is distance + secure barrier + gradual calm meeting.
+Photographic look: natural DSLR pet lifestyle photography, true fur detail, authentic mesh/wood/textiles, unretouched skin if hand visible, restrained daylight and colors, no illustration, painted strokes, CGI, glossy plastic animals, huge eyes, fantasy glow, motion symbols or HDR. Paper texture only on border.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Title "慢慢認識你"
+Category "新貓與引介"
+First-person footer "給我一點時間，慢慢認識新朋友。"
+Knowledge caption two centered lines "先分隔，再循序引介，" / "依貓咪的反應調整步調。"
+Serial "011"
+All text accurate, readable, no extras or clipping. Same hierarchy: header ~17%, photo ~62%, footer ~21%. Single flat finished card, no physical mockup.

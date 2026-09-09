@@ -1,0 +1,24 @@
+{
+  "id": "013",
+  "title": "窗邊看世界",
+  "category": "窗景與安全",
+  "species": "cat",
+  "image": "../../assets/cards/013-safe-window-v2.png",
+  "prompt": "013-safe-window-v2.prompt.txt",
+  "petVoice": "我想待在窗邊，看看外面的世界。",
+  "knowledgePoint": "窗邊設置牢固防逃設施，讓貓咪安全欣賞窗景。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-environment",
+    "topic": "生活配置／窗景安全",
+    "verifiedAgainst": "scratch/doc006_append.md:35-40",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["窗景安全", "牢固防逃設施", "安全窗邊活動"],
+    "exclude": "Do not infer that any ordinary insect screen is escape-proof or that viewing outdoors alone establishes safety."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

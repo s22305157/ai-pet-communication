@@ -1,0 +1,23 @@
+{
+  "id": "014",
+  "title": "小東西收好",
+  "category": "居家與安全",
+  "species": "cat",
+  "image": "../../assets/cards/014-store-small-items.png",
+  "prompt": "014-store-small-items.prompt.txt",
+  "petVoice": "我會好奇，請幫我把小東西收好。",
+  "knowledgePoint": "收好線材、橡皮筋等小物，減少貓咪誤食的機會。",
+  "source": {
+    "document": "Doc-006",
+    "topic": "環境管理／危險小物收納",
+    "verifiedAgainst": "scratch/doc006_append.md:92-96",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["危險小物收納", "線材收好", "橡皮筋誤食預防", "居家環境管理"],
+    "exclude": "Prevention only; do not substitute storage advice for help after suspected ingestion."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

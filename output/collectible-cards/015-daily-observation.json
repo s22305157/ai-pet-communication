@@ -1,0 +1,23 @@
+{
+  "id": "015",
+  "title": "記下我的日常",
+  "category": "觀察與紀錄",
+  "species": "cat",
+  "image": "../../assets/cards/015-daily-observation.png",
+  "prompt": "015-daily-observation.prompt.txt",
+  "petVoice": "多留意我的日常，慢慢更懂我。",
+  "knowledgePoint": "記錄飲食、排泄與活動，留意和平常不同的變化。",
+  "source": {
+    "document": "Doc-006",
+    "topic": "身體變化、理毛與傷口／日常基線",
+    "verifiedAgainst": "scratch/doc006_append.md:63-67",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["日常基線", "個別觀察紀錄", "飲食排泄活動紀錄", "與平常習慣比較"],
+    "exclude": "Do not imply observation alone replaces assessment of significant changes or urgent symptoms."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

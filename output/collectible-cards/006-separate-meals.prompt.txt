@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Generate ONE finished PAWLINK knowledge collectible card 006, portrait 2:3. Provided image is STYLE/LAYOUT reference only: match pale blue and mint rounded border, small paw and leaf ornaments, ivory title/footer, dark slate Traditional Chinese typography and series hierarchy. Completely new central photograph and exact text below.
+Knowledge topic: multi-cat resource distribution, specifically separate feeding locations. Source project Doc-006 multi-cat summary says food/water, litter, resting and elevated resources should be distributed. Visual must clearly communicate SEPARATE feeding stations, not cats sharing or bowls side by side.
+Central scene: natural candid interior DSLR photo of two adult domestic cats peacefully eating from their own shallow ceramic food bowls in clearly separated areas of a spacious ordinary home. Foreground left an orange-and-white cat at an ivory bowl on a small washable mat; middle distance right a gray tabby at a muted blue bowl on a separate mat. Several cat body lengths of clear floor separate stations. A low solid wooden cabinet placed between the feeding areas acts as visual screening at cat eye level, while camera from modestly elevated three-quarter angle can see BOTH cats and BOTH bowls on opposite sides of cabinet. The room opens around the cabinet, with clear wide escape paths on each side; neither cat is cornered or blocking the other. Natural relaxed eating postures, heads lowered to bowls, correct feline anatomy, no staring at each other. Two cats total, one bowl per cat, no shared food pile. Simple neutral living room, daylight through off-frame window, pale wood floor, natural textiles, no people, no plants, no litter box near food. Do not show a huge pile of food or a prescribed dietary product. Spacious composition with visually obvious separation and reassuring ordinary calm.
+Style: believable unposed pet lifestyle photography, true fur texture, natural body proportions, authentic room perspective and shadows, restrained soft daylight, no cartoon, paint strokes, CGI, shiny synthetic fur, exaggerated eyes, artificial glow, oversaturated grading or HDR. Subtle paper texture only on card frame.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Main title "各自的小餐桌"
+Category "多貓與資源"
+Footer first-person line "有自己的位置，我想慢慢吃。"
+Smaller knowledge caption two centered lines "分開安排用餐位置，" / "讓每隻貓都能自在進食。"
+Serial "006"
+Correct readable Traditional Chinese, no extra text, no clipping. Layout top ~17%, photographic scene ~62%, footer ~21%. One flat completed card, not physical mockup.

@@ -1,0 +1,24 @@
+{
+  "id": "011",
+  "title": "慢慢認識你",
+  "category": "新貓與引介",
+  "species": "cat",
+  "image": "../../assets/cards/011-gradual-introduction.png",
+  "prompt": "011-gradual-introduction.prompt.txt",
+  "petVoice": "給我一點時間，慢慢認識新朋友。",
+  "knowledgePoint": "先分隔，再循序引介，依貓咪的反應調整步調。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-multicat",
+    "topic": "新貓引介與多貓衝突／漸進引介",
+    "verifiedAgainst": "scratch/doc006_append.md:25-31",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["新貓漸進引介", "先分隔再認識", "隔障接觸", "依反應調整引介步調"],
+    "exclude": "Do not match all multicat mentions; visual contact is a later stage, not the required first step on arrival."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

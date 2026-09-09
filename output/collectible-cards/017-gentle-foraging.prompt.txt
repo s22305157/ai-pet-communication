@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Create ONE finished PAWLINK knowledge collectible card 017, portrait 2:3. Input is STYLE/LAYOUT reference ONLY: match pale blue/mint rounded frame, delicate paw/leaf ornaments, ivory panels and dark slate Traditional Chinese typography. Entirely new central photograph and exact text.
+Knowledge basis: project Doc-006 environment/play summary includes safe foraging, varying difficulty and allowing rest. Focus on an easy supervised foraging activity, not food deprivation or training obedience.
+Central photograph: authentic candid indoor DSLR pet lifestyle photo of one adult orange-and-white domestic shorthaired cat exploring a broad stable shallow muted mint food-puzzle tray on a nonslip mat on wooden floor. Simple molded ONE-PIECE tray with just four wide shallow rounded depressions and very low fixed ridges, no detachable covers, narrow traps, tall pegs, tiny removable parts or strings. A few small food morsels visible in accessible depressions, not a huge meal. Cat naturally lowers nose to sniff one depression and gently reaches one anatomically correct front paw toward another; all four limbs correctly connected and body comfortably crouched, natural ears, normal attentive eyes, no frustration or distressed face. Full cat and entire tray visible in modestly elevated three-quarter floor-level view. Owner sits quietly in background with only relaxed knees and hand on own lap visible, no hand holding food or manipulating the cat; supervision secondary to cat activity. Simple real home with neutral sofa and uncluttered open space; cat can leave activity freely. No food packages, plants, toys made from plastic bags, text labels or medical props.
+Photo style: believable unposed pet photography, natural fur and whiskers, realistic proportions and material finish, soft natural daylight, coherent tray geometry and perspective, no illustration, CGI, painted center, plastic animal, exaggerated eyes, fantasy glow, HDR, oversaturation or glossy AI look. Frame only can retain subtle paper texture.
+Exact Traditional Chinese text:
+Brand "PAWLINK"
+Title "找找小點心"
+Category "尋食與探索"
+First-person footer "讓我聞一聞，找找藏好的小點心。"
+Knowledge caption two centered lines "提供安全、容易上手的尋食活動，" / "依反應調整難度並保留休息。"
+Serial "017"
+Accurate fully legible Traditional Chinese, no extra text or clipping. Same series hierarchy: header ~17%, photo ~62%, footer ~21%. Single flat finished card, no physical mockup.

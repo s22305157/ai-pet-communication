@@ -1,0 +1,13 @@
+Use case: photorealistic-natural.
+Generate ONE new PAWLINK pet knowledge collectible card 004, portrait 2:3. Input image is STYLE AND LAYOUT reference ONLY. Match pale blue/mint rounded frame, small paw and leaf decoration, ivory top/footer panels, elegant dark slate Traditional Chinese typography and PAWLINK branding of reference. New scene and text.
+Central scene: believable candid DSLR lifestyle photograph inside a quiet ordinary living room. An adult shorthaired cream-and-white cat is voluntarily exploring the wide open entrance of a sturdy pet transport carrier on the wooden floor, next to a sofa. Three-quarter side view at cat level. Cat body fully visible outside, nose leaning toward doorway to sniff, one front paw just resting on low entrance threshold, other three paws naturally grounded, relaxed ears and natural tail. Correct anatomy, natural eyes. Carrier large enough for cat to turn around, pale blue lower hard shell and ivory ventilated top with handle folded flat; metal door visibly swung fully open to the side and secured away from the entrance, not obstructing cat or merging with body. Familiar softly worn beige blanket inside. Carrier clearly identifiable as a travel carrier, not a basket, bed or cage. Soft window daylight from off frame, everyday living room textures and unobstructed floor. No person, no pushing hands, no restraints, no vehicle, no outdoor scene, no closed door.
+Knowledge basis: project Doc-006 Q17 summary: leave carrier accessible in living area in daily life with familiar bedding and gradually practice voluntary approach/entry; do not chase or force. Scene is specifically at-home familiarization, not transportation. Original photographic composition, no copied book illustration.
+Photorealistic fur, authentic plastic and fabric materials, mild natural shadows, restrained light, no painted or watercolor center, no cartoon, CGI, synthetic glossy fur, giant eyes, magical glow, HDR, hyper-smooth AI finish. Keep paper design texture on frame only.
+Exact Traditional Chinese text, no other text:
+Brand "PAWLINK"
+Title "先熟悉，再出發"
+Category "外出籠適應"
+Footer first-person line "讓我先聞一聞，再慢慢走進去。"
+Smaller knowledge caption in two centered lines "平日開放外出籠，" / "讓貓咪自願探索與進入。"
+Serial "004"
+Fully readable correct characters. Fit longer title elegantly, do not clip. Same hierarchy and frame as reference: header about 17%, photograph 62%, footer 21%. One flat finished card, no mockup.

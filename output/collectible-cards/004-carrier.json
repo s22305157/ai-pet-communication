@@ -1,0 +1,24 @@
+{
+  "id": "004",
+  "title": "先熟悉，再出發",
+  "category": "外出籠適應",
+  "species": "cat",
+  "image": "../../assets/cards/004-carrier.png",
+  "prompt": "004-carrier.prompt.txt",
+  "petVoice": "讓我先聞一聞，再慢慢走進去。",
+  "knowledgePoint": "平日開放外出籠，讓貓咪自願探索與進入。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-care",
+    "topic": "Q17 外出籠",
+    "verifiedAgainst": "scratch/doc006_append.md:80-85",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["外出籠日常適應", "自願進籠", "外出籠熟悉墊物", "外出籠漸進練習"],
+    "exclude": "Do not match generic travel alone. Open-door advice applies only to at-home familiarization, not transport."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}

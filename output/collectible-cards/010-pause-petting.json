@@ -1,0 +1,24 @@
+{
+  "id": "010",
+  "title": "摸摸先暫停",
+  "category": "撫摸與訊號",
+  "species": "cat",
+  "image": "../../assets/cards/010-pause-petting-v3.png",
+  "prompt": "010-pause-petting-v3.prompt.txt",
+  "petVoice": "先停一下，讓我自在待一會兒。",
+  "knowledgePoint": "留意甩尾、耳朵後移等訊號，提早暫停撫摸。",
+  "source": {
+    "document": "Doc-006",
+    "anchor": "doc006-interaction",
+    "topic": "獎勵、撫摸與攻擊情境／情境判斷",
+    "verifiedAgainst": "scratch/doc006_append.md:53-59",
+    "verificationNote": "Checked existing local knowledge summary; encrypted corpus not decrypted in this turn."
+  },
+  "matching": {
+    "basis": "communication knowledge points, never random",
+    "knowledgeTopics": ["暫停撫摸", "撫摸過量", "撫摸時觀察身體訊號", "轉頭盯手"],
+    "exclude": "Do not infer a fixed emotion from a single signal or assume new aggression is only petting overstimulation."
+  },
+  "generation": {"tool": "built-in image_gen", "modelVersion": "not exposed by tool", "date": "2026-09-09"},
+  "status": "available in local catalog; automatic award flow not implemented"
+}
