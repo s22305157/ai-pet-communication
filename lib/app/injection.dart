@@ -37,12 +37,11 @@ final getIt = GetIt.instance;
 
 void setupDependencies() {
   getIt.registerLazySingleton<JournalDraftStore>(() => JournalDraftStore());
-  getIt.registerLazySingleton<JournalPetNames>(
+  getIt.registerLazySingleton<JournalPetBasics>(
     () =>
         (uid) => getIt<LocalPetService>()
             .getAllPets(uid)
-            .where((pet) => ['cat', '貓', '貓咪'].contains(pet.species))
-            .map((pet) => pet.name)
+            .map((pet) => (name: pet.name, species: pet.species))
             .toList(),
   );
   getIt.registerFactory<JournalRepository>(

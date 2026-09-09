@@ -24,7 +24,7 @@ const denied = (promise, code = 'permission-denied') => assert.rejects(promise, 
 const petRef = (id, uid = 'a') => db.doc(`users/${uid}/journalPets/${id}`);
 async function pet(uid = 'a') {
   await call('activatePilot', {consentVersion: 'journal-m1-v1', metricsConsent: true}, uid);
-  return (await call('createJournalPet', {name: '小花', focus: '新貓到家'}, uid)).petId;
+  return (await call('createJournalPet', {name: '小花', species: '兔', focus: '毛孩到家'}, uid)).petId;
 }
 const entry = (petId, more = {}) => ({petId, entryId: randomUUID(), expectedRevision: 0, occurredAtMs: now - 1000,
   context: '環境適應', observation: '今天主動靠近', action: '', outcome: '', mediaIds: [], ...more});
@@ -70,7 +70,9 @@ test('actual callable emulator rejects anonymous requests and accepts Firebase A
     return result.result;
   }
   await httpCall('activatePilot', {consentVersion: 'journal-m1-v1', metricsConsent: true});
-  const p = await httpCall('createJournalPet', {name: '小白', focus: '新貓到家'});
+  const p = await httpCall('createJournalPet', {name: '小白', species: '兔', focus: '毛孩到家'});
+  assert.equal((await httpCall('getJournalHome', {})).pet.species, '兔');
+  assert.equal((await petRef(p.petId, user.localId).get()).get('species'), '兔');
   await httpCall('upsertJournalEntry', entry(p.petId));
   const listed = await httpCall('listJournalEntries', {petId: p.petId});
   assert.equal(listed.items.length, 1);
@@ -101,9 +103,12 @@ test('flags, invitations, activation and account tombstones fail closed without 
 
 test('one pet per owner, server IDs, verified cloud links and concurrent creates', async () => {
   await call('activatePilot', {consentVersion: 'journal-m1-v1', metricsConsent: true});
+  for (const species of [undefined, '', ' '.repeat(3), '兔'.repeat(81)]) {
+    await denied(call('createJournalPet', {name: '小白', species, focus: '毛孩到家'}), 'invalid-argument');
+  }
   await db.doc('pets/foreign').set({owner_id: 'b'});
-  await denied(call('createJournalPet', {name: 'cat', focus: '新貓到家', linkedPetId: 'foreign'}));
-  const attempts = await Promise.allSettled([1, 2].map(() => call('createJournalPet', {name: 'cat', focus: '新貓到家', petId: 'forged'})));
+  await denied(call('createJournalPet', {name: 'cat', species: '兔', focus: '毛孩到家', linkedPetId: 'foreign'}));
+  const attempts = await Promise.allSettled([1, 2].map(() => call('createJournalPet', {name: 'cat', species: '兔', focus: '毛孩到家', petId: 'forged'})));
   assert.equal(attempts.filter(a => a.status === 'fulfilled').length, 1);
   const pets = await db.collection('users/a/journalPets').get();
   assert.equal(pets.size, 1); assert.notEqual(pets.docs[0].id, 'forged');

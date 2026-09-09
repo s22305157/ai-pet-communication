@@ -4,9 +4,10 @@ import '../../journal/domain/journal_entry.dart';
 
 class PilotOnboarding extends StatefulWidget {
   final bool activated;
-  final List<String> existingNames;
+  final List<({String name, String species})> existingPets;
   final Future<void> Function(
     String name,
+    String species,
     String focus,
     DateTime? arrivedAt,
     bool metricsConsent,
@@ -15,7 +16,7 @@ class PilotOnboarding extends StatefulWidget {
   const PilotOnboarding({
     super.key,
     required this.activated,
-    required this.existingNames,
+    required this.existingPets,
     required this.onSubmit,
   });
   @override
@@ -24,6 +25,7 @@ class PilotOnboarding extends StatefulWidget {
 
 class _PilotOnboardingState extends State<PilotOnboarding> {
   final _name = TextEditingController();
+  final _species = TextEditingController();
   String _focus = journalFocuses.first;
   DateTime? _arrivedAt;
   bool _consent = false;
@@ -32,6 +34,7 @@ class _PilotOnboardingState extends State<PilotOnboarding> {
   @override
   void dispose() {
     _name.dispose();
+    _species.dispose();
     super.dispose();
   }
 
@@ -45,24 +48,39 @@ class _PilotOnboardingState extends State<PilotOnboarding> {
         '這一版先提供私人日記。日記只供本人閱讀；不會自動分享到社群，也不會將日記送入 AI。回顧與同伴圈尚未開放。\n\n免費提供一份日記毛孩資料、300 則日記與 200 MiB 圖片空間。這與原有完整毛孩檔案、溝通紀錄的付費同步分開。',
       ),
       const SizedBox(height: 12),
-      if (widget.existingNames.isNotEmpty)
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: '從現有毛孩帶入名字（選填）'),
-          items: widget.existingNames
-              .toSet()
-              .map((name) => DropdownMenuItem(value: name, child: Text(name)))
+      if (widget.existingPets.isNotEmpty)
+        DropdownButtonFormField<int>(
+          decoration: const InputDecoration(labelText: '從現有毛孩帶入基本資料（選填）'),
+          items: widget.existingPets.indexed
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item.$1,
+                  child: Text('${item.$2.name} · ${item.$2.species}'),
+                ),
+              )
               .toList(),
           onChanged: _busy
               ? null
-              : (value) => setState(() => _name.text = value ?? ''),
+              : (value) => setState(() {
+                  if (value == null) return;
+                  final pet = widget.existingPets[value];
+                  _name.text = pet.name;
+                  _species.text = pet.species;
+                }),
         ),
       TextField(
         controller: _name,
         maxLength: 80,
         enabled: !_busy,
-        decoration: const InputDecoration(labelText: '貓咪的名字'),
+        decoration: const InputDecoration(labelText: '毛孩的名字'),
       ),
-      const Text('帶入只會複製名字；建立獨立的日記資料，不會上傳原有私人檔案或對話。'),
+      TextField(
+        controller: _species,
+        maxLength: 80,
+        enabled: !_busy,
+        decoration: const InputDecoration(labelText: '毛孩種類（例如：狗、貓、兔、鳥）'),
+      ),
+      const Text('帶入只會複製名字與種類；建立獨立的日記資料，不會上傳原有私人檔案或對話。'),
       const SizedBox(height: 12),
       DropdownButtonFormField<String>(
         initialValue: _focus,
@@ -112,16 +130,17 @@ class _PilotOnboardingState extends State<PilotOnboarding> {
         onPressed: _busy || (!widget.activated && !_consent)
             ? null
             : () async {
-                if (_name.text.trim().isEmpty) {
+                if (_name.text.trim().isEmpty || _species.text.trim().isEmpty) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(const SnackBar(content: Text('請填寫貓咪名字')));
+                  ).showSnackBar(const SnackBar(content: Text('請填寫毛孩名字與種類')));
                   return;
                 }
                 setState(() => _busy = true);
                 try {
                   await widget.onSubmit(
                     _name.text.trim(),
+                    _species.text.trim(),
                     _focus,
                     _arrivedAt,
                     _metrics,

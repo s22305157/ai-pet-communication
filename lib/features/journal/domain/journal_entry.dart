@@ -45,4 +45,4 @@ class JournalEntry {
 }
 
 const journalContexts = ['環境適應', '飲食日常', '遊戲互動', '休息', '外出籠', '其他'];
-const journalFocuses = ['新貓到家', '熟悉環境', '遊戲互動', '外出籠適應'];
+const journalFocuses = ['毛孩到家', '熟悉環境', '遊戲互動', '外出籠適應'];

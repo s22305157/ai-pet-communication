@@ -9,6 +9,7 @@ import 'package:ai_pet_communication/features/journal/domain/journal_entry.dart'
 import 'package:ai_pet_communication/features/journal/domain/journal_repository.dart';
 import 'package:ai_pet_communication/features/journal/presentation/journal_editor.dart';
 import 'package:ai_pet_communication/features/journal/presentation/journal_screen.dart';
+import 'package:ai_pet_communication/features/pilot/presentation/pilot_onboarding.dart';
 
 class TestJournalRepository implements JournalRepository {
   @override
@@ -46,6 +47,36 @@ class TestJournalRepository implements JournalRepository {
 }
 
 void main() {
+  testWidgets('onboarding copies a non-cat species and submits it', (
+    tester,
+  ) async {
+    String? savedSpecies;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PilotOnboarding(
+              activated: true,
+              existingPets: const [(name: '小白', species: '兔')],
+              onSubmit: (name, species, focus, arrivedAt, metrics) async {
+                expect(name, '小白');
+                expect(focus, '毛孩到家');
+                savedSpecies = species;
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('小白 · 兔').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('開始我的私人日記'));
+    await tester.tap(find.text('開始我的私人日記'));
+    await tester.pumpAndSettle();
+    expect(savedSpecies, '兔');
+  });
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });

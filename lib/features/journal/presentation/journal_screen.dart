@@ -97,7 +97,7 @@ class _JournalScreenState extends State<JournalScreen> {
       final c = _controller;
       return Scaffold(
         appBar: AppBar(
-          title: const Text('陪伴日記'),
+          title: const Text('毛孩日記'),
           actions: [
             IconButton(
               onPressed: c.busy || _operating ? null : () => c.load(),
@@ -173,17 +173,23 @@ class _JournalScreenState extends State<JournalScreen> {
                               c.access['invited'] != true)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
-                              child: Text('陪伴日記目前採邀請試營運。\n這個帳號尚未開放或資格已到期。'),
+                              child: Text('毛孩日記目前採邀請試營運。\n這個帳號尚未開放或資格已到期。'),
                             )
                           else
                             PilotOnboarding(
                               activated: c.access['activated'] == true,
-                              existingNames:
-                                  getIt.isRegistered<JournalPetNames>()
-                                  ? getIt<JournalPetNames>()(_repository.uid)
+                              existingPets:
+                                  getIt.isRegistered<JournalPetBasics>()
+                                  ? getIt<JournalPetBasics>()(_repository.uid)
                                   : [],
-                              onSubmit: (name, focus, arrivedAt, metrics) =>
-                                  _operation(() async {
+                              onSubmit:
+                                  (
+                                    name,
+                                    species,
+                                    focus,
+                                    arrivedAt,
+                                    metrics,
+                                  ) => _operation(() async {
                                     if (c.access['activated'] != true) {
                                       await _repository.call('activatePilot', {
                                         'consentVersion': 'journal-m1-v1',
@@ -192,6 +198,7 @@ class _JournalScreenState extends State<JournalScreen> {
                                     }
                                     await _repository.call('createJournalPet', {
                                       'name': name,
+                                      'species': species,
                                       'focus': focus,
                                       'arrivedAtMs':
                                           arrivedAt?.millisecondsSinceEpoch,

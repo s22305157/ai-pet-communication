@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 icon: const Icon(Icons.auto_stories_outlined),
-                label: const Text('陪伴日記 · 邀請試營運'),
+                label: const Text('毛孩日記 · 邀請試營運'),
               ),
             ),
           ],

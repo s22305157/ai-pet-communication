@@ -4,10 +4,10 @@
 
 ## 已實作流程
 
-首頁「陪伴日記」→ 讀取後端資格 → 閱讀並同意說明 → 建立一份貓咪日記資料 → 記錄文字／照片 → 儲存到私人雲端 → 篩選、編輯、刪除與匯出。
+首頁「毛孩日記」→ 讀取後端資格 → 閱讀並同意說明 → 建立一份毛孩日記資料（不限物種） → 記錄文字／照片 → 儲存到私人雲端 → 篩選、編輯、刪除與匯出。
 
 - 私人日記與原有付費毛孩資料分離，原有會員、點數與 AI 溝通門檻不改動。
-- 名字可從裝置上已有的貓咪資料帶入。UI 明示是複製名字；不自動連結、上傳其他檔案或私人對話。API 的選填 `linkedPetId` 僅接受後端驗證屬於本人的既有雲端毛孩。
+- 名字與種類可從裝置上已有的毛孩資料帶入。UI 明示是複製名字與種類；不自動連結、上傳其他檔案或私人對話。API 的選填 `linkedPetId` 僅接受後端驗證屬於本人的既有雲端毛孩。
 - 300 則日記、200 MiB 正規化圖片，每日最多新增 20 則日記。每則最多 3 張 JPEG/PNG、2,000 字觀察、500 字行動、500 字結果。
 - 伺服器禁止未來時間。時間戳採 Firestore Timestamp，本週統計依 Asia/Taipei。
 - 編輯使用 revision；衝突保留本機草稿，必須先閱讀雲端新版本後重新編輯。
@@ -62,7 +62,7 @@ node tools/maintenance/journal-pilot.cjs disable --project demo-pawlink-security
 |---|---|---|
 | getPilotAccess | 無 | invited、enabled、activated、期限毫秒值、limits |
 | activatePilot | operationId、consentVersion、metricsConsent | activated |
-| createJournalPet | operationId、name、focus、arrivedAtMs?、linkedPetId? | 後端 petId |
+| createJournalPet | operationId、name、species（必填，最多 80 字）、focus、arrivedAtMs?、linkedPetId? | 後端 petId |
 | getJournalHome | 無 | pet、weekDays |
 | upsertJournalEntry | operationId、petId、entryId、expectedRevision、occurredAtMs、context、observation、action、outcome、mediaIds | entryId、revision |
 | listJournalEntries | petId、context?、fromMs?、toMs?、cursor? | 最多 20 筆 items、下頁 cursor |

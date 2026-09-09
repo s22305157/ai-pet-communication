@@ -2,7 +2,7 @@ const {HttpsError} = require('firebase-functions/v2/https');
 const LIMITS = Object.freeze({entries: 300, bytes: 200 * 1024 * 1024,
   inputBytes: 10 * 1024 * 1024, imageBytes: 1024 * 1024, dailyEntries: 20});
 const CONTEXTS = ['環境適應', '飲食日常', '遊戲互動', '休息', '外出籠', '其他'];
-const FOCUSES = ['新貓到家', '熟悉環境', '遊戲互動', '外出籠適應'];
+const FOCUSES = ['毛孩到家', '熟悉環境', '遊戲互動', '外出籠適應'];
 const fail = (code, message) => { throw new HttpsError(code, message); };
 const id = value => {
   if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) fail('invalid-argument', '識別碼格式不正確');

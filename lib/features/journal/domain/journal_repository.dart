@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
-typedef JournalPetNames = List<String> Function(String uid);
+typedef JournalPetBasics =
+    List<({String name, String species})> Function(String uid);
 
 abstract interface class JournalRepository {
   String get uid;

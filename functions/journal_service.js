@@ -18,7 +18,7 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
     const p = participant.data() || {};
     const config = flags.data() || {};
     const invited = p.status === 'invited' && P.millis(p.expiresAt) > now();
-    if (write && (!invited || config.journalEnabled !== true || (activation && !p.activatedAt))) P.fail('permission-denied', '陪伴日記尚未開放或資格已到期');
+    if (write && (!invited || config.journalEnabled !== true || (activation && !p.activatedAt))) P.fail('permission-denied', '毛孩日記尚未開放或資格已到期');
     return {user: user.data(), p, config, invited};
   }
 
@@ -88,6 +88,7 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
 
   handlers.createJournalPet = request => mutate(request, 'createPet', async ({tx, uid, d, a}) => {
     const name = P.text(d.name, 80, true);
+    const species = P.text(d.species, 80, true);
     if (!P.FOCUSES.includes(d.focus)) P.fail('invalid-argument', '請選擇目前關注的情境');
     const arrivedAt = d.arrivedAtMs == null ? null : stamp(P.time(d.arrivedAtMs, now()));
     const existing = await tx.get(userRef(uid).collection('journalPets').limit(2));
@@ -99,7 +100,7 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
       if (!pet.exists || pet.get('owner_id') !== uid || tombstone.exists) P.fail('permission-denied', '無法連結此毛孩');
     }
     const ref = userRef(uid).collection('journalPets').doc();
-    tx.create(ref, {name, species: 'cat', focus: d.focus, arrivedAt, linkedPetId,
+    tx.create(ref, {name, species, focus: d.focus, arrivedAt, linkedPetId,
       entryCount: 0, usedBytes: 0, reservedBytes: 0, pendingUploads: 0, revision: 1, createdAt: stamp(now()), schemaVersion: 1});
     // Serialize concurrent creates against the participant document, even on empty queries.
     tx.update(participantRef(uid), {journalPetId: ref.id});
@@ -332,7 +333,7 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
       const weekday = new Date(now() + 8 * 3600000).getUTCDay();
       const monday = local.getTime() - ((weekday + 6) % 7) * 86400000;
       const entries = await tx.get(pet.ref.collection('entries').where('occurredAt', '>=', stamp(monday)).limit(300));
-      return {pet: {id: pet.id, name: pet.get('name'), focus: pet.get('focus'), entryCount: pet.get('entryCount'),
+      return {pet: {id: pet.id, name: pet.get('name'), species: pet.get('species'), focus: pet.get('focus'), entryCount: pet.get('entryCount'),
         usedBytes: pet.get('usedBytes'), reservedBytes: pet.get('reservedBytes')},
       weekDays: new Set(entries.docs.map(s => P.dayKey(P.millis(s.get('occurredAt'))))).size};
     });
