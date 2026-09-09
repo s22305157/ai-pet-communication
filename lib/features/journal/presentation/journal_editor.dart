@@ -1,17 +1,19 @@
+import 'journal_text_fields.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../application/journal_controller.dart';
-import '../data/journal_draft_store.dart';
+import '../domain/journal_drafts.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_repository.dart';
 import 'journal_image.dart';
 
 class JournalEditor extends StatefulWidget {
   final JournalRepository repository;
-  final JournalDraftStore drafts;
+  final JournalDrafts drafts;
   final String petId;
   final JournalEntry? entry;
   const JournalEditor({
@@ -40,7 +42,7 @@ class _JournalEditorState extends State<JournalEditor> {
   bool _dirty = false;
   bool _conflict = false;
   String? _error;
-  String _status = '文字草稿只儲存於這個裝置';
+  String _status = '草稿加密保存在裝置，登出會清除；共用裝置請記得登出';
   String get _draftKey => widget.entry?.id ?? 'new';
   @override
   void initState() {
@@ -202,7 +204,22 @@ class _JournalEditorState extends State<JournalEditor> {
     });
     try {
       await _persist();
-      await widget.repository.call('upsertJournalEntry', _input());
+      await widget.repository.saveEntry(
+        JournalEntryInput(
+          petId: widget.petId,
+          operationId: _operationId,
+          entry: JournalEntry(
+            id: _entryId,
+            occurredAt: _occurredAt,
+            context: _context,
+            observation: _observation.text,
+            action: _action.text,
+            outcome: _outcome.text,
+            mediaIds: List.of(_mediaIds),
+            revision: _revision,
+          ),
+        ),
+      );
       await widget.drafts.remove(
         widget.repository.uid,
         widget.petId,
@@ -262,6 +279,9 @@ class _JournalEditorState extends State<JournalEditor> {
                   padding: const EdgeInsets.all(20),
                   children: [
                     const Text('只有你能閱讀這則日記。照片需連線上傳；不會自動發布。'),
+                    const Text('登出會清除這個帳號的裝置草稿，請先儲存需要保留的日記。'),
+                    if (kIsWeb)
+                      const Text('共用電腦請避免保留私人草稿。同網站程式仍可能讀取解密後內容，離開時請登出。'),
                     const SizedBox(height: 12),
                     Text(
                       _status,
@@ -310,35 +330,12 @@ class _JournalEditorState extends State<JournalEditor> {
                             },
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _observation,
+                    JournalTextFields(
+                      observation: _observation,
+                      action: _action,
+                      outcome: _outcome,
                       enabled: !_busy,
-                      maxLength: 2000,
-                      minLines: 3,
-                      maxLines: 7,
-                      decoration: const InputDecoration(
-                        labelText: '我觀察到的事',
-                        hintText: '例如：今天牠第一次自己走進外出籠',
-                      ),
-                      onChanged: (_) => _changed(),
-                    ),
-                    TextField(
-                      controller: _action,
-                      enabled: !_busy,
-                      maxLength: 500,
-                      minLines: 1,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: '我做過的事（選填）'),
-                      onChanged: (_) => _changed(),
-                    ),
-                    TextField(
-                      controller: _outcome,
-                      enabled: !_busy,
-                      maxLength: 500,
-                      minLines: 1,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: '後來如何（選填）'),
-                      onChanged: (_) => _changed(),
+                      onChanged: _changed,
                     ),
                     Wrap(
                       spacing: 10,

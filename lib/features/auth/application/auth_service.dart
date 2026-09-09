@@ -13,13 +13,16 @@ class AuthService implements CurrentSession {
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
     AccountCleanup? cleanup,
+    AccountCleanup? sessionCleanup,
     FirebaseFunctions? functions,
   }) : _customAuth = auth,
        _customDb = firestore,
        _cleanup = cleanup,
+       _sessionCleanup = sessionCleanup,
        _functions = functions;
   final FirebaseFunctions? _functions;
   final AccountCleanup? _cleanup;
+  final AccountCleanup? _sessionCleanup;
 
   final FirebaseAuth? _customAuth;
   final FirebaseFirestore? _customDb;
@@ -108,11 +111,43 @@ class AuthService implements CurrentSession {
         unawaited(_createMissingUser(userRef, user, generation));
       },
       onError: (Object error, StackTrace stackTrace) {
-        if (generation == _authGeneration) {
-          _userSubject.addError(error, stackTrace);
-        }
+        unawaited(
+          _handleDocumentError(user.uid, generation, error, stackTrace),
+        );
       },
     );
+  }
+
+  Future<void> _handleDocumentError(
+    String uid,
+    int generation,
+    Object error,
+    StackTrace stack,
+  ) async {
+    if (generation != _authGeneration) return;
+    if (error is FirebaseException &&
+        error.code == 'permission-denied' &&
+        _functions != null) {
+      try {
+        final result = await _functions
+            .httpsCallable('getAccountDeletionStatus')
+            .call<Map<String, dynamic>>();
+        if (generation != _authGeneration) return;
+        if (result.data['accepted'] == true) {
+          await _finishAccountDeletion(uid);
+          return;
+        }
+      } catch (_) {}
+    }
+    if (generation == _authGeneration) _userSubject.addError(error, stack);
+  }
+
+  Future<void> _finishAccountDeletion(String uid) async {
+    try {
+      await _cleanup?.clearUser(uid);
+    } finally {
+      if (_auth.currentUser?.uid == uid) await signOut();
+    }
   }
 
   Future<void> _createMissingUser(
@@ -178,6 +213,7 @@ class AuthService implements CurrentSession {
   }
 
   Future<void> signOut() async {
+    final uid = _auth.currentUser?.uid;
     _membershipExpiryTimer?.cancel();
     final generation = ++_authGeneration;
     final previousSubscription = _userDocumentSubscription;
@@ -187,6 +223,7 @@ class AuthService implements CurrentSession {
 
     try {
       await _auth.signOut();
+      if (uid != null) await _sessionCleanup?.clearUser(uid);
     } catch (_) {
       await _switchUserDocument(_auth.currentUser);
       rethrow;
@@ -229,17 +266,22 @@ class AuthService implements CurrentSession {
       await (_functions ?? FirebaseFunctions.instance)
           .httpsCallable('deleteOwnAccount')
           .call();
-    } catch (_) {
-      if (generation == _authGeneration) {
-        await _switchUserDocument(_auth.currentUser);
+    } catch (error) {
+      var accepted = false;
+      try {
+        final status = await (_functions ?? FirebaseFunctions.instance)
+            .httpsCallable('getAccountDeletionStatus')
+            .call<Map<String, dynamic>>();
+        accepted = status.data['accepted'] == true;
+      } catch (_) {}
+      if (!accepted) {
+        if (generation == _authGeneration) {
+          await _switchUserDocument(_auth.currentUser);
+        }
+        rethrow;
       }
-      rethrow;
     }
-    try {
-      await _cleanup?.clearUser(user.uid);
-    } finally {
-      await signOut();
-    }
+    await _finishAccountDeletion(user.uid);
   }
 
   Future<void> dispose() async {

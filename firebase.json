@@ -4,7 +4,8 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/PAWLINK_PRODUCT_BLUEPRINT.md"
     ],
     "rewrites": [
       {
@@ -31,7 +32,12 @@
       "node_modules",
       ".git",
       "firebase-debug.log",
-      "firestore-debug.log"
+      "firestore-debug.log",
+      "test",
+      "*.md",
+      "*.log",
+      ".env.local",
+      ".secret.local"
     ]
   }
 }

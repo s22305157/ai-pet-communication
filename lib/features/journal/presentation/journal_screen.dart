@@ -4,17 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ai_pet_communication/app/injection.dart';
 import '../application/journal_controller.dart';
-import '../data/journal_draft_store.dart';
-import '../data/journal_download.dart';
+import '../domain/journal_drafts.dart';
+import 'journal_download.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_repository.dart';
-import '../../pilot/presentation/pilot_onboarding.dart';
+import 'pilot_onboarding.dart';
 import 'journal_editor.dart';
-import 'journal_image.dart';
+import 'journal_entry_card.dart';
 
 class JournalScreen extends StatefulWidget {
   final JournalRepository? repository;
-  final JournalDraftStore? drafts;
+  final JournalDrafts? drafts;
   const JournalScreen({super.key, this.repository, this.drafts});
   @override
   State<JournalScreen> createState() => _JournalScreenState();
@@ -23,8 +23,7 @@ class JournalScreen extends StatefulWidget {
 class _JournalScreenState extends State<JournalScreen> {
   late final JournalRepository _repository =
       widget.repository ?? getIt<JournalRepository>();
-  late final JournalDraftStore _drafts =
-      widget.drafts ?? getIt<JournalDraftStore>();
+  late final JournalDrafts _drafts = widget.drafts ?? getIt<JournalDrafts>();
   late final JournalController _controller = JournalController(_repository);
   bool _operating = false;
   @override
@@ -62,7 +61,7 @@ class _JournalScreenState extends State<JournalScreen> {
         builder: (_) => JournalEditor(
           repository: _repository,
           drafts: _drafts,
-          petId: _controller.pet!['id'] as String,
+          petId: _controller.pet!.id,
           entry: entry,
         ),
       ),
@@ -110,9 +109,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 onSelected: (value) async {
                   if (value == 'export') {
                     await _operation(() async {
-                      final data = await _repository.call('exportJournal', {
-                        'petId': c.pet!['id'],
-                      });
+                      final data = await _repository.exportJournal(c.pet!.id);
                       if (!_repository.isCurrentSession) return;
                       await downloadJournalFile(
                         Uint8List.fromList(
@@ -130,9 +127,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       '這份日記的全部文字與照片將刪除。原有毛孩檔案與溝通紀錄不受影響。',
                     )) {
                       await _operation(() async {
-                        await _repository.call('deleteJournalPet', {
-                          'petId': c.pet!['id'],
-                        });
+                        await _repository.deletePet(c.pet!.id);
                         await _drafts.clearUser(_repository.uid);
                       });
                     }
@@ -166,55 +161,48 @@ class _JournalScreenState extends State<JournalScreen> {
                               style: const TextStyle(color: Colors.red),
                             ),
                           ),
-                        if (!c.busy &&
-                            c.access.isNotEmpty &&
-                            c.pet == null) ...[
-                          if (c.access['enabled'] != true ||
-                              c.access['invited'] != true)
+                        if (!c.busy && c.access != null && c.pet == null) ...[
+                          if (c.access?.enabled != true ||
+                              c.access?.invited != true)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
                               child: Text('毛孩日記目前採邀請試營運。\n這個帳號尚未開放或資格已到期。'),
                             )
                           else
                             PilotOnboarding(
-                              activated: c.access['activated'] == true,
+                              activated: c.access?.activated == true,
                               existingPets:
                                   getIt.isRegistered<JournalPetBasics>()
                                   ? getIt<JournalPetBasics>()(_repository.uid)
                                   : [],
                               onSubmit:
-                                  (
-                                    name,
-                                    species,
-                                    focus,
-                                    arrivedAt,
-                                    metrics,
-                                  ) => _operation(() async {
-                                    if (c.access['activated'] != true) {
-                                      await _repository.call('activatePilot', {
-                                        'consentVersion': 'journal-m1-v1',
-                                        'metricsConsent': metrics,
-                                      });
-                                    }
-                                    await _repository.call('createJournalPet', {
-                                      'name': name,
-                                      'species': species,
-                                      'focus': focus,
-                                      'arrivedAtMs':
-                                          arrivedAt?.millisecondsSinceEpoch,
-                                    });
-                                  }),
+                                  (name, species, focus, arrivedAt, metrics) =>
+                                      _operation(() async {
+                                        if (c.access?.activated != true) {
+                                          await _repository.activatePilot(
+                                            metricsConsent: metrics,
+                                          );
+                                        }
+                                        await _repository.createPet(
+                                          JournalPetInput(
+                                            name: name,
+                                            species: species,
+                                            focus: focus,
+                                            arrivedAt: arrivedAt,
+                                          ),
+                                        );
+                                      }),
                             ),
                         ],
                         if (c.pet != null) ...[
                           const SizedBox(height: 16),
                           Text(
-                            '${c.pet!['name']} 的相處日記',
+                            '${c.pet!.name} 的相處日記',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '本週記錄 ${c.weekDays} 天 · ${c.pet!['entryCount']}/300 則\n圖片 ${((c.pet!['usedBytes'] as num) / 1048576).toStringAsFixed(1)} / 200 MiB',
+                            '本週記錄 ${c.weekDays} 天 · ${c.pet!.entryCount}/300 則\n圖片 ${(c.pet!.usedBytes / 1048576).toStringAsFixed(1)} / 200 MiB',
                           ),
                           const Text('私人雲端日記 · 照片可點選放大與下載'),
                           if (!c.canWrite)
@@ -299,104 +287,32 @@ class _JournalScreenState extends State<JournalScreen> {
                               child: Text('這裡還沒有紀錄。今天的一件小事，就能成為開始。'),
                             ),
                           ...c.entries.map(
-                            (entry) => Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${DateFormat('yyyy/MM/dd HH:mm').format(entry.occurredAt)} · ${entry.context}',
-                                          ),
-                                        ),
-                                        PopupMenuButton<String>(
-                                          enabled: !c.busy && !_operating,
-                                          onSelected: (value) async {
-                                            if (value == 'edit') {
-                                              await _edit(entry);
-                                            } else if (await _confirm(
-                                              '刪除這則日記？',
-                                              '文字與照片將刪除，無法復原。',
-                                            )) {
-                                              await _operation(() async {
-                                                await _repository.call(
-                                                  'deleteJournalEntry',
-                                                  {
-                                                    'petId': c.pet!['id'],
-                                                    'entryId': entry.id,
-                                                    'expectedRevision':
-                                                        entry.revision,
-                                                  },
-                                                );
-                                                await _drafts.remove(
-                                                  _repository.uid,
-                                                  c.pet!['id'] as String,
-                                                  entry.id,
-                                                );
-                                              });
-                                            }
-                                          },
-                                          itemBuilder: (_) => [
-                                            if (c.canWrite)
-                                              const PopupMenuItem(
-                                                value: 'edit',
-                                                child: Text('編輯'),
-                                              ),
-                                            const PopupMenuItem(
-                                              value: 'delete',
-                                              child: Text('刪除'),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    if (entry.observation.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: SelectableText(
-                                          entry.observation,
-                                        ),
-                                      ),
-                                    if (entry.action.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: SelectableText(
-                                          '我做過的事\n${entry.action}',
-                                        ),
-                                      ),
-                                    if (entry.outcome.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: SelectableText(
-                                          '後來如何\n${entry.outcome}',
-                                        ),
-                                      ),
-                                    if (entry.mediaIds.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 12),
-                                        child: Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: entry.mediaIds
-                                              .map(
-                                                (id) => JournalImage(
-                                                  key: ValueKey(
-                                                    '${entry.revision}/$id',
-                                                  ),
-                                                  repository: _repository,
-                                                  mediaId: id,
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
+                            (entry) => JournalEntryCard(
+                              entry: entry,
+                              repository: _repository,
+                              enabled: !c.busy && !_operating,
+                              canWrite: c.canWrite,
+                              onSelected: (value) async {
+                                if (value == 'edit') {
+                                  await _edit(entry);
+                                } else if (await _confirm(
+                                  '刪除這則日記？',
+                                  '文字與照片將刪除，無法復原。',
+                                )) {
+                                  await _operation(() async {
+                                    await _repository.deleteEntry(
+                                      petId: c.pet!.id,
+                                      entryId: entry.id,
+                                      expectedRevision: entry.revision,
+                                    );
+                                    await _drafts.remove(
+                                      _repository.uid,
+                                      c.pet!.id,
+                                      entry.id,
+                                    );
+                                  });
+                                }
+                              },
                             ),
                           ),
                           if (c.cursor != null)

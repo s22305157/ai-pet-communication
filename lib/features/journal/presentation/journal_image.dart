@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../domain/journal_repository.dart';
-import '../data/journal_download.dart';
+import 'journal_download.dart';
 
 class JournalImage extends StatefulWidget {
   final JournalRepository repository;

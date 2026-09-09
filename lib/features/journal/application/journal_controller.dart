@@ -5,10 +5,10 @@ import '../domain/journal_repository.dart';
 class JournalController extends ChangeNotifier {
   final JournalRepository repository;
   JournalController(this.repository);
-  Map<String, dynamic> access = {};
-  Map<String, dynamic>? pet;
+  PilotAccess? access;
+  JournalPet? pet;
   List<JournalEntry> entries = [];
-  Map<String, dynamic>? cursor;
+  JournalCursor? cursor;
   int weekDays = 0;
   String? contextFilter;
   DateTime? from;
@@ -18,9 +18,9 @@ class JournalController extends ChangeNotifier {
   bool _disposed = false;
   int _generation = 0;
   bool get canWrite =>
-      access['invited'] == true &&
-      access['enabled'] == true &&
-      access['activated'] == true;
+      access?.invited == true &&
+      access?.enabled == true &&
+      access?.activated == true;
 
   bool _current(int generation) =>
       !_disposed && generation == _generation && repository.isCurrentSession;
@@ -30,35 +30,25 @@ class JournalController extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final newAccess = await repository.call('getPilotAccess');
-      final home = await repository.call('getJournalHome');
+      final newAccess = await repository.getPilotAccess();
+      final home = await repository.getJournalHome();
       if (!_current(generation)) return;
       access = newAccess;
-      pet = home['pet'] == null
-          ? null
-          : Map<String, dynamic>.from(home['pet'] as Map);
-      weekDays = home['weekDays'] as int? ?? 0;
+      pet = home.pet;
+      weekDays = home.weekDays;
       if (pet != null) {
-        final result = await repository.call('listJournalEntries', {
-          'petId': pet!['id'],
-          if (contextFilter != null) 'context': contextFilter,
-          if (from != null) 'fromMs': from!.millisecondsSinceEpoch,
-          if (to != null)
-            'toMs': to!.isAfter(DateTime.now())
-                ? DateTime.now().millisecondsSinceEpoch
-                : to!.millisecondsSinceEpoch,
-          if (more && cursor != null) 'cursor': cursor,
-        });
+        final result = await repository.listEntries(
+          petId: pet!.id,
+          context: contextFilter,
+          from: from,
+          to: to == null
+              ? null
+              : (to!.isAfter(DateTime.now()) ? DateTime.now() : to),
+          cursor: more ? cursor : null,
+        );
         if (!_current(generation)) return;
-        final rows = (result['items'] as List)
-            .map(
-              (e) => JournalEntry.fromMap(Map<String, dynamic>.from(e as Map)),
-            )
-            .toList();
-        entries = more ? [...entries, ...rows] : rows;
-        cursor = result['cursor'] == null
-            ? null
-            : Map<String, dynamic>.from(result['cursor'] as Map);
+        entries = more ? [...entries, ...result.items] : result.items;
+        cursor = result.cursor;
       } else {
         entries = [];
         cursor = null;
@@ -87,7 +77,7 @@ String journalError(Object error) {
   if (message.contains('permission-denied')) return '此帳號目前無法寫入日記，請確認試營運資格。';
   if (message.contains('aborted')) return '雲端已有新版本，請重新載入後再編輯；本機草稿已保留。';
   if (message.contains('resource-exhausted')) {
-    return '已達日記或圖片空間上限；草稿已保留，可刪除舊資料後重試。';
+    return '已達使用量上限或操作太頻繁；草稿已保留，請稍後重試。';
   }
   if (message.contains('unavailable') ||
       message.contains('deadline-exceeded')) {

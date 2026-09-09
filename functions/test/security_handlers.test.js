@@ -68,27 +68,18 @@ test('delete handler persists avatar for cleanup retries', async () => {
   assert.equal(h.docs.get('petTombstones/p').avatar_url, avatar);
   assert.equal(h.docs.has('pets/p'), false);
 });
-test('account deletion freezes writes before enumeration and tolerates deleted Auth user on retry', async () => {
-  let frozen = false;
-  const order = [];
-  const missingUser = Object.assign(new Error('gone'), {code: 'auth/user-not-found'});
-  const db = {
-    collection: () => ({
-      doc: () => ({set: async () => { frozen = true; order.push('freeze'); }, delete: async () => {}}),
-      where: () => ({get: async () => { assert.equal(frozen, true); order.push('list'); return {docs: []}; }}),
-    }),
-    recursiveDelete: async () => { assert.equal(frozen, true); },
-  };
+test('account deletion callable requires recent login and only queues work', async () => {
+  const queued = [];
   const handler = load('account_operations.js', {
-    './journal_account_cleanup': {deleteLinkedJournals: async () => { assert.equal(frozen, true); }},
-    'firebase-admin/auth': {getAuth: () => ({revokeRefreshTokens: async () => { throw missingUser; }, deleteUser: async () => { throw missingUser; }})},
-    'firebase-admin/firestore': {getFirestore: () => db, FieldValue: {serverTimestamp: () => 1}},
-    'firebase-admin/storage': {getStorage: () => ({bucket: () => ({deleteFiles: async () => { assert.equal(frozen, true); }})})},
+    'firebase-admin/firestore': {},
+    'firebase-admin/storage': {},
+    './account_deletion_runtime': {service: () => ({enqueue: async uid => { queued.push(uid); return {accepted: true}; }})},
     'firebase-functions/v2/https': {onCall: (_, handler) => handler, HttpsError},
   }).deleteOwnAccount;
-  const result = await handler({auth: {uid: 'a', token: {auth_time: Math.floor(Date.now()/1000)}}});
-  assert.equal(result.deleted, true);
-  assert.deepEqual(order, ['freeze', 'list']);
+  await assert.rejects(handler({}), {code: 'unauthenticated'});
+  await assert.rejects(handler({auth: {uid: 'a', token: {auth_time: 1}}}), {code: 'failed-precondition'});
+  assert.equal((await handler({auth: {uid: 'a', token: {auth_time: Math.floor(Date.now()/1000)}}})).accepted, true);
+  assert.deepEqual(queued, ['a']);
 });
 function proxyHarness({deleted = false, count = 0, response} = {}) {
   let fetches = 0;

@@ -1,4 +1,3 @@
-const {getAuth} = require("firebase-admin/auth");
 const {getFirestore, FieldValue} = require("firebase-admin/firestore");
 const {getStorage} = require("firebase-admin/storage");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
@@ -63,7 +62,7 @@ exports.deletePetData = onCall({maxInstances: 20}, async (request) => {
 
 exports.deleteOwnAccount = onCall({
   maxInstances: 10,
-  timeoutSeconds: 540,
+  timeoutSeconds: 30,
 }, async (request) => {
   const uid = request.auth && request.auth.uid;
   if (!uid) {
@@ -79,37 +78,10 @@ exports.deleteOwnAccount = onCall({
     );
   }
 
-  const db = getFirestore();
-  const userRef = db.collection("users").doc(uid);
-  const tombstoneRef = db.collection("_deletedUsers").doc(uid);
-
-  // 先建立不可由客戶端移除的 tombstone，避免持有舊 ID token 的帳號
-  // 刪除後立刻重建 users/{uid} 來重領初始點數。
-  await tombstoneRef.set({deletedAt: FieldValue.serverTimestamp()});
-  try {
-    await getAuth().revokeRefreshTokens(uid).catch((error) => {
-      if (error.code !== 'auth/user-not-found') throw error;
-    });
-    const pets = await db.collection("pets")
-      .where("owner_id", "==", uid)
-      .get();
-    for (const pet of pets.docs) {
-      await db.collection("petTombstones").doc(pet.id).set({
-        owner_id: uid,
-        deleted_at: FieldValue.serverTimestamp(),
-      });
-      await db.recursiveDelete(pet.ref);
-    }
-    await getStorage().bucket().deleteFiles({prefix: `pets/${uid}/`});
-    await db.collection("_proxyRateLimits").doc(uid).delete();
-    await require('./journal_account_cleanup').deleteLinkedJournals(db, getStorage().bucket(), uid);
-    await db.recursiveDelete(userRef);
-    await getAuth().deleteUser(uid).catch((error) => {
-      if (error.code !== 'auth/user-not-found') throw error;
-    });
-  } catch (error) {
-    throw new HttpsError("internal", "Account deletion failed");
-  }
-
-  return {deleted: true};
+  return require('./account_deletion_runtime').service().enqueue(uid);
+});
+exports.getAccountDeletionStatus = onCall({maxInstances: 10}, async request => {
+  if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Authentication required');
+  const job = await getFirestore().collection('_accountDeletionJobs').doc(request.auth.uid).get();
+  return {accepted: job.exists, status: job.get('status') || 'none'};
 });

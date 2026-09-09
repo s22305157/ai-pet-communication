@@ -6,7 +6,6 @@ const logger = require("firebase-functions/logger");
 const creditOperations = require("./credit_operations");
 const accountOperations = require("./account_operations");
 const {assertActiveAccount} = require('./account_access');
-const knowledgeRetrieval = require("./knowledge_retrieval");
 const {
   TargetValidationError,
   parseAllowedTarget,
@@ -216,7 +215,11 @@ exports.releaseExpiredCommunicationCredits =
   creditOperations.releaseExpiredCommunicationCredits;
 exports.deleteOwnAccount = accountOperations.deleteOwnAccount;
 exports.deletePetData = accountOperations.deletePetData;
-exports.retrieveKnowledge = knowledgeRetrieval.retrieveKnowledge;
+// Keep a rejecting legacy endpoint until the deployed function is explicitly retired.
+exports.retrieveKnowledge = require('./knowledge_retired').retrieveKnowledge;
+exports.getAccountDeletionStatus = accountOperations.getAccountDeletionStatus;
+exports.processAccountDeletion = require('./account_deletion_runtime').processAccountDeletion;
+exports.retryAccountDeletions = require('./account_deletion_runtime').retryAccountDeletions;
 exports.communicateWithPet = require('./ai_operations').communicateWithPet;
 const subscriptions = require('./subscription_operations');
 exports.syncSubscription = subscriptions.syncSubscription;

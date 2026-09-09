@@ -1,3 +1,5 @@
+import 'package:mocktail/mocktail.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -9,7 +11,9 @@ import 'package:ai_pet_communication/features/journal/domain/journal_entry.dart'
 import 'package:ai_pet_communication/features/journal/domain/journal_repository.dart';
 import 'package:ai_pet_communication/features/journal/presentation/journal_editor.dart';
 import 'package:ai_pet_communication/features/journal/presentation/journal_screen.dart';
-import 'package:ai_pet_communication/features/pilot/presentation/pilot_onboarding.dart';
+import 'package:ai_pet_communication/features/journal/presentation/pilot_onboarding.dart';
+
+class MockSecureStorage extends Mock implements FlutterSecureStorage {}
 
 class TestJournalRepository implements JournalRepository {
   @override
@@ -18,7 +22,6 @@ class TestJournalRepository implements JournalRepository {
   bool isCurrentSession = true;
   final calls = <String>[];
   Future<Map<String, dynamic>> Function(String, Map<String, dynamic>)? handler;
-  @override
   Future<Map<String, dynamic>> call(
     String action, [
     Map<String, dynamic> data = const {},
@@ -35,6 +38,68 @@ class TestJournalRepository implements JournalRepository {
       _ => {},
     };
   }
+
+  @override
+  Future<PilotAccess> getPilotAccess() async =>
+      PilotAccess.fromMap(await call('getPilotAccess'));
+  @override
+  Future<JournalHome> getJournalHome() async =>
+      JournalHome.fromMap(await call('getJournalHome'));
+  @override
+  Future<JournalPage> listEntries({
+    required String petId,
+    String? context,
+    DateTime? from,
+    DateTime? to,
+    JournalCursor? cursor,
+  }) async => JournalPage.fromMap(
+    await call('listJournalEntries', {
+      'petId': petId,
+      'context': ?context,
+      if (from != null) 'fromMs': from.millisecondsSinceEpoch,
+      if (to != null) 'toMs': to.millisecondsSinceEpoch,
+      if (cursor != null) 'cursor': cursor.toMap(),
+    }),
+  );
+  @override
+  Future<void> activatePilot({required bool metricsConsent}) async {
+    await call('activatePilot', {
+      'consentVersion': 'journal-m1-v1',
+      'metricsConsent': metricsConsent,
+    });
+  }
+
+  @override
+  Future<void> createPet(JournalPetInput input) async {
+    await call('createJournalPet', input.toMap());
+  }
+
+  @override
+  Future<void> saveEntry(JournalEntryInput input) async {
+    await call('upsertJournalEntry', input.toMap());
+  }
+
+  @override
+  Future<void> deleteEntry({
+    required String petId,
+    required String entryId,
+    required int expectedRevision,
+  }) async {
+    await call('deleteJournalEntry', {
+      'petId': petId,
+      'entryId': entryId,
+      'expectedRevision': expectedRevision,
+    });
+  }
+
+  @override
+  Future<void> deletePet(String petId) async {
+    await call('deleteJournalPet', {'petId': petId});
+  }
+
+  @override
+  Future<Map<String, dynamic>> exportJournal(String petId) =>
+      call('exportJournal', {'petId': petId});
 
   @override
   Future<Uint8List> image(String mediaId) async => Uint8List(0);
@@ -79,6 +144,7 @@ void main() {
   });
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
   });
   test(
     'drafts isolate accounts, serialize writes and clear only the deleted account',
@@ -95,6 +161,47 @@ void main() {
       expect((await store.read('b', 'p', 'new'))!['observation'], 'private B');
     },
   );
+  test(
+    'legacy plaintext draft migrates before deletion and new drafts never use preferences',
+    () async {
+      const key = 'journalDraft/a/p/new';
+      SharedPreferences.setMockInitialValues({
+        key: '{"observation":"private"}',
+      });
+      final store = JournalDraftStore();
+      expect((await store.read('a', 'p', 'new'))!['observation'], 'private');
+      expect((await SharedPreferences.getInstance()).containsKey(key), false);
+      await store.save('a', 'p', 'new', {'observation': 'new private'});
+      expect((await SharedPreferences.getInstance()).getKeys(), isEmpty);
+      await store.clearUser('a');
+      expect(await store.read('a', 'p', 'new'), isNull);
+    },
+  );
+  test(
+    'failed encrypted migration preserves the original plaintext draft',
+    () async {
+      const key = 'journalDraft/a/p/new';
+      SharedPreferences.setMockInitialValues({
+        key: '{"observation":"retain me"}',
+      });
+      final storage = MockSecureStorage();
+      when(
+        () => storage.read(key: any(named: 'key')),
+      ).thenAnswer((_) async => null);
+      when(
+        () => storage.write(
+          key: any(named: 'key'),
+          value: any(named: 'value'),
+        ),
+      ).thenThrow(StateError('device locked'));
+      final store = JournalDraftStore(storage: storage);
+      await expectLater(store.read('a', 'p', 'new'), throwsStateError);
+      expect(
+        (await SharedPreferences.getInstance()).getString(key),
+        '{"observation":"retain me"}',
+      );
+    },
+  );
   test('controller suppresses old session results', () async {
     final repo = TestJournalRepository();
     final pending = Completer<Map<String, dynamic>>();
@@ -106,7 +213,7 @@ void main() {
     repo.isCurrentSession = false;
     pending.complete({'invited': true});
     await load;
-    expect(controller.access, isEmpty);
+    expect(controller.access, isNull);
     expect(controller.pet, isNull);
     controller.dispose();
   });

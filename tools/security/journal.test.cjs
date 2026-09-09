@@ -275,3 +275,40 @@ test('admin capability is a custom claim; invitation updates never rewrite trial
   await denied(call('upsertJournalEntry', entry(pid)));
   assert.ok((await call('exportJournal', {petId: pid})).entries);
 });
+
+test('deleting a journal permits immediate recreation and cleanup cannot remove the new pet', async () => {
+  const oldId = await pet();
+  await call('upsertJournalEntry', entry(oldId));
+  await call('deleteJournalPet', {petId: oldId});
+  assert.equal((await call('getJournalHome')).pet, null);
+  const newId = (await call('createJournalPet', {name:'new', species:'兔', focus:'毛孩到家'})).petId;
+  assert.notEqual(newId, oldId);
+  assert.equal((await call('getJournalHome')).pet.id, newId);
+  await service.sweep();
+  assert.equal((await call('getJournalHome')).pet.id, newId);
+  await denied(call('upsertJournalEntry', entry(oldId)), 'not-found');
+});
+
+test('durable account job freezes rules and recovers a partially removed pet using tombstones', async () => {
+  const {createAccountDeletionService} = require('../../functions/account_deletion_service');
+  const {deleteLinkedJournals} = require('../../functions/journal_account_cleanup');
+  const pid = await pet();
+  await call('upsertJournalEntry', entry(pid));
+  await db.doc('petTombstones/orphan').set({owner_id:'a'});
+  await db.doc('pets/orphan/readings/leftover').set({content:'private'});
+  let fail = true, deleted = false;
+  const worker = createAccountDeletionService({db, bucket, journals: async (...args) => {
+    if (fail) { fail = false; throw Error('injected'); }
+    return deleteLinkedJournals(...args);
+  }, auth: {revokeRefreshTokens: async () => {}, deleteUser: async () => { deleted = true; }}});
+  await worker.enqueue('a');
+  await assertFails(getDoc(doc(env.authenticatedContext('a').firestore(), 'users/a')));
+  await assert.rejects(worker.run('a'), /injected/);
+  assert.equal(deleted, false);
+  assert.equal((await db.doc('pets/orphan/readings/leftover').get()).exists, false);
+  await worker.run('a');
+  assert.equal(deleted, true);
+  assert.equal((await db.doc('_accountDeletionJobs/a').get()).get('status'), 'complete');
+  assert.equal((await db.doc('users/a').get()).exists, false);
+  assert.equal((await db.doc('pilotParticipants/a').get()).exists, false);
+});

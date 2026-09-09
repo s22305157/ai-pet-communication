@@ -54,6 +54,8 @@ dependencies:
   rxdart: ^0.28.0
   web: ^1.1.1
   get_it: ^7.7.0
+  firebase_app_check: ^0.4.7
+  flutter_secure_storage: ^11.0.0
 
 
 dev_dependencies:
@@ -71,10 +73,6 @@ dev_dependencies:
   build_runner: ^2.4.13
   mocktail: ^1.0.5
 
-# firebase_core_web 3.11.0 uses a Dart 3.12-only JS interop extension despite
-# declaring an older SDK floor. Keep Functions 6.4 while this app uses Dart 3.11.
-dependency_overrides:
-  firebase_core_web: 3.10.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

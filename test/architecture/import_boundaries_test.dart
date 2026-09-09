@@ -1,9 +1,20 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('feature import boundaries remain explicit', () {
     final violations = <String>[];
+    // Exact legacy edges are frozen; journal code has no exceptions.
+    final legacy =
+        (jsonDecode(
+                  File(
+                    'test/architecture/legacy_imports.json',
+                  ).readAsStringSync(),
+                )
+                as List)
+            .cast<String>()
+            .toSet();
     for (final file in Directory(
       'lib',
     ).listSync(recursive: true).whereType<File>()) {
@@ -31,6 +42,22 @@ void main() {
                   .normalizePath()
                   .path
                   .replaceAll('\\', '/');
+        final edge = '$path -> $uri';
+        final layer = RegExp(
+          r'features/([^/]+)/(data|presentation)/',
+        ).firstMatch(resolved);
+        if (layer != null && feature != null) {
+          final invalid =
+              ((path.contains('/application/') ||
+                      path.contains('/presentation/')) &&
+                  layer[2] == 'data') ||
+              (path.contains('/presentation/') &&
+                  layer[2] == 'presentation' &&
+                  layer[1] != feature);
+          if (invalid && (!legacy.contains(edge) || feature == 'journal')) {
+            violations.add('$path: layer boundary imports $uri');
+          }
+        }
         final dependency = RegExp(
           r'features/([^/]+)/data/',
         ).firstMatch(resolved);

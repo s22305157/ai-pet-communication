@@ -52,3 +52,19 @@ app.*.map.json
 functions/.env*
 functions/.secret.local
 !functions/.env.example
+# Internal product blueprint: local reference only, never publish.
+/docs/PAWLINK_PRODUCT_BLUEPRINT.md
+
+# Local minimum-SDK compatibility override; stable CI must not inherit it.
+/pubspec_overrides.yaml
+
+# Isolated, checksum-verified test runtimes.
+/scratch/review-runtime/
+
+# Internal working documents and local operation records are not published.
+/scratch/
+/ADS.md
+/SECURITY_FIX_REPORT_2026-09-08.md
+/SECURITY_STRUCTURE_RECHECK_2026-09-08.md
+/STRUCTURE_REVIEW_2026-09-08.md
+/docs/REVIEW_FIXES_0.2.8.md

@@ -383,7 +383,7 @@ class ProfileScreen extends StatelessWidget {
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          '確定要永久刪除帳號嗎？此操作不可逆，您的所有資料與點數都將被清除。',
+          '確定要永久刪除帳號嗎？送出後會登出並停用帳號，後端將持續清除資料與點數，失敗會自動重試。此操作不可逆。',
           style: GoogleFonts.outfit(),
         ),
         actions: [

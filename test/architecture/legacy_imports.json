@@ -1,0 +1,22 @@
+[
+  "lib/features/auth/application/auth_service.dart -> ../data/user_mapper.dart",
+  "lib/features/chat/application/chat_controller.dart -> package:ai_pet_communication/features/chat/data/chat_service.dart",
+  "lib/features/chat/presentation/communication_result_screen.dart -> package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart",
+  "lib/features/chat/presentation/communication_result_screen.dart -> package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart",
+  "lib/features/home/presentation/controllers/home_controller.dart -> package:ai_pet_communication/features/pet/presentation/pet_form_sheet.dart",
+  "lib/features/home/presentation/home_screen.dart -> package:ai_pet_communication/features/journal/presentation/journal_screen.dart",
+  "lib/features/home/presentation/widgets/home_pet_list.dart -> ../../../../../features/pet/presentation/pet_detail_screen.dart",
+  "lib/features/home/presentation/widgets/home_pet_list.dart -> ../../../../../features/pet/presentation/pet_form_sheet.dart",
+  "lib/features/home/presentation/widgets/home_top_bar.dart -> package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart",
+  "lib/features/home/presentation/widgets/home_top_bar.dart -> package:ai_pet_communication/features/profile/presentation/profile_screen.dart",
+  "lib/features/pet/application/pet_stream_watcher.dart -> package:ai_pet_communication/features/pet/data/local_pet_service.dart",
+  "lib/features/pet/application/pet_stream_watcher.dart -> package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart",
+  "lib/features/pet/application/pet_sync_manager.dart -> package:ai_pet_communication/features/pet/data/local_pet_service.dart",
+  "lib/features/pet/application/pet_sync_manager.dart -> package:ai_pet_communication/features/pet/data/sources/pet_remote_data_source.dart",
+  "lib/features/pet/presentation/controllers/pet_detail_controller.dart -> package:ai_pet_communication/features/chat/presentation/pet_communication_input_screen.dart",
+  "lib/features/pet/presentation/pet_detail_screen.dart -> package:ai_pet_communication/features/readings/presentation/widgets/pet_readings_section.dart",
+  "lib/features/profile/presentation/profile_screen.dart -> package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart",
+  "lib/features/readings/presentation/reading_detail_screen.dart -> ../../chat/presentation/communication_display.dart",
+  "lib/features/readings/presentation/reading_detail_screen.dart -> ../../chat/presentation/communication_result_screen.dart",
+  "lib/features/readings/presentation/widgets/reading_list_tile.dart -> ../../../chat/presentation/communication_display.dart"
+]

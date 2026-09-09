@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:cloud_functions/cloud_functions.dart';
-
 typedef KnowledgeIndexLoader = Future<String> Function();
 
 class KnowledgeHit {
@@ -72,16 +70,11 @@ class KnowledgeRetrievalService {
     '老貓': '高齡貓',
   };
 
-  final KnowledgeIndexLoader? _loader;
-  final FirebaseFunctions? _functions;
+  final KnowledgeIndexLoader _loader;
   Future<Map<String, dynamic>>? _cachedIndex;
 
-  KnowledgeRetrievalService({
-    KnowledgeIndexLoader? loader,
-    FirebaseFunctions? functions,
-  }) : _loader = loader,
-       _functions =
-           functions ?? (loader == null ? FirebaseFunctions.instance : null);
+  KnowledgeRetrievalService({required KnowledgeIndexLoader loader})
+    : _loader = loader;
 
   Future<List<KnowledgeHit>> search({
     required String query,
@@ -89,9 +82,7 @@ class KnowledgeRetrievalService {
     int limit = 4,
   }) async {
     if (query.trim().isEmpty || limit <= 0) return const [];
-    if (_loader == null) {
-      return _searchRemote(query: query, species: species, limit: limit);
-    }
+
     final index = await _loadIndex();
     final chunks = (index['chunks'] as List).cast<Map<String, dynamic>>();
     final invertedIndex = (index['inverted_index'] as Map<String, dynamic>).map(
@@ -167,34 +158,12 @@ class KnowledgeRetrievalService {
         .toList(growable: false);
   }
 
-  Future<List<KnowledgeHit>> _searchRemote({
-    required String query,
-    required String species,
-    required int limit,
-  }) async {
-    final result = await _functions!.httpsCallable('retrieveKnowledge').call({
-      'query': query,
-      'species': species,
-      'limit': limit.clamp(1, 5),
-    });
-    final data = Map<String, dynamic>.from(result.data as Map);
-    final hits = data['hits'];
-    if (hits is! List) {
-      throw const FormatException('Invalid knowledge response');
-    }
-    return hits
-        .map(
-          (hit) => KnowledgeHit.fromMap(Map<String, dynamic>.from(hit as Map)),
-        )
-        .toList(growable: false);
-  }
-
   Future<Map<String, dynamic>> _loadIndex() {
     return _cachedIndex ??= _readAndValidateIndex();
   }
 
   Future<Map<String, dynamic>> _readAndValidateIndex() async {
-    final decoded = jsonDecode(await _loader!());
+    final decoded = jsonDecode(await _loader());
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('RAG index root must be an object');
     }

@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/journal/domain/journal_drafts.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_cleanup_repository.dart';
 import 'package:ai_pet_communication/app/account_data_cleanup.dart';
 import 'package:get_it/get_it.dart';
@@ -29,7 +30,6 @@ import 'package:ai_pet_communication/features/readings/data/local_readings_repos
 import 'package:ai_pet_communication/features/readings/data/account_readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
 import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
-import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
 import 'package:ai_pet_communication/services/credit_service.dart';
 
@@ -37,6 +37,7 @@ final getIt = GetIt.instance;
 
 void setupDependencies() {
   getIt.registerLazySingleton<JournalDraftStore>(() => JournalDraftStore());
+  getIt.registerLazySingleton<JournalDrafts>(() => getIt<JournalDraftStore>());
   getIt.registerLazySingleton<JournalPetBasics>(
     () =>
         (uid) => getIt<LocalPetService>()
@@ -68,6 +69,7 @@ void setupDependencies() {
   );
   getIt.registerLazySingleton<AuthService>(
     () => AuthService(
+      sessionCleanup: getIt<JournalDraftStore>(),
       functions: getIt<FirebaseFunctions>(),
       cleanup: AccountDataCleanup([
         getIt<LocalPetService>(),
@@ -149,9 +151,6 @@ void setupDependencies() {
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
   getIt.registerLazySingleton<ChatService>(
     () => ChatService(functions: getIt<FirebaseFunctions>()),
-  );
-  getIt.registerLazySingleton<KnowledgeRetrievalService>(
-    () => KnowledgeRetrievalService(functions: getIt<FirebaseFunctions>()),
   );
 
   getIt.registerLazySingleton<ReadingsRepository>(

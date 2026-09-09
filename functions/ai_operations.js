@@ -122,7 +122,7 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
   };
 }
 
-exports.communicateWithPet = onCall({maxInstances: 3, concurrency: 10, timeoutSeconds: 90,
+exports.communicateWithPet = onCall({enforceAppCheck: require('./callable_policy').enforceAppCheck, maxInstances: 3, concurrency: 10, timeoutSeconds: 90,
   secrets: [apiKey, 'KB_ENCRYPTION_KEY']}, request => createHandler({
   db: getFirestore(), config: () => ({enabled: enabled.value(), allAuthenticated: allAuthenticated.value(),
     model: model.value(), apiKey: apiKey.value(),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../journal/domain/journal_entry.dart';
+import '../domain/journal_entry.dart';
 
 class PilotOnboarding extends StatefulWidget {
   final bool activated;

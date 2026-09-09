@@ -27,13 +27,26 @@ jobs:
       - name: Journal M0-M1 callable and storage integration
         run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal.test.cjs"
   flutter:
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [minimum, stable]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.7'
+          flutter-version: ${{ matrix.sdk == 'minimum' && '3.41.7' || '' }}
+          channel: stable
           cache: true
+      - name: Minimum SDK compatibility override
+        if: matrix.sdk == 'minimum'
+        run: |
+          printf 'dependency_overrides:\n  firebase_core_web: 3.10.0\n' > pubspec_overrides.yaml
+      - name: Resolve stable without SDK workaround
+        if: matrix.sdk == 'stable'
+        run: flutter pub upgrade firebase_core_web
+      - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub

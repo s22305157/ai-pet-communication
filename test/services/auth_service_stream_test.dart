@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/core/storage/account_cleanup.dart';
 import 'dart:async';
 
 import 'package:ai_pet_communication/models/user_model.dart';
@@ -8,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
+
+class MockCleanup extends Mock implements AccountCleanup {}
 
 class MockUser extends Mock implements User {}
 
@@ -28,6 +31,27 @@ Map<String, dynamic> userData({
 }
 
 void main() {
+  test(
+    'signout invalidates the session before clearing only its private drafts',
+    () async {
+      final auth = MockFirebaseAuth();
+      final user = MockUser();
+      final cleanup = MockCleanup();
+      User? current = user;
+      when(() => user.uid).thenReturn('a');
+      when(() => auth.currentUser).thenAnswer((_) => current);
+      when(() => auth.signOut()).thenAnswer((_) async {
+        current = null;
+      });
+      when(() => cleanup.clearUser('a')).thenAnswer((_) async {
+        expect(current, isNull);
+      });
+      final service = AuthService(auth: auth, sessionCleanup: cleanup);
+      await service.signOut();
+      verify(() => cleanup.clearUser('a')).called(1);
+      await service.dispose();
+    },
+  );
   test('emits updated user after onboarding Firestore update', () async {
     const uid = 'user-a';
     final firestore = FakeFirebaseFirestore();
