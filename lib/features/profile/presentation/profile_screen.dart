@@ -360,7 +360,7 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  '版本號 0.2.7',
+                  '版本號 0.2.8',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: AppColors.textSecondary.withValues(alpha: 0.5),
