@@ -7,14 +7,11 @@ const {generate} = require('./openai_provider');
 const {searchKnowledge} = require('./knowledge_retrieval');
 const {effectiveTier} = require('./subscription_policy');
 
-const apiKey = defineSecret('OPENAI_API_KEY');
-// The existing OPENAI_API_KEY was supplied for GPT-5.4 mini (Free / Plus).
-const apiKeyPro = defineSecret('OPENAI_API_KEY_PRO');
+// Reuse the existing Luna credential for every tier; keep it in Secret Manager.
+const apiKey = defineSecret('OPENAI_API_KEY_PRO');
 const enabled = defineBoolean('AI_ENABLED', {default: false});
 const allAuthenticated = defineBoolean('AI_ALL_AUTHENTICATED', {default: false});
-const modelFree = defineString('OPENAI_MODEL_FREE', {default: 'gpt-5.4-mini'});
-const modelPlus = defineString('OPENAI_MODEL_PLUS', {default: 'gpt-5.4-mini'});
-const modelPro = defineString('OPENAI_MODEL_PRO', {default: 'gpt-5.6-luna'});
+const model = defineString('OPENAI_MODEL', {default: 'gpt-5.6-luna'});
 const allowedUids = defineString('AI_ALLOWED_UIDS', {default: ''});
 
 // Dependency injection keeps authorization, concurrency and billing testable offline.
@@ -57,11 +54,11 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
       }
       if (!['free', 'plus', 'pro'].includes(user.get('membershipTier'))) throw new HttpsError('permission-denied', '此方案尚未開放 AI 溝通');
       const tier = effectiveTier(user.data(), timestamp);
-      const selectedModel = settings.models[tier]?.trim();
-      if (!selectedModel) throw new HttpsError('failed-precondition', '此方案的 AI 模型尚未設定');
-      const selectedKey = settings.apiKeys?.[tier];
+      const selectedModel = settings.model?.trim();
+      if (!selectedModel) throw new HttpsError('failed-precondition', 'AI 模型尚未設定');
+      const selectedKey = settings.apiKey;
       if (typeof selectedKey !== 'string' || !selectedKey.trim()) {
-        throw new HttpsError('failed-precondition', '此方案的 AI 金鑰尚未設定');
+        throw new HttpsError('failed-precondition', 'AI 金鑰尚未設定');
       }
       if (tier !== 'free' && !pet.exists) throw new HttpsError('not-found', '請先同步毛孩檔案');
       const q = quota.data() || {};
@@ -90,7 +87,7 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
         const knowledge = await retrieve({query: [input.request.petProfile.species,
           input.request.ownerProfile.mainConcern, input.request.story, ...input.request.questions].join(' ').slice(0, 7000),
         species: input.request.petProfile.species, limit: 4});
-        value = await provider({apiKey: settings.apiKeys[claim.tier], model: claim.model,
+        value = await provider({apiKey: settings.apiKey, model: claim.model,
           request: input.request, decision, knowledge});
       }
       const response = JSON.stringify(value);
@@ -116,10 +113,9 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
 }
 
 exports.communicateWithPet = onCall({maxInstances: 3, concurrency: 10, timeoutSeconds: 90,
-  secrets: [apiKey, apiKeyPro, 'KB_ENCRYPTION_KEY']}, request => createHandler({
+  secrets: [apiKey, 'KB_ENCRYPTION_KEY']}, request => createHandler({
   db: getFirestore(), config: () => ({enabled: enabled.value(), allAuthenticated: allAuthenticated.value(),
-    models: {free: modelFree.value(), plus: modelPlus.value(), pro: modelPro.value()},
-    apiKeys: {free: apiKey.value(), plus: apiKey.value(), pro: apiKeyPro.value()},
+    model: model.value(), apiKey: apiKey.value(),
     allowedUids: allowedUids.value()}),
 })(request));
 exports.createHandler = createHandler;

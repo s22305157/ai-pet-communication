@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart';
 import 'package:ai_pet_communication/services/subscription_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -78,8 +79,7 @@ class AccountInfoScreen extends StatelessWidget {
                     onTap: () => _syncMembership(context),
                   ),
                   if (!kIsWeb &&
-                      (defaultTargetPlatform == TargetPlatform.iOS ||
-                          defaultTargetPlatform == TargetPlatform.android))
+                      (defaultTargetPlatform == TargetPlatform.android))
                     _buildSettingTile(
                       icon: Icons.restore,
                       title: '恢復購買',
@@ -123,7 +123,7 @@ class AccountInfoScreen extends StatelessWidget {
                         _buildShopButton(context),
                       ],
                     ),
-                    onTap: () {},
+                    onTap: () => PointsShopScreen.open(context),
                   ),
                 ]),
 
@@ -289,7 +289,7 @@ class AccountInfoScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '享有無廣告體驗、雲端同步與 AI 加成',
+            '查看預定額度、無廣告與雲端同步方案',
             style: GoogleFonts.outfit(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 13,
@@ -297,7 +297,10 @@ class AccountInfoScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {}, // 導向購買
+            onPressed: () => PointsShopScreen.open(
+              context,
+              initialOffer: targetTier.toLowerCase(),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: color,
@@ -307,7 +310,7 @@ class AccountInfoScreen extends StatelessWidget {
               ),
             ),
             child: Text(
-              '立即升級 $targetTier',
+              '查看 $targetTier 方案',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -325,9 +328,7 @@ class AccountInfoScreen extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('點數商城開發中'))),
+          onTap: () => PointsShopScreen.open(context),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

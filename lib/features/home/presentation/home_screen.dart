@@ -10,6 +10,8 @@ import 'package:ai_pet_communication/features/auth/application/auth_service.dart
 import 'package:ai_pet_communication/services/ad_service.dart';
 import 'package:ai_pet_communication/services/membership_action_handler.dart';
 import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/widgets/free_member_ad.dart';
+import 'package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final UserModel user;
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late final String _uid = widget.user.uid;
   late final HomeController _controller;
+  late final Stream<UserModel?> _adUsers = _authService.getUserStream();
 
   @override
   void initState() {
@@ -72,6 +75,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: FreeMemberAd(
+        users: _adUsers,
+        uid: _uid,
+        onViewPlans: () => PointsShopScreen.open(context, initialOffer: 'plus'),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

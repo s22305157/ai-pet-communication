@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:ai_pet_communication/firebase_options.dart';
 import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/services/subscription_service.dart';
-import 'package:ai_pet_communication/services/ad_service.dart';
 import 'package:ai_pet_communication/features/auth/presentation/login_screen.dart';
 import 'package:ai_pet_communication/features/home/presentation/home_screen.dart';
 import 'package:ai_pet_communication/features/onboarding/presentation/onboarding_screen.dart';
@@ -34,13 +33,6 @@ void main() async {
       debugPrint('DEBUG: [4a] Subscription Service initialized');
     } catch (e) {
       debugPrint('DEBUG: [!] Subscription Error: $e');
-    }
-
-    try {
-      await getIt<AdService>().initialize();
-      debugPrint('DEBUG: [4b] Ad Service initialized');
-    } catch (e) {
-      debugPrint('DEBUG: [!] Ad Error: $e');
     }
 
     debugPrint('DEBUG: [5] Launching MyApp');

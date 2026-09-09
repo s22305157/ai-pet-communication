@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../models/user_model.dart';
@@ -265,49 +266,9 @@ class HomeTopBar extends StatelessWidget {
                   final userObj = snapshot.data;
                   final points = userObj?.points ?? 0;
 
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.pets_rounded,
-                          color: AppColors.secondary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$points PT',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.add_circle_outline,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                      ],
-                    ),
+                  return PointsBalanceButton(
+                    points: points,
+                    onPressed: () => PointsShopScreen.open(context),
                   );
                 },
               ),

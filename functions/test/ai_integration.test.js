@@ -43,29 +43,28 @@ function harness(tier = 'free', overrides = {}) {
     }};
   const calls = [];
   const settings = {enabled: true, allowedUids: 'user1',
-    apiKeys: {free: 'fake-free-key', plus: 'fake-plus-key', pro: 'fake-pro-key'},
-    models: {free: 'free-model', plus: 'plus-model', pro: 'pro-model'}};
+    apiKey: 'fake-shared-key', model: 'gpt-5.6-luna'};
   const handler = createHandler({db, now: () => at, config: () => settings,
     retrieve: async () => [{content: 'knowledge'}],
     provider: async args => { calls.push(args); return safe(); }, ...overrides});
   return {docs, settings, calls, handler, call: (data = payload()) => handler({auth: {uid: 'user1'}, data})};
 }
 
-test('server routes free, plus and pro using stored tier, ignoring forged model/tier', async () => {
+test('all tiers share Luna and credentials while ignoring forged model/tier', async () => {
   for (const tier of ['free', 'plus', 'pro']) {
     const h = harness(tier);
     const data = {...payload(), model: 'expensive-forged-model', membershipTier: 'pro', apiKey: 'caller-key'};
     await h.call(data);
     assert.equal(h.calls.length, 1);
-    assert.equal(h.calls[0].model, `${tier}-model`);
-    assert.equal(h.calls[0].apiKey, `fake-${tier}-key`);
+    assert.equal(h.calls[0].model, 'gpt-5.6-luna');
+    assert.equal(h.calls[0].apiKey, 'fake-shared-key');
     assert.equal(h.calls[0].request.inputMode, tier);
     assert.equal(h.docs.get(`users/user1/creditOperations/${requestId}`).status,
       'reserved');
   }
 });
-test('missing tier model fails closed without taking quota or calling provider', async () => {
-  const h = harness('plus'); h.settings.models.plus = '';
+test('missing shared model fails closed without taking quota or calling provider', async () => {
+  const h = harness('plus'); h.settings.model = '';
   await assert.rejects(h.call(), {code: 'failed-precondition'});
   assert.equal(h.calls.length, 0);
   assert(!h.docs.has('_aiRateLimits/user1'));
@@ -77,8 +76,9 @@ test('expired or unverified paid tiers use Free even before reconciliation runs'
     const h = harness('pro');
     Object.assign(h.docs.get('users/user1'), change);
     await h.call();
-    assert.equal(h.calls[0].model, 'free-model');
-    assert.equal(h.calls[0].apiKey, 'fake-free-key');
+    assert.equal(h.calls[0].model, 'gpt-5.6-luna');
+    assert.equal(h.calls[0].apiKey, 'fake-shared-key');
+    assert.equal(h.calls[0].request.inputMode, 'free');
   }
 });
 test('public member rollout accepts valid signed-in accounts but still rejects anonymous and deleted accounts', async () => {
@@ -91,20 +91,20 @@ test('public member rollout accepts valid signed-in accounts but still rejects a
   await assert.rejects(h.call(), {code: 'permission-denied'});
   assert.equal(h.calls.length, 1);
 });
-test('missing Plus or Pro key never falls back to another tier or takes quota', async () => {
-  for (const tier of ['plus', 'pro']) {
+test('missing shared key blocks every tier without taking quota', async () => {
+  for (const tier of ['free', 'plus', 'pro']) {
     const h = harness(tier);
-    h.settings.apiKeys[tier] = '';
+    h.settings.apiKey = '';
     await assert.rejects(h.call(), {code: 'failed-precondition'});
     assert.equal(h.calls.length, 0);
     assert(!h.docs.has('_aiRateLimits/user1'));
   }
 });
-test('tier keys are never stored in request records', async () => {
+test('shared credentials are never stored in request records', async () => {
   const h = harness('plus');
   await h.call();
   const records = JSON.stringify([...h.docs.values()]);
-  for (const key of Object.values(h.settings.apiKeys)) assert(!records.includes(key));
+  assert(!records.includes(h.settings.apiKey));
 });
 test('unauthenticated, disabled, non-allowlisted, deleted and foreign pet requests are blocked', async () => {
   const h = harness();
