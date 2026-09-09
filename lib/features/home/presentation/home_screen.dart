@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ai_pet_communication/features/journal/presentation/journal_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
@@ -107,6 +108,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 uid: _uid,
                 petsStream: _controller.petsStream,
                 petService: _petService,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 84),
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const JournalScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.auto_stories_outlined),
+                label: const Text('陪伴日記 · 邀請試營運'),
               ),
             ),
           ],

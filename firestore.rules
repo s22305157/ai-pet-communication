@@ -23,6 +23,25 @@ service cloud.firestore {
         && (!('onboardingAnswers' in data) || data.onboardingAnswers is map);
     }
     match /users/{userId} {
+      match /journalPets/{journalPetId} {
+        function journalOwner() {
+          return activeAccount() && request.auth.uid == userId;
+        }
+        function journalAlive(data) {
+          return data.get('deletedAt', null) == null && (data.get('linkedPetId', null) == null ||
+            !exists(/databases/$(database)/documents/petTombstones/$(data.linkedPetId)));
+        }
+        allow get: if journalOwner() && journalAlive(resource.data);
+        allow list, write: if false;
+        match /entries/{entryId} {
+          allow get: if journalOwner() && resource.data.get('deletedAt', null) == null
+            && journalAlive(get(/databases/$(database)/documents/users/$(userId)/journalPets/$(journalPetId)).data);
+          allow list, write: if false;
+        }
+      }
+      match /journalMedia/{mediaId} {
+        allow read, write: if false;
+      }
       match /planetCards/{cardId} {
         allow read: if activeAccount() && request.auth.uid == userId;
         allow write: if false;

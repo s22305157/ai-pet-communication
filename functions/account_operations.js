@@ -48,6 +48,7 @@ exports.deletePetData = onCall({maxInstances: 20}, async (request) => {
       });
       return avatar;
     });
+    await require('./journal_account_cleanup').deleteLinkedJournals(db, getStorage().bucket(), uid, petId);
     await db.recursiveDelete(petRef);
     await deleteAvatarIfOwned(ownedAvatar, uid);
     return {deleted: true, petId};
@@ -101,6 +102,7 @@ exports.deleteOwnAccount = onCall({
     }
     await getStorage().bucket().deleteFiles({prefix: `pets/${uid}/`});
     await db.collection("_proxyRateLimits").doc(uid).delete();
+    await require('./journal_account_cleanup').deleteLinkedJournals(db, getStorage().bucket(), uid);
     await db.recursiveDelete(userRef);
     await getAuth().deleteUser(uid).catch((error) => {
       if (error.code !== 'auth/user-not-found') throw error;

@@ -1,6 +1,10 @@
 import 'package:ai_pet_communication/features/pet/application/pet_cleanup_repository.dart';
 import 'package:ai_pet_communication/app/account_data_cleanup.dart';
 import 'package:get_it/get_it.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ai_pet_communication/features/journal/domain/journal_repository.dart';
+import 'package:ai_pet_communication/features/journal/data/firebase_journal_repository.dart';
+import 'package:ai_pet_communication/features/journal/data/journal_draft_store.dart';
 import 'package:ai_pet_communication/core/storage/mutation_queue.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -32,6 +36,22 @@ import 'package:ai_pet_communication/services/credit_service.dart';
 final getIt = GetIt.instance;
 
 void setupDependencies() {
+  getIt.registerLazySingleton<JournalDraftStore>(() => JournalDraftStore());
+  getIt.registerLazySingleton<JournalPetNames>(
+    () =>
+        (uid) => getIt<LocalPetService>()
+            .getAllPets(uid)
+            .where((pet) => ['cat', '貓', '貓咪'].contains(pet.species))
+            .map((pet) => pet.name)
+            .toList(),
+  );
+  getIt.registerFactory<JournalRepository>(
+    () => FirebaseJournalRepository(
+      uid: FirebaseAuth.instance.currentUser!.uid,
+      auth: FirebaseAuth.instance,
+      functions: getIt<FirebaseFunctions>(),
+    ),
+  );
   getIt.registerLazySingleton<MutationQueue>(() => MutationQueue());
   // ── 基礎核心與外部套件 ──────────────────
   getIt.registerLazySingleton<FirebaseFirestore>(
@@ -53,6 +73,7 @@ void setupDependencies() {
       cleanup: AccountDataCleanup([
         getIt<LocalPetService>(),
         getIt<LocalReadingsRepository>(),
+        getIt<JournalDraftStore>(),
       ]),
     ),
     dispose: (service) => service.dispose(),

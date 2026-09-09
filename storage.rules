@@ -30,5 +30,13 @@ service firebase.storage {
       allow create, update: if isOwner(uid) && paidMembership(uid) && isValidPetAvatar(fileName);
       allow delete: if isOwner(uid);
     }
+    // Journal media is served through authenticated Functions. This avoids the
+    // two-document cross-service limit and checks current account/pet state.
+    match /journalUploads/{allPaths=**} {
+      allow read, write: if false;
+    }
+    match /journalImages/{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

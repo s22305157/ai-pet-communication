@@ -52,6 +52,7 @@ dependencies:
   google_mobile_ads: ^5.2.0
   shared_preferences: ^2.3.2
   rxdart: ^0.28.0
+  web: ^1.1.1
   get_it: ^7.7.0
 
 

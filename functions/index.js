@@ -223,3 +223,4 @@ exports.syncSubscription = subscriptions.syncSubscription;
 exports.revenueCatWebhook = subscriptions.revenueCatWebhook;
 exports.reconcileSubscriptions = subscriptions.reconcileSubscriptions;
 exports.expireMemberships = subscriptions.expireMemberships;
+Object.assign(exports, require('./journal_operations'));

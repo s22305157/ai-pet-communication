@@ -34,6 +34,7 @@ function accountHarness({race = false, failStorage = false} = {}) {
     },
   };
   const handler = load('account_operations.js', {
+    './journal_account_cleanup': {deleteLinkedJournals: async () => {}},
     'firebase-admin/auth': {getAuth: () => ({})},
     'firebase-admin/firestore': {getFirestore: () => db, FieldValue: {serverTimestamp: () => 1}},
     'firebase-admin/storage': {getStorage: () => ({bucket: () => ({name: 'test', file: () => ({delete: async () => {
@@ -79,6 +80,7 @@ test('account deletion freezes writes before enumeration and tolerates deleted A
     recursiveDelete: async () => { assert.equal(frozen, true); },
   };
   const handler = load('account_operations.js', {
+    './journal_account_cleanup': {deleteLinkedJournals: async () => { assert.equal(frozen, true); }},
     'firebase-admin/auth': {getAuth: () => ({revokeRefreshTokens: async () => { throw missingUser; }, deleteUser: async () => { throw missingUser; }})},
     'firebase-admin/firestore': {getFirestore: () => db, FieldValue: {serverTimestamp: () => 1}},
     'firebase-admin/storage': {getStorage: () => ({bucket: () => ({deleteFiles: async () => { assert.equal(frozen, true); }})})},

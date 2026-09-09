@@ -24,6 +24,8 @@ jobs:
         working-directory: functions
       - run: npm ci --ignore-scripts && npm run security:patch && npm test
         working-directory: tools/security
+      - name: Journal M0-M1 callable and storage integration
+        run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal.test.cjs"
   flutter:
     runs-on: ubuntu-latest
     steps:
