@@ -7,7 +7,8 @@
 - 關閉原始知識片段擷取介面，保留後端 AI 知識檢索。
 - 日記加入帳號與全站配額、草稿加密及登出清除；刪除後可立即重建日記毛孩。
 - 日記 API 型別化並拆分後端權限、圖片、紀錄與清理職責。
+- 配合 Flutter 3.47 補齊登入非同步等待及紀錄卡片的 Material 點擊回饋。
 
 本機驗證：Flutter 3.41.7 分析 0 issue、146 項測試、Web release build；Node 22 測試 70 項、日記模擬器 16 項、Rules 9 項、Functions 正式依賴 audit 0 漏洞。
 
-App Check 正式強制驗證需完成用戶端註冊與監控；最新版 stable CI、Android／iOS 實機驗證仍待完成。AI 每週回顧、同伴圈與金流不在本版範圍。
+App Check 正式強制驗證需完成用戶端註冊與監控；最新版 stable 相容性由 CI 矩陣驗證；Android／iOS 實機驗證仍待完成。AI 每週回顧、同伴圈與金流不在本版範圍。

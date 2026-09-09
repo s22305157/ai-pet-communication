@@ -34,105 +34,117 @@ class ReadingListTile extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        onTap: onTap,
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.secondary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
           ),
-          child: const Icon(
-            Icons.chat_bubble_outline,
-            color: AppColors.secondary,
-            size: 24,
-          ),
-        ),
-        title: Text(
-          reading.title.isNotEmpty ? reading.title : 'AI 寵物溝通紀錄',
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              readingPreview(reading.content),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.outfit(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+          onTap: onTap,
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 4),
-            Text(
-              dateFormat.format(reading.createdAt),
-              style: GoogleFonts.outfit(
-                fontSize: 11,
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
-              ),
+            child: const Icon(
+              Icons.chat_bubble_outline,
+              color: AppColors.secondary,
+              size: 24,
             ),
-          ],
-        ),
-        trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
           ),
-          onSelected: (value) async {
-            if (value == 'delete') {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  title: Text(
-                    '刪除溝通紀錄',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-                  ),
-                  content: const Text('確定要刪除這筆溝通紀錄嗎？\n(此動作無法復原)'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text(
-                        '取消',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
+          title: Text(
+            reading.title.isNotEmpty ? reading.title : 'AI 寵物溝通紀錄',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Text(
+                readingPreview(reading.content),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                dateFormat.format(reading.createdAt),
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+          trailing: PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) async {
+              if (value == 'delete') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text(
-                        '刪除',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
+                    title: Text(
+                      '刪除溝通紀錄',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
                     ),
+                    content: const Text('確定要刪除這筆溝通紀錄嗎？\n(此動作無法復原)'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text(
+                          '取消',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text(
+                          '刪除',
+                          style: TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true) {
+                  onDelete();
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.redAccent,
+                    ),
+                    SizedBox(width: 12),
+                    Text('刪除', style: TextStyle(color: Colors.redAccent)),
                   ],
                 ),
-              );
-
-              if (confirm == true) {
-                onDelete();
-              }
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-                  SizedBox(width: 12),
-                  Text('刪除', style: TextStyle(color: Colors.redAccent)),
-                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
