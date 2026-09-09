@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
+import 'package:ai_pet_communication/app/injection.dart';
+import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
+import 'package:ai_pet_communication/widgets/free_member_ad.dart';
+import 'package:ai_pet_communication/features/profile/presentation/points_shop_screen.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
@@ -29,6 +33,11 @@ class CommunicationResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: FreeMemberAd(
+        users: getIt<AuthService>().getUserStream(),
+        uid: pet.ownerId,
+        onViewPlans: () => PointsShopScreen.open(context, initialOffer: 'plus'),
+      ),
       appBar: AppBar(
         title: const Text('溝通結果'),
         backgroundColor: Colors.white,
