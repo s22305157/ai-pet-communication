@@ -21,6 +21,9 @@ test('communication photos enforce paid ownership, three immutable slots and 10 
   await assertSucceeds(deleteObject(ref(a, `${root}/2`)));
   await assertFails(put(a, 2, new Uint8Array(10 * 1024 * 1024 + 1)));
   await assertFails(put(a, 2, new Uint8Array([1]), 'text/html'));
+  await assertFails(put(a, 2, new Uint8Array([1]), 'image/webp'));
+  await assertSucceeds(put(a, 2, new Uint8Array([1]), 'image/jpeg'));
+  await assertSucceeds(deleteObject(ref(a, `${root}/2`)));
   await assertSucceeds(put(a, 2, new Uint8Array(10 * 1024 * 1024)));
   await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), 'users/a'), {
     membershipEntitlements: {pro: Timestamp.fromMillis(1)},

@@ -28,9 +28,9 @@ async function loadPhotos({media, uid, requestId, bucket}) {
   for (const path of media?.photos || []) {
     const file = bucket.file(path);
     const [metadata] = await file.getMetadata();
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(metadata.contentType) ||
+    if (!['image/jpeg', 'image/png'].includes(metadata.contentType) ||
         !Number.isFinite(Number(metadata.size)) || Number(metadata.size) <= 0 || Number(metadata.size) > MAX_BYTES) {
-      throw new HttpsError('invalid-argument', '照片須為 JPG、PNG 或 WebP，每張上限 10 MB');
+      throw new HttpsError('invalid-argument', '照片須為 JPG 或 PNG，每張上限 10 MB');
     }
     // Pin the checked generation; limit the download even if metadata is wrong.
     const pinned = bucket.file(path, {generation: metadata.generation});
@@ -44,13 +44,13 @@ async function loadPhotos({media, uid, requestId, bucket}) {
     try {
       const bytes = Buffer.concat(chunks);
       const info = await sharp(bytes, {limitInputPixels: 40000000}).metadata();
-      if (!['jpeg', 'png', 'webp'].includes(info.format) || (info.pages || 1) > 1) throw new Error('Invalid image');
+      if (!['jpeg', 'png'].includes(info.format) || (info.pages || 1) > 1) throw new Error('Invalid image');
       // Decode, orient and strip metadata before passing images to the model.
       const normalized = await sharp(bytes, {limitInputPixels: 40000000}).rotate()
         .resize({width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true}).jpeg({quality: 85}).toBuffer();
       images.push(`data:image/jpeg;base64,${normalized.toString('base64')}`);
     } catch (_) {
-      throw new HttpsError('invalid-argument', '照片無法讀取，請改用一般 JPG、PNG 或 WebP 照片');
+      throw new HttpsError('invalid-argument', '照片無法讀取，請改用一般 JPG 或 PNG 照片');
     }
   }
   return images;

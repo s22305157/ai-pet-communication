@@ -20,12 +20,8 @@ class CommunicationPhoto {
     } else if (bytes.length >= 8 &&
         bytes.take(8).join(',') == '137,80,78,71,13,10,26,10') {
       type = 'image/png';
-    } else if (bytes.length >= 12 &&
-        String.fromCharCodes(bytes.take(4)) == 'RIFF' &&
-        String.fromCharCodes(bytes.skip(8).take(4)) == 'WEBP') {
-      type = 'image/webp';
     } else {
-      throw const FormatException('請選擇 JPG、PNG 或 WebP 照片');
+      throw const FormatException('請選擇 JPG 或 PNG 照片');
     }
     return CommunicationPhoto(bytes, type);
   }

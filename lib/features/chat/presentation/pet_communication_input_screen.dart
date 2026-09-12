@@ -445,7 +445,7 @@ class _PetCommunicationInputScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('毛孩照片（選填）', 'Plus／Pro 多模態視覺感知'),
-        const Text('最多 3 張，每張上限 10 MB。支援 JPG、PNG、WebP。'),
+        const Text('最多 3 張，每張上限 10 MB。支援 JPG、PNG。'),
         const SizedBox(height: 8),
         Text(
           _canUsePhotos

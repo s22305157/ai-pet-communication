@@ -42,11 +42,10 @@ void main() {
     }
   });
 
-  test('three supported signatures override untrusted file metadata', () async {
+  test('JPEG and PNG signatures override untrusted file metadata', () async {
     final signatures = [
       [255, 216, 255],
       [137, 80, 78, 71, 13, 10, 26, 10],
-      [...'RIFF'.codeUnits, 0, 0, 0, 0, ...'WEBP'.codeUnits],
     ];
     when(() => picker.pickMultiImage()).thenAnswer(
       (_) async => signatures
@@ -62,8 +61,39 @@ void main() {
     expect((await service.pick()).map((photo) => photo.contentType), [
       'image/jpeg',
       'image/png',
-      'image/webp',
     ]);
+  });
+
+  test('WebP is rejected even with a JPEG or PNG name and MIME type', () async {
+    final bytes = Uint8List.fromList([
+      ...'RIFF'.codeUnits,
+      0,
+      0,
+      0,
+      0,
+      ...'WEBP'.codeUnits,
+    ]);
+    for (final format in ['webp', 'jpeg', 'png']) {
+      when(() => picker.pickMultiImage()).thenAnswer(
+        (_) async => [
+          XFile.fromData(
+            bytes,
+            name: 'photo.$format',
+            mimeType: 'image/$format',
+          ),
+        ],
+      );
+      await expectLater(
+        service.pick(),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            '請選擇 JPG 或 PNG 照片',
+          ),
+        ),
+      );
+    }
   });
 
   test('more than three files are rejected before any file is read', () async {

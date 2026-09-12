@@ -32,3 +32,14 @@ test('oversized, forged content types and undecodable images are rejected', asyn
     await assert.rejects(load(bytes, metadata), {code: 'invalid-argument'});
   }
 });
+test('JPEG images are accepted and WebP is rejected even with a JPEG or PNG content type', async () => {
+  const source = sharp({create: {width: 2, height: 3, channels: 3, background: '#abcdef'}});
+  const jpeg = await source.clone().jpeg().toBuffer();
+  const images = await load(jpeg, {contentType: 'image/jpeg'});
+  assert.equal(images.length, 1);
+  assert.match(images[0], /^data:image\/jpeg;base64,/);
+  const webp = await source.clone().webp().toBuffer();
+  for (const contentType of ['image/webp', 'image/jpeg', 'image/png']) {
+    await assert.rejects(load(webp, {contentType}), {code: 'invalid-argument'});
+  }
+});
