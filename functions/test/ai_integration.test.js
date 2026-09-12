@@ -16,15 +16,40 @@ const safe = () => ({...emergencyResponse({matched: []}),
 
 test('awards persist atomically, ignore supplied IDs and deduplicate retries and later requests', async () => {
   const h = harness('free', {provider: async () => ({...safe(),
-    knowledge_tips: ['翻肚不代表同意摸肚子。'], planetAward: {newCardIds: ['001']}})});
+    knowledge_tips: ['翻肚不代表同意摸肚子。',
+      '洗衣機、烘衣機啟動前先檢查滾筒，平時關好機門。'],
+    planetAward: {newCardIds: ['001']}})});
   const first = await h.call({...payload(), cardIds: ['001']});
-  assert.deepEqual(JSON.parse(first.response).planetAward, {matchedCardIds: ['020'], newCardIds: ['020']});
+  assert.deepEqual(JSON.parse(first.response).planetAward, {matchedCardIds: ['020', '100'], newCardIds: ['020', '100']});
   assert(h.docs.has('users/user1/planetCards/020'));
+  assert(h.docs.has('users/user1/planetCards/100'));
   assert(!h.docs.has('users/user1/planetCards/001'));
   assert.deepEqual(await h.call({...payload(), cardIds: ['001']}), first);
   const later = await h.call({...payload(), requestId: 'request-0000000002'});
-  assert.deepEqual(JSON.parse(later.response).planetAward, {matchedCardIds: ['020'], newCardIds: []});
+  assert.deepEqual(JSON.parse(later.response).planetAward, {matchedCardIds: ['020', '100'], newCardIds: []});
   assert.equal(h.docs.get('users/user1/planetCards/020').firstRequestId, requestId);
+  assert.equal(h.docs.get('users/user1/planetCards/100').firstRequestId, requestId);
+});
+
+test('dog knowledge awards dog cards atomically and ignores forged cat receipts', async () => {
+  const h = harness('free', {provider: async () => ({...safe(),
+    knowledge_tips: ['散步保留安全嗅聞時間，不急著拉走狗狗。',
+      '安排安全的挖掘區，使用合適材料並在旁監督。'],
+    planetAward: {matchedCardIds: ['001'], newCardIds: ['001']}})});
+  const data = payload();
+  data.request.petProfile.species = '狗';
+  data.cardIds = ['001', '040'];
+  const first = await h.call(data);
+  assert.deepEqual(JSON.parse(first.response).planetAward, {matchedCardIds: ['021', '080'], newCardIds: ['021', '080']});
+  assert(h.docs.has('users/user1/planetCards/021'));
+  assert(h.docs.has('users/user1/planetCards/080'));
+  assert(!h.docs.has('users/user1/planetCards/001'));
+  assert(!h.docs.has('users/user1/planetCards/040'));
+  assert.deepEqual(await h.call(data), first);
+  const later = await h.call({...data, requestId: 'request-0000000002'});
+  assert.deepEqual(JSON.parse(later.response).planetAward, {matchedCardIds: ['021', '080'], newCardIds: []});
+  assert.equal(h.docs.get('users/user1/planetCards/021').firstRequestId, requestId);
+  assert.equal(h.docs.get('users/user1/planetCards/080').firstRequestId, requestId);
 });
 
 function harness(tier = 'free', overrides = {}) {
