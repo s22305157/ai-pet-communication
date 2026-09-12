@@ -73,7 +73,7 @@ void main() {
       await tester.runAsync(() async {
         final image = await DefaultAssetBundle.of(
           tester.element(find.byType(PetPlanetScreen)),
-        ).load('assets/cards/001-approach-v2.png');
+        ).load('assets/cards/001-approach-v4.png');
         expect(image.lengthInBytes, greaterThan(1000));
       });
       expect(find.text('卡片圖片暫時無法載入'), findsNothing);

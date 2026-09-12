@@ -23,7 +23,7 @@ const planetCards = <PlanetCard>[
     id: '001',
     title: '等我靠近',
     category: '互動與界線',
-    imageAsset: 'assets/cards/001-approach-v2.png',
+    imageAsset: 'assets/cards/001-approach-v4.png',
     petVoice: '給我一點空間，讓我自己走近你。',
     knowledgePoint: '尊重貓咪的距離，讓牠選擇是否互動。',
     source: '《貓邏輯》Q25：主動靠近與保持距離（第 174 頁），依知識庫摘要改寫。',
