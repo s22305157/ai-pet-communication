@@ -11,12 +11,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mocktail/mocktail.dart';
+import 'dart:convert';
+import 'package:ai_pet_communication/features/chat/domain/communication_photo.dart';
+import 'package:ai_pet_communication/features/chat/domain/communication_photo_repository.dart';
 
 class MockCreditService extends Mock implements CreditService {}
 
 class MockChatController extends Mock implements ChatController {}
 
 class MockAuthService extends Mock implements AuthService {}
+
+class FakePhotos implements CommunicationPhotoRepository {
+  List<CommunicationPhoto> selection = [];
+  List<String> removed = [];
+  @override
+  Future<List<CommunicationPhoto>> pick({int maxPhotos = 3}) async => selection;
+  @override
+  Future<List<String>> upload(
+    List<CommunicationPhoto> photos,
+    String uid,
+    String requestId,
+  ) async => List.generate(
+    photos.length,
+    (i) => 'communicationPhotos/$uid/$requestId/$i',
+  );
+  @override
+  Future<void> remove(List<String> paths) async => removed.addAll(paths);
+}
 
 void main() {
   const reservationId = 'reservation-123456';
@@ -56,6 +77,7 @@ void main() {
     chatController = MockChatController();
     getIt.registerSingleton<CreditService>(creditService);
     getIt.registerSingleton<ChatController>(chatController);
+    getIt.registerSingleton<CommunicationPhotoRepository>(FakePhotos());
     final authService = MockAuthService();
     getIt.registerSingleton<AuthService>(authService);
     when(() => authService.getUserData()).thenAnswer(
@@ -87,6 +109,98 @@ void main() {
   tearDown(() async => getIt.reset());
 
   testWidgets(
+    'Plus selects three photos, removes one and sends image references with cleanup',
+    (tester) async {
+      final photos = FakePhotos();
+      final png = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=',
+      );
+      photos.selection = List.generate(
+        3,
+        (_) => CommunicationPhoto.fromBytes(png),
+      );
+      AiRequestModel? sent;
+      when(
+        () => chatController.handleCommunicationWithPersistence(
+          any(),
+          any(),
+          requestId: any(named: 'requestId'),
+        ),
+      ).thenAnswer((invocation) async {
+        sent = invocation.positionalArguments[1] as AiRequestModel;
+        return CommunicationOutcome(
+          response: AiResponseModel.safeFallback(),
+          isFallback: true,
+        );
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PetCommunicationInputScreen(pet: pet, photoService: photos),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(OutlinedButton));
+      await tester.tap(find.text('加入照片（0/3）'));
+      await tester.pumpAndSettle();
+      expect(find.text('加入照片（3/3）'), findsOneWidget);
+      expect(
+        tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+        isNull,
+      );
+      await tester.ensureVisible(find.text('移除照片 2'));
+      await tester.tap(find.text('移除照片 2'));
+      await tester.pumpAndSettle();
+      expect(find.text('加入照片（2/3）'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(0), '今天精神很好');
+      await tester.enterText(find.byType(TextField).at(1), '牠開心嗎？');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('發送溝通請求'));
+      await tester.pumpAndSettle();
+      expect(sent?.media?.photos, hasLength(2));
+      expect(photos.removed, sent!.media!.photos);
+    },
+  );
+
+  testWidgets('Free cannot select photos', (tester) async {
+    when(() => getIt<AuthService>().getUserData()).thenAnswer(
+      (_) async => UserModel(uid: 'user-1', email: '', displayName: ''),
+    );
+    await tester.pumpWidget(
+      MaterialApp(home: PetCommunicationInputScreen(pet: pet)),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets(
+    'selecting more than three photos is rejected without silently dropping images',
+    (tester) async {
+      final photos = FakePhotos()
+        ..selection = List.generate(
+          4,
+          (_) => CommunicationPhoto(base64Decode('eA=='), 'image/png'),
+        );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PetCommunicationInputScreen(pet: pet, photoService: photos),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(OutlinedButton));
+      await tester.tap(find.text('加入照片（0/3）'));
+      await tester.pumpAndSettle();
+      expect(find.text('最多上傳 3 張照片，請重新選擇'), findsOneWidget);
+      expect(find.text('加入照片（0/3）'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'without a reservation AI failure does not call any credit operation',
     (tester) async {
       when(
@@ -106,7 +220,9 @@ void main() {
       );
       await tester.enterText(find.byType(TextField).at(0), '今天精神不錯');
       await tester.enterText(find.byType(TextField).at(1), '牠開心嗎？');
-      await tester.ensureVisible(find.text('發送溝通請求'));
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
       await tester.tap(find.text('發送溝通請求'));
       await tester.pumpAndSettle();
@@ -154,7 +270,9 @@ void main() {
     );
     await tester.enterText(find.byType(TextField).at(0), '今天精神不錯');
     await tester.enterText(find.byType(TextField).at(1), '牠想告訴我什麼？');
-    await tester.ensureVisible(find.text('發送溝通請求'));
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
     await tester.tap(find.text('發送溝通請求'));
     await tester.pumpAndSettle();
@@ -194,7 +312,9 @@ void main() {
       );
       await tester.enterText(find.byType(TextField).at(0), '今天精神不錯');
       await tester.enterText(find.byType(TextField).at(1), '牠想告訴我什麼？');
-      await tester.ensureVisible(find.text('發送溝通請求'));
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
       await tester.pumpAndSettle();
       await tester.tap(find.text('發送溝通請求'));
       await tester.pumpAndSettle();

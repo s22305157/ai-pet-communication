@@ -7,6 +7,8 @@ const {generate} = require('./openai_provider');
 const {searchKnowledge} = require('./knowledge_retrieval');
 const {effectiveTier} = require('./subscription_policy');
 const {matchPlanetCards} = require('./planet_cards');
+const {loadPhotos, validatePaths} = require('./communication_photos');
+const {getStorage} = require('firebase-admin/storage');
 
 // Reuse the existing Luna credential for every tier; keep it in Secret Manager.
 const apiKey = defineSecret('OPENAI_API_KEY_PRO');
@@ -16,7 +18,8 @@ const model = defineString('OPENAI_MODEL', {default: 'gpt-5.6-luna'});
 const allowedUids = defineString('AI_ALLOWED_UIDS', {default: ''});
 
 // Dependency injection keeps authorization, concurrency and billing testable offline.
-function createHandler({db, config, provider = generate, retrieve = searchKnowledge, now = Date.now}) {
+function createHandler({db, config, provider = generate, retrieve = searchKnowledge, now = Date.now,
+  photos = args => loadPhotos({...args, bucket: getStorage().bucket()})}) {
   return async request => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', '請先登入');
@@ -31,6 +34,7 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
       throw new HttpsError('invalid-argument', 'Invalid AI request');
     }
     const {requestId, petId} = input;
+    validatePaths(input.request.media, uid, requestId);
     const userRef = db.collection('users').doc(uid);
     const deletedRef = db.collection('_deletedUsers').doc(uid);
     const petRef = db.collection('pets').doc(petId);
@@ -48,13 +52,16 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
       if (tombstone.exists || (pet.exists && pet.get('owner_id') !== uid)) {
         throw new HttpsError('permission-denied', '無法存取此毛孩');
       }
+      const tier = effectiveTier(user.data(), timestamp);
+      if (input.request.media && tier === 'free') {
+        throw new HttpsError('permission-denied', '照片分析限有效 Plus／Pro 會員');
+      }
       if (operation.exists) {
         if (operation.get('hash') !== hash) throw new HttpsError('already-exists', '請勿重用請求編號');
         if (operation.get('status') === 'completed') return {cached: operation.get('response')};
         throw new HttpsError('failed-precondition', '此請求已處理或仍在處理中，請重新開始');
       }
       if (!['free', 'plus', 'pro'].includes(user.get('membershipTier'))) throw new HttpsError('permission-denied', '此方案尚未開放 AI 溝通');
-      const tier = effectiveTier(user.data(), timestamp);
       const selectedModel = settings.model?.trim();
       if (!selectedModel) throw new HttpsError('failed-precondition', 'AI 模型尚未設定');
       const selectedKey = settings.apiKey;
@@ -88,7 +95,8 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
         const knowledge = await retrieve({query: [input.request.petProfile.species,
           input.request.ownerProfile.mainConcern, input.request.story, ...input.request.questions].join(' ').slice(0, 7000),
         species: input.request.petProfile.species, limit: 4});
-        value = await provider({apiKey: settings.apiKey, model: claim.model,
+        const images = input.request.media ? await photos({media: input.request.media, uid, requestId}) : [];
+        value = await provider({apiKey: settings.apiKey, model: claim.model, images,
           request: input.request, decision, knowledge});
       }
       const matchedCardIds = matchPlanetCards(value, input.request.petProfile.species, decision.level);
@@ -122,7 +130,8 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
   };
 }
 
-exports.communicateWithPet = onCall({enforceAppCheck: require('./callable_policy').enforceAppCheck, maxInstances: 3, concurrency: 10, timeoutSeconds: 90,
+exports.communicateWithPet = onCall({enforceAppCheck: require('./callable_policy').enforceAppCheck,
+  maxInstances: 3, concurrency: 1, memory: '512MiB', timeoutSeconds: 90,
   secrets: [apiKey, 'KB_ENCRYPTION_KEY']}, request => createHandler({
   db: getFirestore(), config: () => ({enabled: enabled.value(), allAuthenticated: allAuthenticated.value(),
     model: model.value(), apiKey: apiKey.value(),

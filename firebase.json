@@ -6,7 +6,8 @@
       "**/.*",
       "**/node_modules/**",
       "**/PAWLINK_PRODUCT_BLUEPRINT.md",
-      "**/JOURNAL_M2_M3.md"
+      "**/JOURNAL_M2_M3.md",
+      "**/JOURNAL_M4.md"
     ],
     "rewrites": [
       {

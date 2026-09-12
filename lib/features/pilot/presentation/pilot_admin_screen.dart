@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../domain/pilot_repository.dart';
+import 'pilot_metrics_screen.dart';
 import 'package:ai_pet_communication/widgets/pilot_surface.dart';
 import 'package:ai_pet_communication/widgets/community_image.dart';
 
@@ -30,6 +31,20 @@ class _PilotAdminScreenState extends State<PilotAdminScreen> {
       padding: const EdgeInsets.all(20),
       children: [
         const Text('管理受邀資格與社群分享內容。私人日記與 AI 回顧不在此介面提供。'),
+        if (c.data['flags'] != null)
+          TextButton.icon(
+            icon: const Icon(Icons.insights),
+            label: const Text('查看試營運成效與成本'),
+            onPressed: c.busy
+                ? null
+                : () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PilotMetricsScreen(repository: widget.repository),
+                    ),
+                  ),
+          ),
         if (c.data['flags'] != null) ...[
           Text(
             '受邀資料 ${c.data['participants']} 筆 · 待處理檢舉 ${c.data['openReports']} 件 · 停權 ${c.data['suspended']} 人',

@@ -47,9 +47,7 @@ function validateRequest(data) {
       !Array.isArray(source.questions) || source.questions.length < 1 || source.questions.length > 5) {
     throw new HttpsError('invalid-argument', 'Invalid consultation');
   }
-  if (source.media != null) {
-    throw new HttpsError('failed-precondition', '目前僅開放文字 AI 溝通');
-  }
+  const media = require('./communication_photos').validateMedia(source.media);
   const ownerProfile = {};
   for (const key of ['experienceLevel', 'careStyle', 'emotionStyle', 'dailyRoutine', 'mainConcern']) {
     ownerProfile[key] = text(source.ownerProfile[key], key, 500, true);
@@ -71,7 +69,7 @@ function validateRequest(data) {
   return {requestId, petId, request: {ownerProfile, petProfile,
     story: text(source.story, 'story', 5000),
     questions: source.questions.map(value => text(value, 'question', 500)),
-    media: null}};
+    media}};
 }
 
 // Mirrors the app router. Server decisions cannot be supplied by the caller.

@@ -4,6 +4,10 @@
 // ============================================================
 
 import 'dart:async';
+import 'package:uuid/uuid.dart';
+import '../domain/communication_photo.dart';
+import '../domain/communication_photo_repository.dart';
+import '../domain/media_payload.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,11 +26,13 @@ import 'package:ai_pet_communication/features/auth/application/auth_service.dart
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
   final String? creditReservationId;
+  final CommunicationPhotoRepository? photoService;
 
   const PetCommunicationInputScreen({
     super.key,
     required this.pet,
     this.creditReservationId,
+    this.photoService,
   });
 
   @override
@@ -47,13 +53,58 @@ class _PetCommunicationInputScreenState
   int _wordCount = 0;
   bool _creditFinalized = false;
   Future<void>? _releaseFuture;
+  final List<CommunicationPhoto> _photos = [];
+  late final CommunicationPhotoRepository _photoService;
+  bool _canUsePhotos = false;
+  bool _pickingPhotos = false;
+  String? _photoOwner;
 
   @override
   void initState() {
     super.initState();
+    _photoService =
+        widget.photoService ?? getIt<CommunicationPhotoRepository>();
+    unawaited(_loadPhotoAccess());
     _storyController.addListener(_onTextChanged);
     for (var controller in _questionControllers) {
       controller.addListener(_onTextChanged);
+    }
+  }
+
+  Future<void> _loadPhotoAccess() async {
+    try {
+      final user = await getIt<AuthService>().getUserData();
+      if (!mounted) return;
+      setState(() {
+        _canUsePhotos = user != null && user.membershipTier != 'free';
+        _photoOwner = user?.uid;
+      });
+    } catch (_) {
+      // Keep text communication available when membership cannot be loaded.
+    }
+  }
+
+  Future<void> _pickPhotos() async {
+    if (_isLoading || _pickingPhotos || !_canUsePhotos) return;
+    setState(() => _pickingPhotos = true);
+    try {
+      final selected = await _photoService.pick(maxPhotos: 3 - _photos.length);
+      if (selected.length + _photos.length > 3) {
+        throw const FormatException('最多上傳 3 張照片，請重新選擇');
+      }
+      if (mounted) setState(() => _photos.addAll(selected));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is FormatException ? error.message : '無法讀取照片，請重新選擇',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pickingPhotos = false);
     }
   }
 
@@ -126,7 +177,7 @@ class _PetCommunicationInputScreenState
   }
 
   Future<void> _handleSubmit() async {
-    if (_isLoading) return;
+    if (_isLoading || _pickingPhotos) return;
     if (_storyController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -145,6 +196,7 @@ class _PetCommunicationInputScreenState
     }
 
     setState(() => _isLoading = true);
+    var uploadedPhotos = <String>[];
 
     try {
       // 1. 準備依賴 (使用 DI)
@@ -152,6 +204,22 @@ class _PetCommunicationInputScreenState
 
       final user = await getIt<AuthService>().getUserData();
       if (user == null) throw StateError('請先登入');
+      final operationId = widget.creditReservationId ?? const Uuid().v4();
+      if (_photos.isNotEmpty) {
+        if (user.uid != _photoOwner || user.membershipTier == 'free') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('照片分析需有效 Plus／Pro 會員，請確認帳號或移除照片')),
+            );
+          }
+          return;
+        }
+        uploadedPhotos = await _photoService.upload(
+          _photos,
+          user.uid,
+          operationId,
+        );
+      }
       final birthday = DateTime.tryParse(widget.pet.birthday);
       final age = birthday == null || birthday.isAfter(DateTime.now())
           ? null
@@ -176,13 +244,18 @@ class _PetCommunicationInputScreenState
         story: _storyController.text.trim(),
         questions: questions,
         inputMode: user.membershipTier,
+        media: uploadedPhotos.isEmpty
+            ? null
+            : MediaPayload(photos: uploadedPhotos),
       );
 
       // 3. 發送請求
       final outcome = await controller.handleCommunicationWithPersistence(
         widget.pet.petId,
         request,
-        requestId: widget.creditReservationId,
+        requestId: uploadedPhotos.isEmpty
+            ? widget.creditReservationId
+            : operationId,
       );
 
       if (outcome.isFallback) {
@@ -230,6 +303,7 @@ class _PetCommunicationInputScreenState
         }
       }
     } finally {
+      await _photoService.remove(uploadedPhotos);
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -302,6 +376,8 @@ class _PetCommunicationInputScreenState
                 const SizedBox(height: 32),
                 _buildSectionTitle('想問毛孩的問題', '最多可以提問 5 個問題'),
                 ...List.generate(5, (index) => _buildQuestionInput(index)),
+                const SizedBox(height: 32),
+                _buildPhotoInput(),
                 const SizedBox(height: 40),
                 _buildSubmitButton(),
                 const SizedBox(height: 40),
@@ -361,6 +437,63 @@ class _PetCommunicationInputScreenState
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPhotoInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('毛孩照片（選填）', 'Plus／Pro 多模態視覺感知'),
+        const Text('最多 3 張，每張上限 10 MB。支援 JPG、PNG、WebP。'),
+        const SizedBox(height: 8),
+        Text(
+          _canUsePhotos
+              ? '照片與故事會作為 AI 回答提問的參考素材。照片會傳送供 AI 分析。'
+              : '升級 Plus／Pro 即可加入照片分析。',
+        ),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (var i = 0; i < _photos.length; i++)
+              SizedBox(
+                width: 96,
+                child: Column(
+                  children: [
+                    Image.memory(
+                      _photos[i].bytes,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      cacheWidth: 192,
+                      errorBuilder: (_, _, _) => const SizedBox(
+                        height: 96,
+                        child: Icon(Icons.broken_image),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _isLoading || _pickingPhotos
+                          ? null
+                          : () => setState(() => _photos.removeAt(i)),
+                      child: Text('移除照片 ${i + 1}'),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        OutlinedButton.icon(
+          onPressed:
+              _canUsePhotos &&
+                  !_isLoading &&
+                  !_pickingPhotos &&
+                  _photos.length < 3
+              ? _pickPhotos
+              : null,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: Text(_pickingPhotos ? '讀取照片中…' : '加入照片（${_photos.length}/3）'),
+        ),
+      ],
     );
   }
 

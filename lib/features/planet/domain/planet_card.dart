@@ -979,4 +979,404 @@ const planetCards = <PlanetCard>[
     source:
         'Cats Protection：Keeping Your Cat Safe in the Home，依公開資料改寫。開門裝卸時持續看顧，確認貓在安全處再關門啟動，避免困在家電內。',
   ),
+  PlanetCard(
+    id: '101',
+    title: '墊子上放鬆',
+    category: '安定與練習',
+    imageAsset: 'assets/cards/101-dog-mat-settle.png',
+    petVoice: '待在小墊子上，也能很自在。',
+    knowledgePoint: '在墊子上安定放鬆時給獎勵，慢慢延長時間。',
+    source:
+        'Dogs Trust 犬隻訓練：墊子上放鬆，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/basics/settle-training',
+  ),
+  PlanetCard(
+    id: '102',
+    title: '四隻腳穩穩站',
+    category: '迎接與禮貌',
+    imageAsset: 'assets/cards/102-dog-four-paws.png',
+    petVoice: '腳腳留在地上，也能等到你。',
+    knowledgePoint: '迎接時獎勵四腳著地，不推撞或用膝蓋頂狗狗。',
+    source:
+        'Dogs Trust 犬隻訓練：四隻腳穩穩站，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/unwanted-behaviours/jumping-up-training',
+  ),
+  PlanetCard(
+    id: '103',
+    title: '鼻子輕輕碰',
+    category: '互動與練習',
+    imageAsset: 'assets/cards/103-dog-nose-target.png',
+    petVoice: '輕輕碰一下，我懂你的邀請。',
+    knowledgePoint: '鼻碰手練習由狗狗主動觸碰，不把手壓向鼻子。',
+    source:
+        'Dogs Trust 犬隻訓練：鼻子輕輕碰，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/tips-tricks/target-training',
+  ),
+  PlanetCard(
+    id: '104',
+    title: '名字是好消息',
+    category: '注意與連結',
+    imageAsset: 'assets/cards/104-dog-name-attention.png',
+    petVoice: '聽見我的名字，我想看看你。',
+    knowledgePoint: '叫名字後狗狗轉頭看你就獎勵，避免連續喊叫。',
+    source:
+        'Dogs Trust 犬隻訓練：名字是好消息，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/basics/name-training',
+  ),
+  PlanetCard(
+    id: '105',
+    title: '等一下再出發',
+    category: '等待與口令',
+    imageAsset: 'assets/cards/105-dog-stay-release.png',
+    petVoice: '短短等一下，再一起行動。',
+    knowledgePoint: '等待練習從短時間開始，用解除口令結束。',
+    source:
+        'Dogs Trust 犬隻訓練：等一下再出發，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/basics/stay-training',
+  ),
+  PlanetCard(
+    id: '106',
+    title: '練一下，休息一下',
+    category: '學習與節奏',
+    imageAsset: 'assets/cards/106-dog-short-sessions.png',
+    petVoice: '短短練習，留點期待給下次。',
+    knowledgePoint: '訓練採短場次，疲累或分心時先休息。',
+    source:
+        'RSPCA 犬隻照護與訓練：練一下，休息一下，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs/training',
+  ),
+  PlanetCard(
+    id: '107',
+    title: '家人說法要一致',
+    category: '口令與溝通',
+    imageAsset: 'assets/cards/107-dog-consistent-cues.png',
+    petVoice: '同一個意思，我就更容易懂。',
+    knowledgePoint: '家人使用一致口令與手勢，避免同時下指令。',
+    source:
+        'Dogs Trust 犬隻訓練：家人說法要一致，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/techniques/top-ten-dog-training-tips',
+  ),
+  PlanetCard(
+    id: '108',
+    title: '安靜一點更好學',
+    category: '環境與專注',
+    imageAsset: 'assets/cards/108-dog-quiet-learning.png',
+    petVoice: '少一點干擾，我能慢慢學。',
+    knowledgePoint: '新動作先在安靜少干擾的室內練習。',
+    source:
+        'RSPCA 犬隻照護與訓練：安靜一點更好學，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs/training',
+  ),
+  PlanetCard(
+    id: '109',
+    title: '換地方再練習',
+    category: '學習與情境',
+    imageAsset: 'assets/cards/109-dog-new-place.png',
+    petVoice: '換個地方，陪我重新熟悉。',
+    knowledgePoint: '換到新地點練習時降低難度，再逐漸增加干擾。',
+    source:
+        'Dogs Trust 犬隻訓練：換地方再練習，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/techniques/top-ten-dog-training-tips',
+  ),
+  PlanetCard(
+    id: '110',
+    title: '喜歡的才是獎勵',
+    category: '獎勵與偏好',
+    imageAsset: 'assets/cards/110-dog-reward-choice.png',
+    petVoice: '你知道我喜歡什麼，真好。',
+    knowledgePoint: '依狗狗偏好選擇食物、玩具或稱讚作為獎勵。',
+    source:
+        'RSPCA 犬隻照護與訓練：喜歡的才是獎勵，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs/training',
+  ),
+  PlanetCard(
+    id: '111',
+    title: '玩具洗好再玩',
+    category: '玩具與清潔',
+    imageAsset: 'assets/cards/111-dog-clean-toys.png',
+    petVoice: '乾乾淨淨，再陪我玩一次。',
+    knowledgePoint: '玩具依材質清潔，充分沖洗並乾燥後再給狗狗。',
+    source:
+        'RSPCA 犬隻照護與訓練：玩具洗好再玩，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs/environment',
+  ),
+  PlanetCard(
+    id: '112',
+    title: '每隻都有舒服床',
+    category: '多犬與休息',
+    imageAsset: 'assets/cards/112-dog-enough-beds.png',
+    petVoice: '有自己的床，休息更自在。',
+    knowledgePoint: '多犬家庭提供足夠床位，避免爭搶休息位置。',
+    source:
+        'RSPCA 犬隻照護與訓練：每隻都有舒服床，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs/environment',
+  ),
+  PlanetCard(
+    id: '113',
+    title: '圍欄先檢查',
+    category: '戶外與防逃',
+    imageAsset: 'assets/cards/113-dog-secure-yard.png',
+    petVoice: '圍好小院子，探索更安心。',
+    knowledgePoint: '庭院活動前檢查圍欄與大門，避免縫隙逃脫。',
+    source:
+        'Dogs Trust 犬隻訓練：圍欄先檢查，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/unwanted-behaviours/escaping-and-running-away',
+  ),
+  PlanetCard(
+    id: '114',
+    title: '步調跟著我',
+    category: '活動與體力',
+    imageAsset: 'assets/cards/114-dog-exercise-fit.png',
+    petVoice: '今天走多少，看看我的狀態。',
+    knowledgePoint: '運動量依年齡、健康與體力調整，不一味加量。',
+    source:
+        'RSPCA 犬隻照護與訓練：步調跟著我，依公開資料改寫。 https://www.rspca.org.uk/adviceandwelfare/pets/dogs',
+  ),
+  PlanetCard(
+    id: '115',
+    title: '日常有個節奏',
+    category: '作息與安心',
+    imageAsset: 'assets/cards/115-dog-daily-routine.png',
+    petVoice: '熟悉的日常，讓我好安心。',
+    knowledgePoint: '建立可預期的日常作息，保留吃飯、活動與休息時間。',
+    source:
+        'Dogs Trust 犬隻訓練：日常有個節奏，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/home/create-routine',
+  ),
+  PlanetCard(
+    id: '116',
+    title: '門口先停一下',
+    category: '出入與安全',
+    imageAsset: 'assets/cards/116-dog-doorway-pause.png',
+    petVoice: '等門開好了，我們再一起走。',
+    knowledgePoint: '出門前先繫妥牽繩，在門口練習停等再通行。',
+    source:
+        'Dogs Trust 犬隻訓練：門口先停一下，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/home/doorway-training',
+  ),
+  PlanetCard(
+    id: '117',
+    title: '先認識吸塵器',
+    category: '聲音與適應',
+    imageAsset: 'assets/cards/117-dog-vacuum-intro.png',
+    petVoice: '先遠遠看看，不急著靠近。',
+    knowledgePoint: '先從關機的吸塵器開始熟悉，不追著狗狗吸。',
+    source:
+        'Dogs Trust 犬隻訓練：先認識吸塵器，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/home/vacuum-cleaner',
+  ),
+  PlanetCard(
+    id: '118',
+    title: '做對了，告訴我',
+    category: '標記與學習',
+    imageAsset: 'assets/cards/118-dog-marker-word.png',
+    petVoice: '這聲鼓勵，讓我知道做對了。',
+    knowledgePoint: '用固定標記詞指出做對的瞬間，接著給獎勵。',
+    source:
+        'Dogs Trust 犬隻訓練：做對了，告訴我，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/techniques/introducing-a-marker',
+  ),
+  PlanetCard(
+    id: '119',
+    title: '嘴套也能慢慢學',
+    category: '用品與適應',
+    imageAsset: 'assets/cards/119-dog-muzzle-choice.png',
+    petVoice: '讓我自己試試，也能隨時退開。',
+    knowledgePoint: '嘴套練習讓狗狗自願探入，初期不扣住或強戴。',
+    source:
+        'Dogs Trust 犬隻訓練：嘴套也能慢慢學，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/outdoors/muzzle-training',
+  ),
+  PlanetCard(
+    id: '120',
+    title: '玩具回小籃子',
+    category: '遊戲與學習',
+    imageAsset: 'assets/cards/120-dog-tidy-toys.png',
+    petVoice: '玩完放回去，也是一個遊戲。',
+    knowledgePoint: '收玩具練習從籃子旁開始，放入就給獎勵。',
+    source:
+        'Dogs Trust 犬隻訓練：玩具回小籃子，依公開資料改寫。 https://www.dogstrust.org.uk/dog-advice/training/tips-tricks/tidying-up',
+  ),
+  PlanetCard(
+    id: '121',
+    title: '鼻子輕碰一下',
+    category: '互動與學習',
+    imageAsset: 'assets/cards/121-cat-nose-target.png',
+    petVoice: '輕輕碰一下，就有小驚喜。',
+    knowledgePoint: '用鼻子觸碰目標物就給獎勵，不把目標物戳向貓咪。',
+    source:
+        'Happy Cats Haven：Clicker Training Behaviors for Cats，依公開資料改寫。 https://happycatshaven.org/resource/clicker-training-behaviors-cats/',
+  ),
+  PlanetCard(
+    id: '122',
+    title: '名字裡有好事',
+    category: '注意與連結',
+    imageAsset: 'assets/cards/122-cat-name-reward.png',
+    petVoice: '聽見我的名字，我想看看你。',
+    knowledgePoint: '叫名字後貓咪看向你就給獎勵，不用提高音量催促。',
+    source:
+        'Cats Protection：名字回應與獎勵練習，依公開資料改寫。 https://www.cats.org.uk/cats-blog/how-to-train-your-cat-respond-to-name',
+  ),
+  PlanetCard(
+    id: '123',
+    title: '小墊子集合',
+    category: '學習與位置',
+    imageAsset: 'assets/cards/123-cat-mat-training.png',
+    petVoice: '走到小墊子上，也有小驚喜。',
+    knowledgePoint: '墊上練習從踩到墊面開始，再逐步增加停留時間。',
+    source:
+        'Happy Cats Haven：Clicker Training Behaviors for Cats，依公開資料改寫。 https://happycatshaven.org/resource/clicker-training-behaviors-cats/',
+  ),
+  PlanetCard(
+    id: '124',
+    title: '懂我喜歡的獎勵',
+    category: '學習與偏好',
+    imageAsset: 'assets/cards/124-cat-reward-preference.png',
+    petVoice: '我喜歡的，你都記在心裡。',
+    knowledgePoint: '依貓咪偏好選獎勵，不把每隻貓都當成愛吃點心。',
+    source:
+        'Cats Protection：名字回應與獎勵練習，依公開資料改寫。 https://www.cats.org.uk/cats-blog/how-to-train-your-cat-respond-to-name',
+  ),
+  PlanetCard(
+    id: '125',
+    title: '外出籠抱穩穩',
+    category: '外出與照護',
+    imageAsset: 'assets/cards/125-cat-carrier-support.png',
+    petVoice: '穩穩托住，我比較安心。',
+    knowledgePoint: '搬運外出籠時托住底部，保持水平並減少晃動。',
+    source:
+        'Battersea：Travelling with cats，依公開資料改寫。 https://www.battersea.org.uk/pet-advice/cat-advice/travelling-cats',
+  ),
+  PlanetCard(
+    id: '126',
+    title: '看診回家緩一緩',
+    category: '多貓與照護',
+    imageAsset: 'assets/cards/126-cat-home-from-vet.png',
+    petVoice: '回到家，給我一點緩衝時間。',
+    knowledgePoint: '看診返家的貓若引起同伴緊張，先分室休息再重聚。',
+    source:
+        'Cats Protection：Getting Another Cat，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/cats-and-your-family/other-cats',
+  ),
+  PlanetCard(
+    id: '127',
+    title: '摸一下，先停手',
+    category: '撫摸與界線',
+    imageAsset: 'assets/cards/127-cat-petting-pause.png',
+    petVoice: '停一下，看看我還想不想。',
+    knowledgePoint: '撫摸幾下就停手，觀察貓咪是否還想互動。',
+    source:
+        'International Cat Care：Cat Friendly Homing Information Pack，三秒撫摸原則，依公開資料改寫。 https://icatcare.org/resources/cat_friendly_homing_information_pack.pdf',
+  ),
+  PlanetCard(
+    id: '128',
+    title: '嘶聲是在說暫停',
+    category: '訊號與距離',
+    imageAsset: 'assets/cards/128-cat-hiss-space.png',
+    petVoice: '我需要空間，請先退一點。',
+    knowledgePoint: '貓咪發出嘶聲時先退開，不模仿嘶聲或責罵。',
+    source:
+        'Cats Protection：Cat Body Language，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/cat-behaviour/cat-body-language',
+  ),
+  PlanetCard(
+    id: '129',
+    title: '瞳孔也看光線',
+    category: '觀察與情境',
+    imageAsset: 'assets/cards/129-cat-pupils-light.png',
+    petVoice: '看看光線，再看看我的樣子。',
+    knowledgePoint: '瞳孔大小也受光線影響，不能只憑瞳孔判斷情緒。',
+    source:
+        'Cats Protection：Cat eyesight facts；情緒判讀另參考 Cat Body Language，依公開資料改寫。 https://www.cats.org.uk/cats-blog/cat-eyesight-facts',
+  ),
+  PlanetCard(
+    id: '130',
+    title: '豎起尾巴打招呼',
+    category: '訊號與交流',
+    imageAsset: 'assets/cards/130-cat-tail-greeting.png',
+    petVoice: '尾巴豎起來，跟你說聲嗨。',
+    knowledgePoint: '豎尾配合放鬆姿勢常是友善訊號，仍要看整體情境。',
+    source:
+        'Cats Protection：Cat Body Language，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/cat-behaviour/cat-body-language',
+  ),
+  PlanetCard(
+    id: '131',
+    title: '追逐也要看反應',
+    category: '多貓與遊戲',
+    imageAsset: 'assets/cards/131-cat-play-boundaries.png',
+    petVoice: '玩得舒服，我們才繼續。',
+    knowledgePoint: '追逐若總是一方逃躲，應中止互動並評估壓力。',
+    source:
+        'Cats Protection：Cats and Fighting，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/cat-behaviour/cats-and-fighting',
+  ),
+  PlanetCard(
+    id: '132',
+    title: '抓板放對地方',
+    category: '抓磨與配置',
+    imageAsset: 'assets/cards/132-cat-scratch-location.png',
+    petVoice: '想抓抓時，旁邊就找得到。',
+    knowledgePoint: '抓板可放在常抓的家具旁，提供就近替代位置。',
+    source:
+        'Cats Protection：Behaviour focus: Scratching，依公開資料改寫。 https://www.cats.org.uk/cats-blog/behaviour-focus-scratching',
+  ),
+  PlanetCard(
+    id: '133',
+    title: '碗洗好再開飯',
+    category: '餐具與清潔',
+    imageAsset: 'assets/cards/133-cat-clean-bowl.png',
+    petVoice: '乾淨的小碗，吃飯更舒服。',
+    knowledgePoint: '食碗用後清洗並充分沖淨，避免殘留舊食與清潔劑。',
+    source:
+        'Cats Protection：貓咪照護手冊，餐後清洗食碗，依公開資料改寫。 https://www.cats.org.uk/uploads/documents/Cats_Protection_JCC_Leaflet.pdf',
+  ),
+  PlanetCard(
+    id: '134',
+    title: '流水也能試試看',
+    category: '飲水與選擇',
+    imageAsset: 'assets/cards/134-cat-flowing-water.png',
+    petVoice: '有流動的水，我想試著喝。',
+    knowledgePoint: '可提供寵物飲水機，觀察貓咪是否偏好流動的水。',
+    source:
+        'Cats Protection：Why do cats love running water?，依公開資料改寫。 https://www.cats.org.uk/cats-blog/why-cats-love-running-water',
+  ),
+  PlanetCard(
+    id: '135',
+    title: '寬口小碗試試看',
+    category: '餐具與選擇',
+    imageAsset: 'assets/cards/135-cat-wide-bowl.png',
+    petVoice: '換個寬口小碗，試試喜不喜歡。',
+    knowledgePoint: '可試寬口淺碗，依貓咪實際使用情形調整。',
+    source:
+        'Cats Protection：Water, domestic cat，依公開資料改寫。 https://learnonline.cats.org.uk/content/ufo/23.html',
+  ),
+  PlanetCard(
+    id: '136',
+    title: '各有舒服的小床',
+    category: '多貓與資源',
+    imageAsset: 'assets/cards/136-cat-extra-beds.png',
+    petVoice: '想休息時，都有自己的位置。',
+    knowledgePoint: '多貓家庭提供足夠床位，讓貓咪能分散休息。',
+    source:
+        'Cats Protection：Getting Another Cat，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/cats-and-your-family/other-cats',
+  ),
+  PlanetCard(
+    id: '137',
+    title: '帶上熟悉的小毯',
+    category: '外出與安心',
+    imageAsset: 'assets/cards/137-cat-familiar-blanket.png',
+    petVoice: '熟悉的小毯，也陪我出門。',
+    knowledgePoint: '外出時帶上有熟悉氣味的小毯，減少環境陌生感。',
+    source:
+        'Cats Protection：Choosing and Using a Cat Carrier，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/getting-a-cat/how-to-choose-and-use-a-cat-carrier',
+  ),
+  PlanetCard(
+    id: '138',
+    title: '窗簾拉繩收好',
+    category: '居家與安全',
+    imageAsset: 'assets/cards/138-cat-blind-cords.png',
+    petVoice: '窗邊看風景，拉繩先收好。',
+    knowledgePoint: '窗簾拉繩固定在貓咪碰不到處，避免繩圈纏繞。',
+    source:
+        'Zoetis Petcare：How to Cat-Proof Your Home，依公開資料改寫。 https://www.zoetispetcare.com/blog/article/cat-proof-home',
+  ),
+  PlanetCard(
+    id: '139',
+    title: '熱天有個涼地方',
+    category: '環境與舒適',
+    imageAsset: 'assets/cards/139-cat-cool-shade.png',
+    petVoice: '太陽熱熱的，我有涼處歇歇。',
+    knowledgePoint: '炎熱時提供陰涼通風處與清水，讓貓咪能避開日曬。',
+    source:
+        'Cats Protection：Cats and Warm Weather，依公開資料改寫。 https://www.cats.org.uk/help-and-advice/home-and-environment/cats-and-warm-weather',
+  ),
+  PlanetCard(
+    id: '140',
+    title: '紙箱先檢查',
+    category: '探索與安全',
+    imageAsset: 'assets/cards/140-cat-safe-box.png',
+    petVoice: '小紙箱準備好，讓我探探頭。',
+    knowledgePoint: '紙箱先去除膠帶與釘針，保留可自由進出的開口。',
+    source:
+        'PDSA：Build your own cardboard cat house，依公開資料改寫。 https://www.pdsa.org.uk/what-we-do/blog/build-your-own-cardboard-cat-house',
+  ),
 ];

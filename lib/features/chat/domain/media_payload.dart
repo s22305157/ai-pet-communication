@@ -41,6 +41,8 @@ extension InputModeExtension on InputMode {
 /// 媒體資料酬載
 /// free 模式下此物件應傳 null，不應傳入任何欄位
 class MediaPayload {
+  /// 本次溝通的私人 Storage 路徑，最多三張。
+  final List<String> photos;
   // ── 圖片（plus / pro 支援）───────────────────────────────────
   /// 遠端圖片 URL（優先使用）
   final String? imageUrl;
@@ -59,6 +61,7 @@ class MediaPayload {
   final String? videoSummary;
 
   const MediaPayload({
+    this.photos = const [],
     this.imageUrl,
     this.imageBase64,
     this.videoUrl,
@@ -69,6 +72,7 @@ class MediaPayload {
   /// 序列化為 JSON Map，供 PromptManager 使用
   Map<String, dynamic> toJson() {
     return {
+      if (photos.isNotEmpty) 'photos': photos,
       if (imageUrl != null) 'imageUrl': imageUrl,
       if (imageBase64 != null) 'imageBase64': imageBase64,
       if (videoUrl != null) 'videoUrl': videoUrl,
@@ -80,6 +84,7 @@ class MediaPayload {
 
   /// 是否包含任何有效的媒體資料
   bool get hasContent =>
+      photos.isNotEmpty ||
       imageUrl != null ||
       imageBase64 != null ||
       videoUrl != null ||

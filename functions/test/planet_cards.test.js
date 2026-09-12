@@ -117,7 +117,8 @@ test('third cat batch preserves species, safety, deduplication and trusted text 
         ...Array.from({length: 20}, (_, i) => String(i + 81).padStart(3, '0'))]);
   }
   assert(matchPlanetCards(value, 'dog', 'general').every(id =>
-    (Number(id) >= 21 && Number(id) <= 40) || (Number(id) >= 61 && Number(id) <= 80)));
+    (Number(id) >= 21 && Number(id) <= 40) || (Number(id) >= 61 && Number(id) <= 80) ||
+    (Number(id) >= 101 && Number(id) <= 120)));
   assert.deepEqual(matchPlanetCards(value, 'cat', 'emergency'), []);
   assert.deepEqual(matchPlanetCards({...value, safety_alert: {has_red_flags: true}}, 'cat', 'caution'), []);
   assert.deepEqual(matchPlanetCards({petVoice: thirdCatExamples, cardIds: ['100']}, 'cat', 'general'), []);
@@ -169,7 +170,9 @@ test('new cat cards preserve species, emergency and returned-knowledge boundarie
   assert.deepEqual(matchPlanetCards(value, '貓咪', 'general'),
     [...Array.from({length: 20}, (_, i) => String(i + 1).padStart(3, '0')),
       ...Array.from({length: 20}, (_, i) => String(i + 41).padStart(3, '0'))]);
-  assert(matchPlanetCards(value, 'dog', 'general').every(id => Number(id) >= 21 && Number(id) <= 40));
+  assert(matchPlanetCards(value, 'dog', 'general').every(id =>
+    (Number(id) >= 21 && Number(id) <= 40) || (Number(id) >= 61 && Number(id) <= 80) ||
+    (Number(id) >= 101 && Number(id) <= 120)));
   assert.deepEqual(matchPlanetCards(value, 'cat', 'emergency'), []);
   assert.deepEqual(matchPlanetCards({...value, safety_alert: {has_red_flags: true}}, 'cat', 'caution'), []);
   assert.deepEqual(matchPlanetCards({petVoice: nextCatExamples, cardIds: ['060']}, 'cat', 'general'), []);

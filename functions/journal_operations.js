@@ -2,6 +2,7 @@ const {onCall, HttpsError} = require('firebase-functions/v2/https');
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {getFirestore} = require('firebase-admin/firestore');
 const {getStorage} = require('firebase-admin/storage');
+const {getAuth} = require('firebase-admin/auth');
 const {createJournalService} = require('./journal_service');
 const {defineSecret, defineString} = require('firebase-functions/params');
 const {generateReview} = require('./weekly_review_provider');
@@ -11,8 +12,18 @@ const reviewModel = defineString('OPENAI_MODEL', {default: 'gpt-5.6-luna'});
 const {enforceAppCheck, consumeJournalQuota} = require('./callable_policy');
 
 const service = () => createJournalService({db: getFirestore(), bucket: getStorage().bucket(),
+  metricAdminIds: async uids => {
+    const ids = [];
+    for (let i = 0; i < uids.length; i += 100) {
+      const result = await getAuth().getUsers(uids.slice(i, i + 100).map(uid => ({uid})));
+      ids.push(...result.users.filter(u => u.customClaims?.pilotAdmin === true).map(u => u.uid));
+    }
+    return ids;
+  },
   reviewProvider: args => generateReview({...args, apiKey: reviewKey.value(), model: reviewModel.value()})});
-const names = ['getPilotAccess', 'activatePilot', 'createJournalPet', 'upsertJournalEntry',
+const names = ['getPilotInterest', 'markPilotPriceViewed', 'setPilotInterest', 'setPilotMetricsConsent',
+  'adminGetPilotMetrics', 'adminSetPilotCost', 'adminGetPilotCost',
+  'getPilotAccess', 'activatePilot', 'createJournalPet', 'upsertJournalEntry',
   'deleteJournalEntry', 'beginJournalUpload', 'finalizeJournalUpload', 'listJournalEntries',
   'getJournalHome', 'exportJournal', 'adminSetPilotParticipant', 'deleteJournalPet', 'uploadJournalBytes', 'getJournalImage', 'cancelJournalUpload',
   'setReviewPreference', 'getWeeklyReview', 'getWeeklyReviewSource', 'requestWeeklyReview', 'markWeeklyReviewViewed',

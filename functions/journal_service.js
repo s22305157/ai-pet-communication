@@ -4,7 +4,7 @@ const P = require('./journal_policy');
 const stamp = ms => Timestamp.fromMillis(ms);
 const json = value => JSON.parse(JSON.stringify(value, (_, v) => v));
 
-function createJournalService({db, bucket, now = Date.now, normalize = P.normalizeImage, reviewProvider}) {
+function createJournalService({db, bucket, now = Date.now, normalize = P.normalizeImage, reviewProvider, metricAdminIds}) {
   const userRef = uid => db.collection('users').doc(uid);
   const participantRef = uid => db.collection('pilotParticipants').doc(uid);
   const petRef = (uid, petId) => userRef(uid).collection('journalPets').doc(P.id(petId));
@@ -59,10 +59,11 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
     });
   }
 
-  function event(tx, uid, a, kind, operationId) {
-    if (!a.p.metricsConsent || a.p.isTest || a.p.isAdmin) return;
+  function event(tx, uid, a, kind, operationId, subject) {
+    if (a.p.metricsConsent !== true || a.p.metricsCleanupPending || a.p.isTest || a.p.isAdmin) return;
     tx.set(userRef(uid).collection('pilotEvents').doc(operationId), {
-      type: kind, createdAt: stamp(now()), expiresAt: stamp(now() + 90 * 86400000), schemaVersion: 1});
+      type: kind, ...(subject ? {subject: createHash('sha256').update(subject).digest('hex')} : {}),
+      createdAt: stamp(now()), expiresAt: stamp(now() + 90 * 86400000), schemaVersion: 2});
   }
 
   const handlers = {};
@@ -119,9 +120,10 @@ function createJournalService({db, bucket, now = Date.now, normalize = P.normali
   };
 
   const context = {handlers, db, bucket, now, access, livePet, mutate, event};
+  const metrics = require('./pilot_metrics_service')({...context, metricAdminIds});
   const reviews = require('./weekly_review_service')({...context, reviewProvider});
   const community = require('./community_service')(context);
   const {sweep, markPetDeleted, cleanupPet} = require('./journal_cleanup_service')({db, bucket, now, userRef, mediaRef, petRef, handlers, mutate, community});
-  return {handlers, sweep: async () => { await sweep(); await community.sweep(); }, markPetDeleted, cleanupPet, reviews, community};
+  return {handlers, sweep: async () => { await sweep(); await community.sweep(); await metrics.sweep(); }, markPetDeleted, cleanupPet, reviews, community};
 }
 module.exports = {createJournalService};

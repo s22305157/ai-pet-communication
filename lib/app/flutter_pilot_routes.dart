@@ -10,8 +10,12 @@ import '../features/community/presentation/community_post_screen.dart';
 import '../features/community/presentation/community_share_screen.dart';
 import '../features/pilot/presentation/pilot_notifications_screen.dart';
 import '../features/pilot/presentation/pilot_admin_screen.dart';
+import '../features/pilot/presentation/pilot_interest_screen.dart';
 
 class FlutterPilotRoutes implements PilotRoutes {
+  @override
+  Future<void> interest(BuildContext context, PilotRepository repository) =>
+      _open(context, PilotInterestScreen(repository: repository));
   Future<void> _open(BuildContext context, Widget page) async {
     await Navigator.push(
       context,
@@ -27,7 +31,14 @@ class FlutterPilotRoutes implements PilotRoutes {
     String? week,
   }) => _open(
     context,
-    WeeklyReviewScreen(repository: repository, petId: petId, initialWeek: week),
+    WeeklyReviewScreen(
+      repository: repository,
+      petId: petId,
+      initialWeek: week,
+      onInterest: (context) => repository.isCurrentSession
+          ? interest(context, repository)
+          : Future.value(),
+    ),
   );
   @override
   Future<void> community(BuildContext context, PilotRepository repository) =>

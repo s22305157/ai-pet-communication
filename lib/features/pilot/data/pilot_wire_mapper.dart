@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../domain/pilot_request.dart';
+import '../domain/pilot_metrics.dart';
 import '../../community/domain/community_post.dart';
 import '../../weekly_review/domain/weekly_review.dart';
 
@@ -7,6 +8,29 @@ import '../../weekly_review/domain/weekly_review.dart';
 (String, Map<String, dynamic>) encodePilotRequest(
   PilotRequest request,
 ) => switch (request) {
+  GetPilotInterest() => ('getPilotInterest', {}),
+  MarkPilotPriceViewed() => ('markPilotPriceViewed', {}),
+  SetPilotInterest r => (
+    'setPilotInterest',
+    {'interested': r.interested, 'priceVersion': 'pilot-twd199-v1'},
+  ),
+  SetPilotMetricsConsent r => (
+    'setPilotMetricsConsent',
+    {'enabled': r.enabled},
+  ),
+  GetPilotMetrics() => ('adminGetPilotMetrics', {}),
+  GetPilotCost r => ('adminGetPilotCost', {'day': r.day}),
+  SetPilotCost r => (
+    'adminSetPilotCost',
+    {
+      'day': r.day,
+      'expectedRevision': r.cost.revision,
+      'modelTwd': r.cost.modelTwd,
+      'storageTwd': r.cost.storageTwd,
+      'requests': r.cost.requests,
+      'minutes': r.cost.minutes,
+    },
+  ),
   GetWeeklyReview r => ('getWeeklyReview', {'petId': r.petId, 'week': r.week}),
   GetWeeklyReviewSource r => (
     'getWeeklyReviewSource',
@@ -117,6 +141,20 @@ import '../../weekly_review/domain/weekly_review.dart';
 
 T decodePilotResponse<T>(PilotRequest<T> request, Map<String, dynamic> data) {
   final Object? value = switch (request) {
+    GetPilotInterest() => PilotInterest(
+      interested: data['interested'] == true,
+      metricsConsent: data['metricsConsent'] == true,
+      canExpressInterest: data['canExpressInterest'] == true,
+      cleanupPending: data['cleanupPending'] == true,
+    ),
+    GetPilotCost() => _cost(data),
+    GetPilotMetrics() => PilotMetricsReport(
+      truncated: data['truncated'] == true,
+      costs: _cost(_map(data['costs'])),
+      metrics: data['truncated'] == true || data['metrics'] == null
+          ? null
+          : _metrics(_map(data['metrics'])),
+    ),
     GetWeeklyReview() => _review(data),
     GetWeeklyReviewSource() => ReviewSource(
       context: _string(data, 'context'),
@@ -151,6 +189,35 @@ T decodePilotResponse<T>(PilotRequest<T> request, Map<String, dynamic> data) {
 }
 
 String _string(Map data, String key) => data[key] as String? ?? '';
+PilotCost _cost(Map data) => PilotCost(
+  revision: _int(data, 'revision'),
+  requests: _int(data, 'requests'),
+  minutes: _int(data, 'minutes'),
+  recordedDays: _int(data, 'recordedDays'),
+  modelTwd: (data['modelTwd'] as num?)?.toDouble() ?? 0,
+  storageTwd: (data['storageTwd'] as num?)?.toDouble() ?? 0,
+);
+PilotRatio _ratio(Object? raw) {
+  final data = _map(raw);
+  return PilotRatio(
+    numerator: _int(data, 'numerator'),
+    denominator: _int(data, 'denominator'),
+    pending: _int(data, 'pending'),
+  );
+}
+
+PilotMetrics _metrics(Map data) => PilotMetrics(
+  fromMs: _int(data, 'fromMs'),
+  toMs: _int(data, 'toMs'),
+  measuredParticipants: _int(data, 'measuredParticipants'),
+  incompleteCohorts: _int(data, 'incompleteCohorts'),
+  legacyUnlinkedEvents: _int(data, 'legacyUnlinkedEvents'),
+  activation: _ratio(data['activation']),
+  retention: _ratio(data['retention']),
+  reviewViews: _ratio(data['reviewViews']),
+  communityResponses: _ratio(data['communityResponses']),
+  upgradeInterest: _ratio(data['upgradeInterest']),
+);
 int _int(Map data, String key) => (data[key] as num?)?.toInt() ?? 0;
 String _id(Map data) {
   final id = data['id'];

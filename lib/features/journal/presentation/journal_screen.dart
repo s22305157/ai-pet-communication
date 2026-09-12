@@ -182,6 +182,16 @@ class _JournalScreenState extends State<JournalScreen> {
                       padding: const EdgeInsets.all(20),
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
+                        if (c.access?.activated == true &&
+                            getIt.isRegistered<PilotRepository>())
+                          TextButton.icon(
+                            icon: const Icon(Icons.tune),
+                            label: const Text('回顧方案與量測設定'),
+                            onPressed: () => _openPilot(
+                              (routes, pilot) =>
+                                  routes.interest(context, pilot),
+                            ),
+                          ),
                         if (c.busy || _operating)
                           const LinearProgressIndicator(),
                         if (c.error != null)

@@ -12,6 +12,7 @@ async function deleteLinkedJournals(db, bucket, uid, linkedPetId = null) {
     await service.community.cleanupAccount(uid);
     await bucket.deleteFiles({prefix: `journalUploads/${uid}/`});
     await bucket.deleteFiles({prefix: `journalImages/${uid}/`});
+    await bucket.deleteFiles({prefix: `communicationPhotos/${uid}/`});
     await db.collection('pilotParticipants').doc(uid).delete();
   }
 }

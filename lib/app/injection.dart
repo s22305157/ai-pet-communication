@@ -28,6 +28,8 @@ import 'package:ai_pet_communication/features/pet/data/repositories/avatar_uploa
 import 'package:ai_pet_communication/features/pet/application/pet_stream_watcher.dart';
 import 'package:ai_pet_communication/features/onboarding/application/onboarding_service.dart';
 import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
+import 'package:ai_pet_communication/features/chat/data/communication_photo_service.dart';
+import 'package:ai_pet_communication/features/chat/domain/communication_photo_repository.dart';
 import 'package:ai_pet_communication/features/readings/domain/readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/data/firestore_readings_repository.dart';
 import 'package:ai_pet_communication/features/readings/data/local_readings_repository.dart';
@@ -161,6 +163,9 @@ void setupDependencies() {
   );
 
   // ── 寵物 AI 聊天溝通功能模組 ──────────────────
+  getIt.registerLazySingleton<CommunicationPhotoRepository>(
+    () => CommunicationPhotoService(),
+  );
   getIt.registerLazySingleton<ChatService>(
     () => ChatService(functions: getIt<FirebaseFunctions>()),
   );

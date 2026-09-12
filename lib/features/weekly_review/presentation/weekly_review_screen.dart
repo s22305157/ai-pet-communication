@@ -11,11 +11,13 @@ class WeeklyReviewScreen extends StatefulWidget {
   final PilotRepository repository;
   final String petId;
   final String? initialWeek;
+  final Future<void> Function(BuildContext)? onInterest;
   const WeeklyReviewScreen({
     super.key,
     required this.repository,
     required this.petId,
     this.initialWeek,
+    this.onInterest,
   });
   @override
   State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
@@ -160,6 +162,11 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
                 'AI 試用至 ${DateFormat('yyyy/MM/dd HH:mm').format(DateTime.fromMillisecondsSinceEpoch(review.trialEndsAtMs))}',
               ),
             const Text('試用為啟用日記後一次性 28 天，不影響原有會員與點數。到期後保留日記與有效既有回顧。'),
+            if (widget.onInterest != null)
+              TextButton(
+                onPressed: c.busy ? null : () => widget.onInterest!(context),
+                child: const Text('查看回顧方案與通知意願'),
+              ),
             if (review.trialEndsAtMs <= DateTime.now().millisecondsSinceEpoch)
               const Text('進階回顧方案預計 NT\$199／月，尚未開放購買。'),
             const SizedBox(height: 12),

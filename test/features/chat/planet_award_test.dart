@@ -54,9 +54,33 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: PlanetCatalog(collectedIds: {'001'})),
     );
-    expect(find.textContaining('已收藏 1／100'), findsOneWidget);
+    expect(find.textContaining('已收藏 1／140'), findsOneWidget);
     expect(find.text('已收藏'), findsOneWidget);
     expect(find.text('尚未收藏・預覽'), findsWidgets);
+  });
+
+  testWidgets('new cat receipt displays card 121 and 140 titles', (
+    tester,
+  ) async {
+    final result = AiResponseModel.fromMap({
+      ...AiResponseModel.safeFallback().toMap(),
+      'planetAward': {
+        'matchedCardIds': ['121', '140'],
+        'newCardIds': ['121', '140'],
+      },
+    });
+    expect(AiResponseModel.fromMap(result.toMap()).newCardIds, ['121', '140']);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: CommunicationResultContent(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.textContaining('鼻子輕碰一下（本次新收藏）'), findsOneWidget);
+    expect(find.textContaining('紙箱先檢查（本次新收藏）'), findsOneWidget);
   });
 
   testWidgets('dog receipt displays the new dog card title', (tester) async {

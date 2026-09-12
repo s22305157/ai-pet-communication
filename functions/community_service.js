@@ -112,7 +112,7 @@ module.exports = function createCommunity(ctx) {
         const a = await access(tx, uid);
         if (request.auth.token?.pilotAdmin === true) a.p = {...a.p, isAdmin: true};
         tx.update(ref, {status: 'published', copies: FieldValue.delete(), copyLeaseId: FieldValue.delete(), copyLeaseUntil: FieldValue.delete()});
-        event(tx, uid, a, 'post_created', request.data.operationId);
+        event(tx, uid, a, 'post_created', request.data.operationId, ref.id);
         tx.delete(db.collection('_communityCleanup').doc(ref.id));
       });
       return result;

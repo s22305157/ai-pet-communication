@@ -29,6 +29,8 @@ jobs:
         run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal.test.cjs"
       - name: Journal M2-M3 review and community integration
         run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal-m23.test.cjs"
+      - name: Journal M4 metrics and preferences integration
+        run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal-m4.test.cjs"
   flutter:
     strategy:
       fail-fast: false
@@ -53,4 +55,16 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub
+      - name: Chrome photo, catalog and M4 browser regression
+        if: matrix.sdk == 'stable'
+        run: >-
+          dart tools/maintenance/chrome_test_runner.dart "$FLUTTER_ROOT"
+          test/chrome_runner_smoke_test.dart
+          test/features/chat/communication_photo_test.dart
+          test/screens/pet_communication_credit_test.dart
+          test/features/chat/pet_planet_navigation_test.dart
+          test/features/chat/planet_award_test.dart
+          test/features/pilot_m4_test.dart
+          test/features/pilot_wire_mapper_test.dart
+          test/features/journal_m23_test.dart
       - run: flutter build web --release --no-pub

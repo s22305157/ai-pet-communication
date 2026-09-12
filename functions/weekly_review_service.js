@@ -104,6 +104,7 @@ module.exports = function createWeeklyReviews({handlers, db, now, access, livePe
         const result = R.validateResult(output.result, claim.sources);
         await db.runTransaction(async tx => {
           const a = await access(tx, uid), pet = await livePet(tx, uid, d.petId), current = await tx.get(ref);
+          if (request.auth.token?.pilotAdmin === true) a.p = {...a.p, isAdmin: true};
           if (current.get('leaseId') !== leaseId || current.get('status') !== 'processing') return;
           const valid = await validSources(tx, pet, current.get('sources'), range);
           if (!allowed(a) || current.get('preferenceRevision') !== (a.p.reviewPreferenceRevision || 0) || !valid) {
@@ -113,7 +114,7 @@ module.exports = function createWeeklyReviews({handlers, db, now, access, livePe
           tx.update(ref, {status: 'ready', result, usage, updatedAt: stamp(now())});
           tx.set(user(uid).collection('pilotNotifications').doc(`review_${pet.id}_${range.week}`), {
             type: 'review', petId: pet.id, week: range.week, read: false, createdAt: stamp(now()), schemaVersion: 1});
-          event(tx, uid, a, 'review_generated', `review_${pet.id}_${range.week}`);
+          event(tx, uid, a, 'review_generated', `generated_${leaseId}`, `${uid}/${pet.id}/${range.week}/${leaseId}`);
         });
       } catch (_) {
         // A deleted pet/account must never be recreated by a late model response.
@@ -132,7 +133,8 @@ module.exports = function createWeeklyReviews({handlers, db, now, access, livePe
     const saved = await tx.get(refFor(uid, pet.id, range.week));
     if (saved.get('status') !== 'ready' || !await validSources(tx, pet, saved.get('sources'), range)) P.fail('not-found', '回顧已失效');
     if (!saved.get('firstViewedAt')) tx.update(saved.ref, {firstViewedAt: stamp(now())});
-    event(tx, uid, a, 'review_viewed', d.operationId);
+    event(tx, uid, a, 'review_viewed', d.operationId,
+      saved.get('leaseId') ? `${uid}/${pet.id}/${range.week}/${saved.get('leaseId')}` : undefined);
     return {saved: true};
   }, {readOnly: true});
   async function enqueue() {

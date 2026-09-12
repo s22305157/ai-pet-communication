@@ -3,8 +3,33 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {initializeTestEnvironment, assertSucceeds, assertFails} = require('@firebase/rules-unit-testing');
 const {doc, setDoc, getDoc, getDocs, collection, query, where, updateDoc, deleteDoc, serverTimestamp, Timestamp} = require('firebase/firestore');
-const {ref, uploadBytes, getBytes} = require('firebase/storage');
+const {ref, uploadBytes, getBytes, deleteObject} = require('firebase/storage');
 let env;
+
+test('communication photos enforce paid ownership, three immutable slots and 10 MB', async () => {
+  const a = env.authenticatedContext('a').storage();
+  const b = env.authenticatedContext('b').storage();
+  const root = 'communicationPhotos/a/photo-request-00001';
+  const put = (storage, slot, bytes = new Uint8Array([1]), contentType = 'image/png') =>
+    uploadBytes(ref(storage, `${root}/${slot}`), bytes, {contentType});
+  for (const slot of [0, 1, 2]) await assertSucceeds(put(a, slot));
+  await assertFails(put(a, 3));
+  await assertFails(put(a, 0));
+  await assertFails(getBytes(ref(b, `${root}/0`)));
+  await assertFails(put(b, 0));
+  await assertFails(put(env.unauthenticatedContext().storage(), 0));
+  await assertSucceeds(deleteObject(ref(a, `${root}/2`)));
+  await assertFails(put(a, 2, new Uint8Array(10 * 1024 * 1024 + 1)));
+  await assertFails(put(a, 2, new Uint8Array([1]), 'text/html'));
+  await assertSucceeds(put(a, 2, new Uint8Array(10 * 1024 * 1024)));
+  await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), 'users/a'), {
+    membershipEntitlements: {pro: Timestamp.fromMillis(1)},
+  }));
+  await assertSucceeds(deleteObject(ref(a, `${root}/2`)));
+  await assertFails(put(a, 2));
+  await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), '_deletedUsers/a'), {deletedAt: serverTimestamp()}));
+  await assertFails(getBytes(ref(a, `${root}/0`)));
+});
 test('planet collection is owner-readable and server-write-only', async () => {
   await env.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), 'users/a/planetCards/020'), {cardId: '020'});

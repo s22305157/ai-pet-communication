@@ -26,4 +26,5 @@ abstract interface class PilotRoutes {
   );
   Future<void> notifications(BuildContext context, PilotRepository repository);
   Future<void> admin(BuildContext context, PilotRepository repository);
+  Future<void> interest(BuildContext context, PilotRepository repository);
 }

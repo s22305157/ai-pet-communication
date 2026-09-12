@@ -21,7 +21,7 @@ module.exports = function register({handlers, db, now, access, livePet, mutate, 
     tx.create(ref, {authorId: uid, alias, text, postId: post.id, revision: 1, status: 'published', createdAt: stamp(now()), schemaVersion: 1});
     tx.update(post.ref, {commentCount: (post.get('commentCount') || 0) + 1});
     if (post.get('authorId') !== uid) notify(tx, post.get('authorId'), `comment_${ref.id}`, {type: 'comment', postId: post.id, commentId: ref.id, actorId: uid});
-    useQuota(); event(tx, uid, a, 'comment_created', d.operationId);
+    useQuota(); event(tx, uid, a, 'comment_created', d.operationId, post.id);
     return {commentId: ref.id};
   }, {readOnly: true});
   handlers.listCommunityComments = async request => {
@@ -56,7 +56,7 @@ module.exports = function register({handlers, db, now, access, livePet, mutate, 
       tx.update(post.ref, {encouragementCount: (post.get('encouragementCount') || 0) + 1});
       if (post.get('authorId') !== uid) notify(tx, post.get('authorId'), noteRef.id,
         {type: 'encouragement', postId: post.id, actorIds: [...new Set([...(note.get('actorIds') || []), uid])].slice(-100)});
-      event(tx, uid, a, 'encouragement_created', d.operationId);
+      event(tx, uid, a, 'encouragement_created', d.operationId, post.id);
     }
     return {encouraged: true};
   }, {readOnly: true});

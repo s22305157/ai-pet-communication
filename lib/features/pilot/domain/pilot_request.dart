@@ -1,9 +1,43 @@
 import 'dart:typed_data';
+import 'pilot_metrics.dart';
 import '../../community/domain/community_post.dart';
 import '../../weekly_review/domain/weekly_review.dart';
 
 sealed class PilotRequest<T> {
   const PilotRequest();
+}
+
+final class GetPilotInterest extends PilotRequest<PilotInterest> {
+  const GetPilotInterest();
+}
+
+final class MarkPilotPriceViewed extends PilotRequest<void> {
+  const MarkPilotPriceViewed();
+}
+
+final class SetPilotInterest extends PilotRequest<void> {
+  final bool interested;
+  const SetPilotInterest(this.interested);
+}
+
+final class SetPilotMetricsConsent extends PilotRequest<void> {
+  final bool enabled;
+  const SetPilotMetricsConsent(this.enabled);
+}
+
+final class GetPilotMetrics extends PilotRequest<PilotMetricsReport> {
+  const GetPilotMetrics();
+}
+
+final class GetPilotCost extends PilotRequest<PilotCost> {
+  final String day;
+  const GetPilotCost(this.day);
+}
+
+final class SetPilotCost extends PilotRequest<void> {
+  final String day;
+  final PilotCost cost;
+  const SetPilotCost(this.day, this.cost);
 }
 
 final class GetWeeklyReview extends PilotRequest<WeeklyReview> {

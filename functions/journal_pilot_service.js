@@ -18,7 +18,10 @@ module.exports = function register({handlers, db, now, access, participantRef, m
   };
   handlers.activatePilot = request => mutate(request, 'activate', async ({tx, uid, d, a}) => {
     if (d.consentVersion !== 'journal-m1-v1' || typeof d.metricsConsent !== 'boolean') P.fail('invalid-argument', '請閱讀並同意日記說明');
+    if (d.metricsConsent && a.p.metricsCleanupPending) P.fail('failed-precondition', '先前量測資料正在清除，請稍後再開啟');
     const fields = {consentVersion: d.consentVersion, metricsConsent: d.metricsConsent, schemaVersion: 1};
+    if (d.metricsConsent && !a.p.metricsConsent) fields.metricsStartedAt = stamp(now());
+    if (!d.metricsConsent && a.p.metricsConsent) fields.metricsCleanupPending = true;
     if (!a.p.activatedAt) Object.assign(fields, {activatedAt: stamp(now()), trialEndsAt: stamp(now() + 28 * 86400000)});
     tx.update(participantRef(uid), fields);
     if (!a.p.activatedAt) event(tx, uid, {...a, p: {...a.p, metricsConsent: d.metricsConsent}}, 'activated', d.operationId);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,15 +8,52 @@ import 'package:ai_pet_communication/features/chat/presentation/communication_re
 import 'package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart';
 import 'package:ai_pet_communication/features/planet/domain/planet_card.dart';
 
+Future<void> prepareCardImage(WidgetTester tester, String id) async {
+  // Decode before the widget's fake clock starts an image request. Joining an
+  // already pending request inside runAsync can otherwise wait on that clock.
+  await tester.runAsync(() async {
+    final card = planetCards.singleWhere((card) => card.id == id);
+    final provider = AssetImage(card.imageAsset);
+    // A previous catalog can leave an unfinished decode in its fake zone.
+    await provider.evict();
+    final stream = provider.resolve(ImageConfiguration.empty);
+    final ready = Completer<void>();
+    final listener = ImageStreamListener(
+      (_, _) => ready.complete(),
+      onError: (Object error, StackTrace? stack) =>
+          ready.completeError(error, stack),
+    );
+    stream.addListener(listener);
+    addTearDown(() => stream.removeListener(listener));
+    await ready.future.timeout(const Duration(seconds: 20));
+  });
+}
+
+Future<void> expectDecodedZoomImage(WidgetTester tester) async {
+  final zoom = find.byType(InteractiveViewer);
+  expect(zoom, findsOneWidget);
+  await tester.pumpAndSettle();
+  final decoded = tester
+      .widget<RawImage>(
+        find.descendant(of: zoom, matching: find.byType(RawImage)),
+      )
+      .image;
+  expect(
+    decoded,
+    isNotNull,
+    reason: 'The zoom view must render decoded pixels.',
+  );
+}
+
 void main() {
   setUp(() => GoogleFonts.config.allowRuntimeFetching = false);
 
-  test('all 100 sequential card IDs have bundled images', () async {
+  test('all 140 sequential card IDs have bundled images', () async {
     expect(
       planetCards.map((card) => card.id).toList(),
-      List.generate(100, (index) => '${index + 1}'.padLeft(3, '0')),
+      List.generate(140, (index) => '${index + 1}'.padLeft(3, '0')),
     );
-    expect(planetCards.map((card) => card.imageAsset).toSet().length, 100);
+    expect(planetCards.map((card) => card.imageAsset).toSet().length, 140);
     for (final card in planetCards) {
       final bytes = await rootBundle.load(card.imageAsset);
       expect(bytes.lengthInBytes, greaterThan(1000), reason: card.id);
@@ -35,6 +73,7 @@ void main() {
   testWidgets('dog catalog card opens its details and zoom view', (
     tester,
   ) async {
+    await prepareCardImage(tester, '021');
     await tester.pumpWidget(
       const MaterialApp(home: PlanetCatalog(collectedIds: {'021'})),
     );
@@ -50,7 +89,7 @@ void main() {
     await tester.ensureVisible(zoom);
     await tester.tap(zoom);
     await tester.pumpAndSettle();
-    expect(find.byType(InteractiveViewer), findsOneWidget);
+    await expectDecodedZoomImage(tester);
     expect(find.text('聞聞再前進'), findsOneWidget);
     expect(find.text('卡片圖片暫時無法載入'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -59,6 +98,7 @@ void main() {
   testWidgets('card 060 opens details and zoom after scrolling', (
     tester,
   ) async {
+    await prepareCardImage(tester, '060');
     await tester.pumpWidget(
       const MaterialApp(home: PlanetCatalog(collectedIds: {'060'})),
     );
@@ -75,7 +115,7 @@ void main() {
     await tester.ensureVisible(zoom);
     await tester.tap(zoom);
     await tester.pumpAndSettle();
-    expect(find.byType(InteractiveViewer), findsOneWidget);
+    await expectDecodedZoomImage(tester);
     expect(find.text('花草先查清楚'), findsOneWidget);
     expect(find.text('卡片圖片暫時無法載入'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -84,6 +124,7 @@ void main() {
   testWidgets('card 080 opens details and zoom after scrolling', (
     tester,
   ) async {
+    await prepareCardImage(tester, '080');
     await tester.pumpWidget(
       const MaterialApp(home: PlanetCatalog(collectedIds: {'080'})),
     );
@@ -100,33 +141,60 @@ void main() {
     await tester.ensureVisible(zoom);
     await tester.tap(zoom);
     await tester.pumpAndSettle();
-    expect(find.byType(InteractiveViewer), findsOneWidget);
+    await expectDecodedZoomImage(tester);
     expect(find.text('有個地方可以挖'), findsOneWidget);
     expect(find.text('卡片圖片暫時無法載入'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('card 100 opens details and zoom at the end of the catalog', (
+  testWidgets('card 120 opens details and zoom after scrolling', (
     tester,
   ) async {
+    await prepareCardImage(tester, '120');
     await tester.pumpWidget(
-      const MaterialApp(home: PlanetCatalog(collectedIds: {'100'})),
+      const MaterialApp(home: PlanetCatalog(collectedIds: {'120'})),
     );
     await tester.scrollUntilVisible(
-      find.text('100・啟動前先找找我'),
+      find.text('120・玩具回小籃子'),
       800,
       scrollable: find.byType(Scrollable).first,
       maxScrolls: 120,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('100・啟動前先找找我'));
+    await tester.tap(find.text('120・玩具回小籃子'));
     await tester.pumpAndSettle();
     final zoom = find.text('放大查看卡片');
     await tester.ensureVisible(zoom);
     await tester.tap(zoom);
     await tester.pumpAndSettle();
-    expect(find.byType(InteractiveViewer), findsOneWidget);
-    expect(find.text('啟動前先找找我'), findsOneWidget);
+    await expectDecodedZoomImage(tester);
+    expect(find.text('玩具回小籃子'), findsOneWidget);
+    expect(find.text('卡片圖片暫時無法載入'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('card 140 opens details and zoom at end of catalog', (
+    tester,
+  ) async {
+    await prepareCardImage(tester, '140');
+    await tester.pumpWidget(
+      const MaterialApp(home: PlanetCatalog(collectedIds: {'140'})),
+    );
+    await tester.scrollUntilVisible(
+      find.text('140・紙箱先檢查'),
+      800,
+      scrollable: find.byType(Scrollable).first,
+      maxScrolls: 140,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('140・紙箱先檢查'));
+    await tester.pumpAndSettle();
+    final zoom = find.text('放大查看卡片');
+    await tester.ensureVisible(zoom);
+    await tester.tap(zoom);
+    await tester.pumpAndSettle();
+    await expectDecodedZoomImage(tester);
+    expect(find.text('紙箱先檢查'), findsOneWidget);
     expect(find.text('卡片圖片暫時無法載入'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -138,6 +206,7 @@ void main() {
     testWidgets(
       'result links to catalog and returns without losing reply: $response',
       (tester) async {
+        await prepareCardImage(tester, '001');
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -163,7 +232,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(zoom);
         await tester.pumpAndSettle();
-        expect(find.byType(InteractiveViewer), findsOneWidget);
+        await expectDecodedZoomImage(tester);
         for (var i = 0; i < 3; i++) {
           await tester.pageBack();
           await tester.pumpAndSettle();
@@ -177,6 +246,7 @@ void main() {
   testWidgets(
     'catalog fits narrow screens with large text and bundles the image',
     (tester) async {
+      await prepareCardImage(tester, '001');
       tester.view.physicalSize = const Size(320, 740);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
