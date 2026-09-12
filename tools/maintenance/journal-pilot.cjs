@@ -21,9 +21,15 @@ async function main() {
   initializeApp({projectId, ...(emulated ? {} : {credential: applicationDefault()})});
   const db = getFirestore();
   if (command === 'flags') {
-    const enabled = option('enabled');
-    if (!['true', 'false'].includes(enabled)) throw Error('--enabled true|false is required');
-    await db.doc('pilotConfig/features').set({journalEnabled: enabled === 'true', reviewEnabled: false, communityEnabled: false, schemaVersion: 1}, {merge: true});
+    const flags = {};
+    for (const [optionName, field] of [['enabled', 'journalEnabled'], ['review', 'reviewEnabled'], ['community', 'communityEnabled'], ['community-write', 'communityWriteEnabled']]) {
+      const value = option(optionName);
+      if (value == null) continue;
+      if (!['true', 'false'].includes(value)) throw Error(`--${optionName} must be true|false`);
+      flags[field] = value === 'true';
+    }
+    if (!Object.keys(flags).length) throw Error('Specify at least one feature flag');
+    await db.doc('pilotConfig/features').set({...flags, schemaVersion: 1}, {merge: true});
   } else {
     const uid = option('uid');
     if (!uid || !/^[A-Za-z0-9_-]{1,128}$/.test(uid)) throw Error('Valid --uid required');

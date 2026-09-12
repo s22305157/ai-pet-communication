@@ -20,9 +20,11 @@ module.exports = function register({handlers, db, now, access, livePet, mediaRef
     if (!current.exists && (pet.get('entryCount') >= P.LIMITS.entries || todayCount >= P.LIMITS.dailyEntries)) P.fail('resource-exhausted', '已達日記數量上限，草稿已保留');
     const removed = media.filter(m => !input.mediaIds.includes(m.id) && m.exists && m.get('status') === 'ready');
     const released = removed.reduce((n, m) => n + m.get('bytes'), 0);
+    const reviews = await tx.get(pet.ref.collection('weeklyReviews').where('sourceIds', 'array-contains', ref.id));
     const {occurredAtMs, ...content} = input;
     tx.set(ref, {...content, occurredAt: stamp(occurredAtMs), revision: d.expectedRevision + 1,
       createdAt: current.get('createdAt') || stamp(now()), updatedAt: stamp(now()), schemaVersion: 1});
+    for (const review of reviews.docs) tx.update(review.ref, {status: 'invalidated', result: FieldValue.delete()});
     tx.update(pet.ref, {entryCount: (pet.get('entryCount') || 0) + (current.exists ? 0 : 1),
       revision: pet.get('revision') + 1, usedBytes: Math.max(0, (pet.get('usedBytes') || 0) - released),
       ...(!current.exists ? {entryDay: day, dailyEntries: todayCount + 1} : {})});
@@ -45,8 +47,11 @@ module.exports = function register({handlers, db, now, access, livePet, mediaRef
     if (entry.get('revision') !== d.expectedRevision) P.fail('aborted', '資料版本已變更，請重新載入');
     const media = await Promise.all((entry.get('mediaIds') || []).map(mid => tx.get(mediaRef(uid, mid))));
     const bytes = media.reduce((n, m) => n + (m.get('status') === 'ready' ? m.get('bytes') || 0 : 0), 0);
+    const reviews = await tx.get(pet.ref.collection('weeklyReviews').where('sourceIds', 'array-contains', ref.id));
     // Tombstones prevent replayed offline creates from resurrecting a deleted entry.
     tx.set(ref, {deletedAt: stamp(now()), revision: entry.get('revision') + 1, schemaVersion: 1});
+    for (const review of reviews.docs) tx.update(review.ref, {status: 'invalidated', result: FieldValue.delete()});
+    tx.set(db.collection('_communitySourceCleanup').doc(`${uid}_${d.petId}_${entry.id}`), {uid, petId: d.petId, entryId: entry.id, createdAt: stamp(now())});
     tx.update(pet.ref, {entryCount: Math.max(0, pet.get('entryCount') - 1), revision: pet.get('revision') + 1,
       usedBytes: Math.max(0, (pet.get('usedBytes') || 0) - bytes)});
     for (const m of media.filter(m => m.exists)) {

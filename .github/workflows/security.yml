@@ -20,12 +20,15 @@ jobs:
           java-version: '21'
       - run: npm ci --ignore-scripts
         working-directory: functions
+      - run: node scripts/package_knowledge.cjs
       - run: npm run lint && npm test && npm audit --omit=dev
         working-directory: functions
       - run: npm ci --ignore-scripts && npm run security:patch && npm test
         working-directory: tools/security
       - name: Journal M0-M1 callable and storage integration
         run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal.test.cjs"
+      - name: Journal M2-M3 review and community integration
+        run: node tools/security/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --config firebase.journal-test.json --project demo-pawlink-security --only auth,firestore,storage,functions "node --test tools/security/journal-m23.test.cjs"
   flutter:
     strategy:
       fail-fast: false

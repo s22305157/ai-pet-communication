@@ -1,4 +1,4 @@
-// lib/features/chat/application/media_payload.dart
+// lib/features/chat/domain/media_payload.dart
 // ============================================================
 // PAWLINK - AI 媒體資料酬載 (Media Payload)
 //

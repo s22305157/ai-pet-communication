@@ -3,6 +3,31 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('domain and application cannot depend on outer layers', () {
+    for (final target in ['data', 'application', 'presentation']) {
+      expect(
+        forbiddenLayerDependency(
+          'lib/features/sample/domain/model.dart',
+          'lib/features/sample/$target/service.dart',
+        ),
+        isTrue,
+      );
+    }
+    expect(
+      forbiddenLayerDependency(
+        'lib/features/sample/application/controller.dart',
+        'lib/features/sample/presentation/screen.dart',
+      ),
+      isTrue,
+    );
+    expect(
+      forbiddenLayerDependency(
+        'lib/features/sample/application/controller.dart',
+        'lib/features/sample/domain/model.dart',
+      ),
+      isFalse,
+    );
+  });
   test('feature import boundaries remain explicit', () {
     final violations = <String>[];
     // Exact legacy edges are frozen; journal code has no exceptions.
@@ -44,16 +69,10 @@ void main() {
                   .replaceAll('\\', '/');
         final edge = '$path -> $uri';
         final layer = RegExp(
-          r'features/([^/]+)/(data|presentation)/',
+          r'features/([^/]+)/(data|application|presentation)/',
         ).firstMatch(resolved);
         if (layer != null && feature != null) {
-          final invalid =
-              ((path.contains('/application/') ||
-                      path.contains('/presentation/')) &&
-                  layer[2] == 'data') ||
-              (path.contains('/presentation/') &&
-                  layer[2] == 'presentation' &&
-                  layer[1] != feature);
+          final invalid = forbiddenLayerDependency(path, resolved);
           if (invalid && (!legacy.contains(edge) || feature == 'journal')) {
             violations.add('$path: layer boundary imports $uri');
           }
@@ -70,4 +89,20 @@ void main() {
     }
     expect(violations, isEmpty);
   });
+}
+
+bool forbiddenLayerDependency(String source, String target) {
+  final from = RegExp(
+    r'features/([^/]+)/(domain|application|data|presentation)/',
+  ).firstMatch(source);
+  final to = RegExp(
+    r'features/([^/]+)/(domain|application|data|presentation)/',
+  ).firstMatch(target);
+  if (from == null || to == null) return false;
+  return (from[2] == 'domain' && to[2] != 'domain') ||
+      (from[2] == 'application' && to[2] == 'presentation') ||
+      (['application', 'presentation'].contains(from[2]) && to[2] == 'data') ||
+      (from[2] == 'presentation' &&
+          to[2] == 'presentation' &&
+          from[1] != to[1]);
 }

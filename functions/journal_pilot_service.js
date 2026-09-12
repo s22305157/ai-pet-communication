@@ -10,6 +10,9 @@ module.exports = function register({handlers, db, now, access, participantRef, m
       return {invited: a.invited, enabled: a.config.journalEnabled === true,
         activated: !!a.p.activatedAt, expiresAtMs: P.millis(a.p.expiresAt),
         trialEndsAtMs: P.millis(a.p.trialEndsAt), metricsConsent: a.p.metricsConsent === true,
+        reviewEnabled: a.config.reviewEnabled === true, communityEnabled: a.config.communityEnabled === true,
+        communityWriteEnabled: a.config.communityWriteEnabled !== false && a.p.postingSuspended !== true,
+        reviewAnalysisEnabled: a.p.reviewAnalysisEnabled === true, isAdmin: request.auth.token?.pilotAdmin === true,
         limits: P.LIMITS};
     });
   };

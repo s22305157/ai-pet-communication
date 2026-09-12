@@ -5,7 +5,8 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "**/PAWLINK_PRODUCT_BLUEPRINT.md"
+      "**/PAWLINK_PRODUCT_BLUEPRINT.md",
+      "**/JOURNAL_M2_M3.md"
     ],
     "rewrites": [
       {
@@ -26,6 +27,7 @@
     "rules": "storage.rules"
   },
   "functions": {
+    "predeploy": ["node scripts/package_knowledge.cjs"],
     "codebase": "default",
     "source": "functions",
     "ignore": [

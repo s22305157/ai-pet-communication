@@ -11,6 +11,8 @@ import '../domain/journal_repository.dart';
 import 'pilot_onboarding.dart';
 import 'journal_editor.dart';
 import 'journal_entry_card.dart';
+import '../../pilot/domain/pilot_repository.dart';
+import '../../../app/pilot_routes.dart';
 
 class JournalScreen extends StatefulWidget {
   final JournalRepository? repository;
@@ -26,6 +28,19 @@ class _JournalScreenState extends State<JournalScreen> {
   late final JournalDrafts _drafts = widget.drafts ?? getIt<JournalDrafts>();
   late final JournalController _controller = JournalController(_repository);
   bool _operating = false;
+  Future<void> _openPilot(
+    Future<void> Function(PilotRoutes, PilotRepository) navigate,
+  ) async {
+    if (!_repository.isCurrentSession ||
+        !getIt.isRegistered<PilotRepository>() ||
+        !getIt.isRegistered<PilotRoutes>()) {
+      return;
+    }
+    final pilot = getIt<PilotRepository>();
+    if (pilot.uid != _repository.uid || !pilot.isCurrentSession) return;
+    await navigate(getIt<PilotRoutes>(), pilot);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +113,22 @@ class _JournalScreenState extends State<JournalScreen> {
         appBar: AppBar(
           title: const Text('毛孩日記'),
           actions: [
+            if (c.access?.isAdmin == true)
+              IconButton(
+                tooltip: '試營運管理',
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                onPressed: () =>
+                    _openPilot((routes, pilot) => routes.admin(context, pilot)),
+              ),
+            if (c.access?.activated == true &&
+                getIt.isRegistered<PilotRepository>())
+              IconButton(
+                tooltip: '站內通知',
+                icon: const Icon(Icons.notifications_none),
+                onPressed: () => _openPilot(
+                  (routes, pilot) => routes.notifications(context, pilot),
+                ),
+              ),
             IconButton(
               onPressed: c.busy || _operating ? null : () => c.load(),
               tooltip: '重新整理',
@@ -205,6 +236,39 @@ class _JournalScreenState extends State<JournalScreen> {
                             '本週記錄 ${c.weekDays} 天 · ${c.pet!.entryCount}/300 則\n圖片 ${(c.pet!.usedBytes / 1048576).toStringAsFixed(1)} / 200 MiB',
                           ),
                           const Text('私人雲端日記 · 照片可點選放大與下載'),
+                          if (c.access?.activated == true &&
+                              getIt.isRegistered<PilotRepository>())
+                            Wrap(
+                              spacing: 12,
+                              children: [
+                                TextButton.icon(
+                                  icon: const Icon(Icons.auto_stories_outlined),
+                                  label: Text(
+                                    c.latestReviewWeek == null
+                                        ? '每週回顧'
+                                        : '最新回顧 · ${c.latestReviewWeek}',
+                                  ),
+                                  onPressed: () => _openPilot(
+                                    (routes, pilot) => routes.review(
+                                      context,
+                                      pilot,
+                                      c.pet!.id,
+                                      week: c.latestReviewWeek,
+                                    ),
+                                  ),
+                                ),
+                                if (c.access?.communityEnabled == true &&
+                                    c.access?.invited == true)
+                                  TextButton.icon(
+                                    icon: const Icon(Icons.people_outline),
+                                    label: const Text('同伴圈'),
+                                    onPressed: () => _openPilot(
+                                      (routes, pilot) =>
+                                          routes.community(context, pilot),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           if (!c.canWrite)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
@@ -292,9 +356,24 @@ class _JournalScreenState extends State<JournalScreen> {
                               repository: _repository,
                               enabled: !c.busy && !_operating,
                               canWrite: c.canWrite,
+                              canShare:
+                                  c.access?.invited == true &&
+                                  c.access?.communityEnabled == true &&
+                                  c.access?.communityWriteEnabled == true,
                               onSelected: (value) async {
                                 if (value == 'edit') {
                                   await _edit(entry);
+                                } else if (value == 'share') {
+                                  await _openPilot(
+                                    (routes, pilot) => routes.share(
+                                      context,
+                                      pilot,
+                                      _repository,
+                                      c.pet!.id,
+                                      entry,
+                                    ),
+                                  );
+                                  await c.load();
                                 } else if (await _confirm(
                                   '刪除這則日記？',
                                   '文字與照片將刪除，無法復原。',

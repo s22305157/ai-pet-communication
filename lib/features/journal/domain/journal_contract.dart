@@ -2,15 +2,24 @@ import 'journal_entry.dart';
 
 class PilotAccess {
   final bool enabled, invited, activated;
+  final bool reviewEnabled, communityEnabled, communityWriteEnabled, isAdmin;
   const PilotAccess({
     this.enabled = false,
     this.invited = false,
     this.activated = false,
+    this.reviewEnabled = false,
+    this.communityEnabled = false,
+    this.communityWriteEnabled = false,
+    this.isAdmin = false,
   });
   factory PilotAccess.fromMap(Map<String, dynamic> m) => PilotAccess(
     enabled: m['enabled'] == true,
     invited: m['invited'] == true,
     activated: m['activated'] == true,
+    reviewEnabled: m['reviewEnabled'] == true,
+    communityEnabled: m['communityEnabled'] == true,
+    communityWriteEnabled: m['communityWriteEnabled'] == true,
+    isAdmin: m['isAdmin'] == true,
   );
 }
 
@@ -40,12 +49,14 @@ class JournalPet {
 class JournalHome {
   final JournalPet? pet;
   final int weekDays;
-  const JournalHome(this.pet, this.weekDays);
+  final String? latestReviewWeek;
+  const JournalHome(this.pet, this.weekDays, [this.latestReviewWeek]);
   factory JournalHome.fromMap(Map<String, dynamic> m) => JournalHome(
     m['pet'] == null
         ? null
         : JournalPet.fromMap(Map<String, dynamic>.from(m['pet'] as Map)),
     (m['weekDays'] as num?)?.toInt() ?? 0,
+    m['latestReviewWeek'] as String?,
   );
 }
 

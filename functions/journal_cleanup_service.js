@@ -1,7 +1,7 @@
 const {Timestamp, FieldValue} = require('firebase-admin/firestore');
 const P = require('./journal_policy');
 const stamp = ms => Timestamp.fromMillis(ms);
-module.exports = function createCleanup({db, bucket, now, userRef, mediaRef, petRef, handlers, mutate}) {
+module.exports = function createCleanup({db, bucket, now, userRef, mediaRef, petRef, handlers, mutate, community}) {
   async function cleanupMedia(uid, mid) {
     const mref = mediaRef(uid, mid);
     await db.runTransaction(async tx => {
@@ -31,6 +31,7 @@ module.exports = function createCleanup({db, bucket, now, userRef, mediaRef, pet
     });
   }
   async function cleanupPet(uid, petId) {
+    await community.cleanupSource(uid, petId);
     const media = await userRef(uid).collection('journalMedia').where('petId', '==', petId).get();
     for (const m of media.docs) {
       await m.ref.update({status: 'deleted'});

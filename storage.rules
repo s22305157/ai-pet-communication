@@ -32,6 +32,9 @@ service firebase.storage {
     }
     // Journal media is served through authenticated Functions. This avoids the
     // two-document cross-service limit and checks current account/pet state.
+    match /communityImages/{allPaths=**} {
+      allow read, write: if false;
+    }
     match /journalUploads/{allPaths=**} {
       allow read, write: if false;
     }

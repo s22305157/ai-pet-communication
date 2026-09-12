@@ -23,7 +23,11 @@ service cloud.firestore {
         && (!('onboardingAnswers' in data) || data.onboardingAnswers is map);
     }
     match /users/{userId} {
+      match /pilotNotifications/{id} { allow read, write: if false; }
+      match /communityBlocks/{id} { allow read, write: if false; }
       match /journalPets/{journalPetId} {
+        // Source revisions must be checked on every review read.
+        match /weeklyReviews/{week} { allow read, write: if false; }
         function journalOwner() {
           return activeAccount() && request.auth.uid == userId;
         }
@@ -59,6 +63,8 @@ service cloud.firestore {
         && validUser(request.resource.data);
       allow delete: if false;
     }
+    match /communityPosts/{postId}/{rest=**} { allow read, write: if false; }
+    match /communityReports/{reportId} { allow read, write: if false; }
     function livePet(petId) {
       return !exists(/databases/$(database)/documents/petTombstones/$(petId));
     }

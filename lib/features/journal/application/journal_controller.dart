@@ -10,6 +10,7 @@ class JournalController extends ChangeNotifier {
   List<JournalEntry> entries = [];
   JournalCursor? cursor;
   int weekDays = 0;
+  String? latestReviewWeek;
   String? contextFilter;
   DateTime? from;
   DateTime? to;
@@ -36,6 +37,7 @@ class JournalController extends ChangeNotifier {
       access = newAccess;
       pet = home.pet;
       weekDays = home.weekDays;
+      latestReviewWeek = home.latestReviewWeek;
       if (pet != null) {
         final result = await repository.listEntries(
           petId: pet!.id,

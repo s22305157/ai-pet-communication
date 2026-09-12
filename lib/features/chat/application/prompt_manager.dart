@@ -13,7 +13,7 @@ import 'package:ai_pet_communication/features/chat/application/ai_prompts.dart';
 import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
 import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
-import 'package:ai_pet_communication/features/chat/application/media_payload.dart';
+import '../domain/media_payload.dart';
 import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 
 class PromptBundle {

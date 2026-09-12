@@ -12,11 +12,13 @@ class JournalEntryCard extends StatelessWidget {
     required this.enabled,
     required this.canWrite,
     required this.onSelected,
+    this.canShare = false,
   });
   final JournalEntry entry;
   final JournalRepository repository;
   final bool enabled;
   final bool canWrite;
+  final bool canShare;
   final ValueChanged<String> onSelected;
   @override
   Widget build(BuildContext context) => Card(
@@ -37,6 +39,8 @@ class JournalEntryCard extends StatelessWidget {
                 enabled: enabled,
                 onSelected: onSelected,
                 itemBuilder: (_) => [
+                  if (canShare)
+                    const PopupMenuItem(value: 'share', child: Text('分享到同伴圈')),
                   if (canWrite)
                     const PopupMenuItem(value: 'edit', child: Text('編輯')),
                   const PopupMenuItem(value: 'delete', child: Text('刪除')),

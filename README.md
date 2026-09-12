@@ -1,4 +1,4 @@
-# PAWLINK (v0.2.8)
+# PAWLINK (v0.2.9)
 
 > **基於 AI 技術的專業寵物溝通與關係心理學管理平台**
 >
@@ -26,7 +26,14 @@
 
 ## 🚀 知識庫與版本更新 (Knowledge Base Updates)
 
-### **v0.2.8（當前版本） — 私人毛孩日記與安全修正**
+### **v0.2.9（當前版本） — 每週回顧、同伴圈與結構修正**
+
+- 加入受邀會員的每週日記回顧、同伴圈、通知與管理功能，依後端資格及功能開關開放。
+- 社群與回顧使用明確資料型別；補強分層檢查與 CI 整合測試。
+- 加密知識索引隨後端封裝並核對 SHA-256，避免依賴網站快取版本。
+- 發布範圍見 [版本說明](RELEASE_0.2.9.md)。
+
+### **v0.2.8（歷史版本） — 私人毛孩日記與安全修正**
 
 - 私人日記加入加密草稿、登出清除、操作配額及刪除後立即重建。
 - 帳號刪除改由後端持續重試；原始知識片段不再提供給客戶端。
@@ -147,6 +154,15 @@ flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
 ---
+
+## 程式分層與驗證
+
+- 功能依 `domain`（資料與契約）、`application`（流程）、`data`（外部服務）、`presentation`（畫面）分工。`domain` 不引用外層，`application` 不引用畫面。
+- 社群與每週回顧使用具型別的 `PilotRequest<T>`；callable 名稱、欄位轉換與回傳解析集中在 `pilot_wire_mapper.dart`。新增操作時應同時補上 mapper 與契約測試。
+- 知識索引由 `node scripts/package_knowledge.cjs` 封裝為後端專用的加密產物及 SHA-256 manifest；封裝過程不解密、不讀取金鑰。Firebase Functions 的部署前置步驟與 CI 會自動執行，本機直接啟動 Functions 模擬器前需先執行一次。
+- 後端預設讀取同次部署內的索引，不再依賴 Hosting。知識更新需重新封裝並發布 Functions；僅更新 Hosting 不會改變後端知識版本。遠端索引覆寫必須同時指定 `KB_INDEX_URL` 與 `KB_INDEX_SHA256`，詳見 `functions/.env.example`；金鑰仍由 Secret Manager 提供。
+- 本機驗證：`flutter analyze --no-pub`、`flutter test --no-pub`，以及在 `functions` 執行 `npm run lint`、`npm test`。
+- CI 分別執行 `journal.test.cjs` 與 `journal-m23.test.cjs`，兩者均需要 Auth、Firestore、Storage、Functions 模擬器，專案固定為 `demo-pawlink-security`。模擬器測試不等同正式環境或真實 AI 供應端驗證。
 
 ## 🔒 授權與隱私 (Security & Licensing)
 

@@ -3,7 +3,7 @@
 // PAWLINK - AI 請求模型 (Domain Model)
 // ============================================================
 
-import 'package:ai_pet_communication/features/chat/application/media_payload.dart';
+import 'media_payload.dart';
 
 /// AI 寵物溝通請求模型
 class AiRequestModel {

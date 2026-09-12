@@ -68,3 +68,7 @@ functions/.secret.local
 /SECURITY_STRUCTURE_RECHECK_2026-09-08.md
 /STRUCTURE_REVIEW_2026-09-08.md
 /docs/REVIEW_FIXES_0.2.8.md
+/docs/JOURNAL_M2_M3.md
+
+# Generated encrypted Functions knowledge bundle (predeploy).
+/functions/knowledge/
