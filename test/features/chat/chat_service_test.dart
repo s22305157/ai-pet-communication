@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
 import 'dart:convert';
 import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,7 +63,13 @@ void main() {
     );
     await expectLater(
       service.sendMessage(jsonEncode(request)),
-      throwsA(predicate((dynamic e) => e.code == 'cancelled')),
+      throwsA(
+        isA<ServiceFailure>().having(
+          (e) => e.kind,
+          'kind',
+          FailureKind.sessionChanged,
+        ),
+      ),
     );
   });
 }

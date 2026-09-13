@@ -69,7 +69,7 @@ class MediaPayload {
     this.videoSummary,
   });
 
-  /// 序列化為 JSON Map，供 PromptManager 使用
+  /// 序列化為後端請求中的媒體資料。
   Map<String, dynamic> toJson() {
     return {
       if (photos.isNotEmpty) 'photos': photos,

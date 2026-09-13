@@ -1,40 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ai_pet_communication/app/theme.dart';
-import 'package:ai_pet_communication/features/planet/domain/planet_card.dart';
+import 'package:ai_pet_communication/app/injection.dart';
+import '../domain/planet_card.dart';
+import '../domain/planet_collection_repository.dart';
 
 class PetPlanetScreen extends StatelessWidget {
-  const PetPlanetScreen({super.key});
-
+  final PlanetCollectionRepository? repository;
+  const PetPlanetScreen({super.key, this.repository});
   @override
   Widget build(BuildContext context) {
-    if (Firebase.apps.isEmpty) return const PlanetCatalog(collectedIds: {});
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      initialData: FirebaseAuth.instance.currentUser,
-      builder: (context, auth) {
-        final uid = auth.data?.uid;
-        if (uid == null) {
-          return const PlanetCatalog(collectedIds: {}, status: '登入後可查看收藏');
-        }
-        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          key: ValueKey(uid),
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .collection('planetCards')
-              .snapshots(),
-          builder: (context, snapshot) => PlanetCatalog(
-            collectedIds:
-                snapshot.data?.docs.map((doc) => doc.id).toSet() ?? {},
-            status: snapshot.hasError
-                ? '收藏暫時無法載入，請稍後重新開啟圖鑑'
-                : !snapshot.hasData
-                ? '正在載入收藏…'
-                : null,
-          ),
+    final source =
+        repository ??
+        (getIt.isRegistered<PlanetCollectionRepository>()
+            ? getIt<PlanetCollectionRepository>()
+            : null);
+    if (source == null) return const PlanetCatalog(collectedIds: {});
+    return StreamBuilder<PlanetCollection>(
+      stream: source.watch(),
+      builder: (context, snapshot) {
+        final status = snapshot.hasError
+            ? CollectionStatus.unavailable
+            : snapshot.data?.status ?? CollectionStatus.loading;
+        return PlanetCatalog(
+          collectedIds: snapshot.data?.ids ?? {},
+          status: switch (status) {
+            CollectionStatus.signedOut => '登入後可查看收藏',
+            CollectionStatus.loading => '正在載入收藏…',
+            CollectionStatus.unavailable => '收藏暫時無法載入，請稍後重新開啟圖鑑',
+            CollectionStatus.ready => null,
+          },
         );
       },
     );

@@ -1,11 +1,14 @@
+import '../features/planet/domain/planet_collection_repository.dart';
+import '../features/planet/data/firebase_planet_collection_repository.dart';
+import '../features/chat/domain/chat_repository.dart';
 import 'package:ai_pet_communication/features/journal/domain/journal_drafts.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_cleanup_repository.dart';
 import 'package:ai_pet_communication/app/account_data_cleanup.dart';
 import 'package:get_it/get_it.dart';
 import 'pilot_routes.dart';
 import 'flutter_pilot_routes.dart';
-import 'package:ai_pet_communication/features/pilot/domain/pilot_repository.dart';
-import 'package:ai_pet_communication/features/pilot/data/firebase_pilot_repository.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
+import 'package:ai_pet_communication/app/data/firebase_request_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ai_pet_communication/features/journal/domain/journal_repository.dart';
 import 'package:ai_pet_communication/features/journal/data/firebase_journal_repository.dart';
@@ -42,9 +45,16 @@ import 'package:ai_pet_communication/services/credit_service.dart';
 final getIt = GetIt.instance;
 
 void setupDependencies() {
+  getIt.registerLazySingleton<PlanetCollectionRepository>(
+    () => FirebasePlanetCollectionRepository(
+      auth: FirebaseAuth.instance,
+      firestore: getIt<FirebaseFirestore>(),
+    ),
+  );
+  getIt.registerLazySingleton<ChatRepository>(() => getIt<ChatService>());
   getIt.registerLazySingleton<PilotRoutes>(() => FlutterPilotRoutes());
-  getIt.registerFactory<PilotRepository>(
-    () => FirebasePilotRepository(
+  getIt.registerFactory<RequestRepository>(
+    () => FirebaseRequestRepository(
       uid: FirebaseAuth.instance.currentUser!.uid,
       auth: FirebaseAuth.instance,
       functions: getIt<FirebaseFunctions>(),
@@ -185,6 +195,6 @@ void setupDependencies() {
 
   // Controller 使用 Factory，使每次調用皆建立全新狀態
   getIt.registerFactory<ChatController>(
-    () => ChatController(getIt<ChatService>(), getIt<ReadingService>()),
+    () => ChatController(getIt<ChatRepository>(), getIt<ReadingService>()),
   );
 }

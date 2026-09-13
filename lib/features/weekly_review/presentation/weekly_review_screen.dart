@@ -1,14 +1,14 @@
+import 'package:ai_pet_communication/features/weekly_review/domain/weekly_review_request.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../pilot/domain/pilot_repository.dart';
-import '../../pilot/domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 
 import 'package:ai_pet_communication/widgets/pilot_surface.dart';
-import '../../pilot/application/pilot_controller.dart';
+import 'package:ai_pet_communication/core/application/request_controller.dart';
 import '../domain/weekly_review.dart';
 
 class WeeklyReviewScreen extends StatefulWidget {
-  final PilotRepository repository;
+  final RequestRepository repository;
   final String petId;
   final String? initialWeek;
   final Future<void> Function(BuildContext)? onInterest;
@@ -59,7 +59,7 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
     return result;
   }
 
-  Future<void> _source(PilotController<WeeklyReview> c, String id) async {
+  Future<void> _source(RequestController<WeeklyReview> c, String id) async {
     try {
       final source = await widget.repository.execute(
         GetWeeklyReviewSource(petId: widget.petId, week: week, entryId: id),

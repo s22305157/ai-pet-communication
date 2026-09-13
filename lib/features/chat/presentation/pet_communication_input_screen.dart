@@ -4,35 +4,35 @@
 // ============================================================
 
 import 'dart:async';
-import 'package:uuid/uuid.dart';
 import '../domain/communication_photo.dart';
 import '../domain/communication_photo_repository.dart';
-import '../domain/media_payload.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 import 'package:ai_pet_communication/app/injection.dart';
-import 'package:ai_pet_communication/features/chat/application/prompt_manager.dart';
 import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
-import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/presentation/chat_ui_texts.dart';
 import 'package:ai_pet_communication/features/chat/presentation/communication_result_screen.dart';
 import 'package:ai_pet_communication/services/credit_service.dart';
 import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 
+import '../application/communication_input_controller.dart';
+
 class PetCommunicationInputScreen extends StatefulWidget {
   final PetModel pet;
   final String? creditReservationId;
   final CommunicationPhotoRepository? photoService;
+  final CommunicationInputController? controller;
 
   const PetCommunicationInputScreen({
     super.key,
     required this.pet,
     this.creditReservationId,
     this.photoService,
+    this.controller,
   });
 
   @override
@@ -42,57 +42,45 @@ class PetCommunicationInputScreen extends StatefulWidget {
 
 class _PetCommunicationInputScreenState
     extends State<PetCommunicationInputScreen> {
-  final TextEditingController _storyController = TextEditingController();
-  final List<TextEditingController> _questionControllers = List.generate(
-    5,
-    (_) => TextEditingController(),
-  );
-
+  final _storyController = TextEditingController();
+  final _questionControllers = List.generate(5, (_) => TextEditingController());
+  late final CommunicationInputController _flow;
   bool _isLoading = false;
   bool _hasRedFlags = false;
   int _wordCount = 0;
-  bool _creditFinalized = false;
-  Future<void>? _releaseFuture;
-  final List<CommunicationPhoto> _photos = [];
-  late final CommunicationPhotoRepository _photoService;
-  bool _canUsePhotos = false;
-  bool _pickingPhotos = false;
-  String? _photoOwner;
+  List<CommunicationPhoto> get _photos => _flow.selected;
+  bool get _canUsePhotos => _flow.canUsePhotos;
+  bool get _pickingPhotos => _flow.picking;
 
   @override
   void initState() {
     super.initState();
-    _photoService =
-        widget.photoService ?? getIt<CommunicationPhotoRepository>();
-    unawaited(_loadPhotoAccess());
+    _flow =
+        widget.controller ??
+        CommunicationInputController(
+          session: getIt<AuthService>(),
+          chat: getIt<ChatController>(),
+          photos: widget.photoService ?? getIt<CommunicationPhotoRepository>(),
+          releaseCredit: (id) =>
+              getIt<CreditService>().releaseCommunication(id),
+          reservationId: widget.creditReservationId,
+        );
+    _flow.addListener(_refresh);
+    unawaited(_flow.loadPhotoAccess());
     _storyController.addListener(_onTextChanged);
-    for (var controller in _questionControllers) {
+    for (final controller in _questionControllers) {
       controller.addListener(_onTextChanged);
     }
   }
 
-  Future<void> _loadPhotoAccess() async {
-    try {
-      final user = await getIt<AuthService>().getUserData();
-      if (!mounted) return;
-      setState(() {
-        _canUsePhotos = user != null && user.membershipTier != 'free';
-        _photoOwner = user?.uid;
-      });
-    } catch (_) {
-      // Keep text communication available when membership cannot be loaded.
-    }
+  void _refresh() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _pickPhotos() async {
-    if (_isLoading || _pickingPhotos || !_canUsePhotos) return;
-    setState(() => _pickingPhotos = true);
+    if (_isLoading) return;
     try {
-      final selected = await _photoService.pick(maxPhotos: 3 - _photos.length);
-      if (selected.length + _photos.length > 3) {
-        throw const FormatException('最多上傳 3 張照片，請重新選擇');
-      }
-      if (mounted) setState(() => _photos.addAll(selected));
+      await _flow.pickPhotos();
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -103,174 +91,75 @@ class _PetCommunicationInputScreenState
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _pickingPhotos = false);
     }
   }
 
   @override
   void dispose() {
-    if (!_creditFinalized && widget.creditReservationId != null) {
-      unawaited(
-        _releaseReservation().catchError((Object error) {
-          debugPrint('Credit release on screen close failed: $error');
-        }),
-      );
-    }
-    _storyController.removeListener(_onTextChanged);
+    unawaited(
+      _flow.releaseReservation().catchError((Object error) {
+        debugPrint('Credit release on screen close failed: $error');
+      }),
+    );
+    _flow.removeListener(_refresh);
+    _flow.dispose();
     _storyController.dispose();
-    for (var controller in _questionControllers) {
-      controller.removeListener(_onTextChanged);
+    for (final controller in _questionControllers) {
       controller.dispose();
     }
     super.dispose();
   }
 
+  List<String> get _questions => _questionControllers
+      .map((c) => c.text.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
   void _onTextChanged() {
-    final storyText = _storyController.text.trim();
-    final questionsText = _questionControllers
-        .map((c) => c.text.trim())
-        .join(' ');
-
     setState(() {
-      _wordCount = storyText.length;
-      _hasRedFlags =
-          PromptManager.detectRedFlags(
-            storyText,
-            species: widget.pet.species,
-          ) ||
-          PromptManager.detectRedFlags(
-            questionsText,
-            species: widget.pet.species,
-          );
+      _wordCount = _storyController.text.trim().length;
+      _hasRedFlags = SafetyRouter.containsEmergency(
+        [_storyController.text, ..._questions].join(' '),
+        species: widget.pet.species,
+      );
     });
   }
 
   bool get _useSafeMode =>
       _hasRedFlags ||
-      PromptManager.shouldUseSafeMode(
+      SafetyRouter.evaluateText(
         story: _storyController.text.trim(),
-        questions: _questionControllers
-            .map((controller) => controller.text.trim())
-            .where((text) => text.isNotEmpty)
-            .toList(),
+        questions: _questions,
         species: widget.pet.species,
-      );
-
+      ).useSafeMode;
   bool get _isDeepAnalysis => _wordCount >= SafetyRouter.deepAnalysisThreshold;
-
-  CreditService get _creditService => getIt<CreditService>();
-
-  Future<void> _releaseReservation() {
-    final requestId = widget.creditReservationId;
-    if (requestId == null || _creditFinalized) return Future<void>.value();
-    return _releaseFuture ??= _performRelease(requestId);
-  }
-
-  Future<void> _performRelease(String requestId) async {
-    try {
-      await _creditService.releaseCommunication(requestId);
-      _creditFinalized = true;
-    } finally {
-      if (!_creditFinalized) _releaseFuture = null;
-    }
-  }
 
   Future<void> _handleSubmit() async {
     if (_isLoading || _pickingPhotos) return;
-    if (_storyController.text.trim().isEmpty) {
+    final message = _storyController.text.trim().isEmpty
+        ? '請先分享一些關於毛孩的故事吧！'
+        : _questions.isEmpty
+        ? '請至少輸入一個想詢問的問題。'
+        : null;
+    if (message != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('請先分享一些關於毛孩的故事吧！')));
+      ).showSnackBar(SnackBar(content: Text(message)));
       return;
     }
-    final questions = _questionControllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    if (questions.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('請至少輸入一個想詢問的問題。')));
-      return;
-    }
-
     setState(() => _isLoading = true);
-    var uploadedPhotos = <String>[];
-
     try {
-      // 1. 準備依賴 (使用 DI)
-      final controller = getIt<ChatController>();
-
-      final user = await getIt<AuthService>().getUserData();
-      if (user == null) throw StateError('請先登入');
-      final operationId = widget.creditReservationId ?? const Uuid().v4();
-      if (_photos.isNotEmpty) {
-        if (user.uid != _photoOwner || user.membershipTier == 'free') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('照片分析需有效 Plus／Pro 會員，請確認帳號或移除照片')),
-            );
-          }
-          return;
-        }
-        uploadedPhotos = await _photoService.upload(
-          _photos,
-          user.uid,
-          operationId,
-        );
-      }
-      final birthday = DateTime.tryParse(widget.pet.birthday);
-      final age = birthday == null || birthday.isAfter(DateTime.now())
-          ? null
-          : DateTime.now().difference(birthday).inDays / 365.25;
-      // 尚未提供的飼主資訊保留空值，不編造人格或生活習慣。
-      final request = AiRequestModel(
-        ownerProfile: const OwnerProfile(
-          experienceLevel: '',
-          careStyle: '',
-          emotionStyle: '',
-          dailyRoutine: '',
-          mainConcern: '',
-        ),
-        petProfile: PetProfile(
-          name: widget.pet.name,
-          species: widget.pet.species,
-          breed: widget.pet.breed,
-          age: age,
-          coatColor: widget.pet.color,
-          personalityTraits: [widget.pet.personality],
-        ),
-        story: _storyController.text.trim(),
-        questions: questions,
-        inputMode: user.membershipTier,
-        media: uploadedPhotos.isEmpty
-            ? null
-            : MediaPayload(photos: uploadedPhotos),
+      final outcome = await _flow.submit(
+        pet: widget.pet,
+        story: _storyController.text,
+        questions: _questions,
       );
-
-      // 3. 發送請求
-      final outcome = await controller.handleCommunicationWithPersistence(
-        widget.pet.petId,
-        request,
-        requestId: uploadedPhotos.isEmpty
-            ? widget.creditReservationId
-            : operationId,
-      );
-
-      if (outcome.isFallback) {
-        throw StateError('AI 目前無法完成回覆，請稍後再試');
-      }
-
-      // 本階段不計費；後端已保存回覆以供重試去重。
-      _creditFinalized = true;
-      await _showPersistenceWarning(controller, outcome);
-
+      if (outcome == null || !mounted) return;
+      await _showPersistenceWarning(outcome);
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => CommunicationResultScreen(
+            builder: (_) => CommunicationResultScreen(
               result: outcome.response,
               pet: widget.pet,
             ),
@@ -280,7 +169,7 @@ class _PetCommunicationInputScreenState
     } catch (e) {
       Object? releaseError;
       try {
-        await _releaseReservation();
+        await _flow.releaseReservation();
       } catch (error) {
         releaseError = error;
       }
@@ -297,21 +186,14 @@ class _PetCommunicationInputScreenState
             backgroundColor: Colors.redAccent,
           ),
         );
-        // 預留已結束；重新開始時必須取得新的 request ID。
-        if (widget.creditReservationId != null) {
-          Navigator.pop(context);
-        }
+        if (widget.creditReservationId != null) Navigator.pop(context);
       }
     } finally {
-      await _photoService.remove(uploadedPhotos);
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _showPersistenceWarning(
-    ChatController controller,
-    CommunicationOutcome outcome,
-  ) async {
+  Future<void> _showPersistenceWarning(CommunicationOutcome outcome) async {
     if (!mounted || outcome.persistenceFailure == null) return;
     await showDialog<void>(
       context: context,
@@ -327,7 +209,7 @@ class _PetCommunicationInputScreenState
           FilledButton(
             onPressed: () async {
               try {
-                await controller.retryPersistence(outcome);
+                await _flow.retryPersistence(outcome);
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
                 if (mounted) {
                   ScaffoldMessenger.of(
@@ -474,7 +356,7 @@ class _PetCommunicationInputScreenState
                     TextButton(
                       onPressed: _isLoading || _pickingPhotos
                           ? null
-                          : () => setState(() => _photos.removeAt(i)),
+                          : () => setState(() => _flow.removePhoto(i)),
                       child: Text('移除照片 ${i + 1}'),
                     ),
                   ],

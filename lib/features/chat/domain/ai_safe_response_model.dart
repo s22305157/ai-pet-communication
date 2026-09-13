@@ -1,3 +1,4 @@
+import 'communication_response.dart';
 // lib/features/chat/domain/ai_safe_response_model.dart
 // ============================================================
 // PAWLINK - AI 安全版回應模型 (Safe Response Model)
@@ -5,8 +6,10 @@
 
 import 'dart:convert';
 
-class AiSafeResponseModel {
+class AiSafeResponseModel implements CommunicationResponse {
+  @override
   final List<String> matchedCardIds;
+  @override
   final List<String> newCardIds;
   final String version;
   final String mode;
@@ -58,6 +61,7 @@ class AiSafeResponseModel {
     );
   }
 
+  @override
   Map<String, dynamic> toMap() {
     return {
       'planetAward': {
@@ -78,6 +82,7 @@ class AiSafeResponseModel {
     };
   }
 
+  @override
   String toJson() => json.encode(toMap());
 }
 

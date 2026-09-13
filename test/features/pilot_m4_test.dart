@@ -1,9 +1,9 @@
+import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:ai_pet_communication/features/pilot/data/pilot_wire_mapper.dart';
-import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
+import 'package:ai_pet_communication/app/data/request_wire_mapper.dart';
 import 'package:ai_pet_communication/features/pilot/presentation/pilot_interest_screen.dart';
 import 'package:ai_pet_communication/features/pilot/presentation/pilot_metrics_screen.dart';
 import 'package:ai_pet_communication/features/pilot/presentation/pilot_cost_screen.dart';
@@ -32,8 +32,8 @@ void main() {
     (tester) async {
       final repo = PilotFake();
       addTearDown(repo.sessions.close);
-      repo.handler = (_, _) async => throw FirebaseFunctionsException(
-        code: 'permission-denied',
+      repo.handler = (_, _) async => throw ServiceFailure(
+        FailureKind.permissionDenied,
         message: '需要試營運管理權限',
       );
       await tester.pumpWidget(
@@ -50,14 +50,14 @@ void main() {
     },
   );
   test('M4 mapper uses typed requests and discards truncated percentages', () {
-    final (name, values) = encodePilotRequest(const SetPilotInterest(true));
+    final (name, values) = encodeAppRequest(const SetPilotInterest(true));
     expect(name, 'setPilotInterest');
     expect(values, {'interested': true, 'priceVersion': 'pilot-twd199-v1'});
-    final value = decodePilotResponse(const GetPilotMetrics(), report());
+    final value = decodeAppResponse(const GetPilotMetrics(), report());
     expect(value.metrics!.retention.rate, isNull);
     expect(value.metrics!.activation.rate, .5);
     expect(
-      decodePilotResponse(
+      decodeAppResponse(
         const GetPilotMetrics(),
         report(truncated: true),
       ).metrics,

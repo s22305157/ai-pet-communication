@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ai_pet_communication/core/data/firebase_failure.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
+import '../domain/chat_repository.dart';
 
 typedef AiCallable = Future<dynamic> Function(Map<String, dynamic> request);
 
-class ChatService {
+class ChatService implements ChatRepository {
   final FirebaseFunctions? _functions;
   final AiCallable? _call;
   final String? Function() _currentUserId;
@@ -18,7 +21,8 @@ class ChatService {
        _currentUserId =
            currentUserId ?? (() => FirebaseAuth.instance.currentUser?.uid);
 
-  Future<String> sendMessage(String message) async {
+  @override
+  Future<String> sendMessage(String message) => mapFirebaseFailure(() async {
     final request = jsonDecode(message);
     if (request is! Map<String, dynamic> ||
         request['request'] is! Map ||
@@ -29,10 +33,7 @@ class ChatService {
     final dynamic result;
     final ownerId = _currentUserId();
     if (ownerId == null) {
-      throw FirebaseFunctionsException(
-        code: 'unauthenticated',
-        message: '請先登入',
-      );
+      throw const ServiceFailure(FailureKind.unauthenticated, message: '請先登入');
     }
     try {
       if (_call != null) {
@@ -51,12 +52,18 @@ class ChatService {
       }
     } catch (_) {
       if (_currentUserId() != ownerId) {
-        throw FirebaseFunctionsException(code: 'cancelled', message: '登入帳號已變更');
+        throw const ServiceFailure(
+          FailureKind.sessionChanged,
+          message: '登入帳號已變更',
+        );
       }
       rethrow;
     }
     if (_currentUserId() != ownerId) {
-      throw FirebaseFunctionsException(code: 'cancelled', message: '登入帳號已變更');
+      throw const ServiceFailure(
+        FailureKind.sessionChanged,
+        message: '登入帳號已變更',
+      );
     }
     if (result is! Map ||
         result['response'] is! String ||
@@ -64,5 +71,5 @@ class ChatService {
       throw const FormatException('AI response is missing');
     }
     return result['response'] as String;
-  }
+  });
 }

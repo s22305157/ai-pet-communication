@@ -160,4 +160,5 @@ function matchPlanetCards(value, species, level) {
     .map(([id]) => id);
 }
 
-module.exports = {matchPlanetCards};
+const configuredCardIds = Object.freeze([...catRules, ...dogRules].map(([id]) => id).sort());
+module.exports = {matchPlanetCards, configuredCardIds};

@@ -21,23 +21,17 @@ const service = () => createJournalService({db: getFirestore(), bucket: getStora
     return ids;
   },
   reviewProvider: args => generateReview({...args, apiKey: reviewKey.value(), model: reviewModel.value()})});
-const names = ['getPilotInterest', 'markPilotPriceViewed', 'setPilotInterest', 'setPilotMetricsConsent',
-  'adminGetPilotMetrics', 'adminSetPilotCost', 'adminGetPilotCost',
-  'getPilotAccess', 'activatePilot', 'createJournalPet', 'upsertJournalEntry',
-  'deleteJournalEntry', 'beginJournalUpload', 'finalizeJournalUpload', 'listJournalEntries',
-  'getJournalHome', 'exportJournal', 'adminSetPilotParticipant', 'deleteJournalPet', 'uploadJournalBytes', 'getJournalImage', 'cancelJournalUpload',
-  'setReviewPreference', 'getWeeklyReview', 'getWeeklyReviewSource', 'requestWeeklyReview', 'markWeeklyReviewViewed',
-  'publishCommunityPost', 'listCommunityPosts', 'getCommunityPost', 'editCommunityPost', 'withdrawCommunityPost', 'getCommunityImage',
-  'addCommunityComment', 'listCommunityComments', 'deleteCommunityComment', 'encourageCommunityPost', 'reportCommunityContent',
-  'blockCommunityAuthor', 'listCommunityBlocks', 'unblockCommunityAuthor', 'listPilotNotifications', 'markPilotNotificationRead',
-  'adminGetPilotDashboard', 'adminListPilotData', 'adminSetPilotFlags', 'adminSetPostingSuspended', 'adminModerateCommunity', 'adminGetReportedImage'];
+const {endpointNames, assertEndpointHandlers} = require('./endpoints');
+const names = endpointNames;
 for (const name of names) {
   exports[name] = onCall({enforceAppCheck, maxInstances: 5, timeoutSeconds: 60, memory: '512MiB',
     ...(name === 'requestWeeklyReview' ? {secrets: [reviewKey]} : {})}, async request => {
     request.rawRequest?.res?.setHeader('Cache-Control', 'private, no-store');
     try {
       await consumeJournalQuota(getFirestore(), request.auth?.uid);
-      return await service().handlers[name](request);
+      const instance = service();
+      assertEndpointHandlers(instance.handlers);
+      return await instance.handlers[name](request);
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       // Do not log journal text, photos, credentials or internal storage paths.

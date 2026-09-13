@@ -18,6 +18,10 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "predeploy": [
+      "node scripts/verify_generated.cjs",
+      "node tools/maintenance/pilot-release-check.cjs"
     ]
   },
   "firestore": {
@@ -28,7 +32,10 @@
     "rules": "storage.rules"
   },
   "functions": {
-    "predeploy": ["node scripts/package_knowledge.cjs"],
+    "predeploy": [
+      "node scripts/verify_generated.cjs",
+      "node scripts/package_knowledge.cjs"
+    ],
     "codebase": "default",
     "source": "functions",
     "ignore": [

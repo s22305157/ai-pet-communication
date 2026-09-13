@@ -1,13 +1,13 @@
+import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../domain/pilot_metrics.dart';
-import '../domain/pilot_repository.dart';
-import '../domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 import '../../../widgets/pilot_surface.dart';
 import 'pilot_cost_screen.dart';
 
 class PilotMetricsScreen extends StatelessWidget {
-  final PilotRepository repository;
+  final RequestRepository repository;
   const PilotMetricsScreen({super.key, required this.repository});
   @override
   Widget build(BuildContext context) => PilotSurface<PilotMetricsReport>(

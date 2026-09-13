@@ -145,29 +145,16 @@
 
 ## 🛠️ 開發與建置指引 (Getting Started)
 
-此專案為 Flutter 開發的跨平台應用程式。
+此專案使用 Flutter、Firebase 與 Node.js 24。先閱讀 [開發與驗證流程](docs/DEVELOPMENT.md)，準備 Flutter SDK、Node.js 24、Java 21 與鎖定的依賴套件。
 
-### 依賴安裝
-```bash
-flutter pub get
-```
-
-### 運行開發伺服器 / 本地測試
-```bash
-flutter run
-```
-
-### 自動化構建與生成
-```bash
-flutter pub run build_runner build --delete-conflicting-outputs
-```
+日常驗證使用 `node scripts/verify.cjs --flutter-sdk <SDK路徑>`；發布前加上 `--release --emulators`。這個入口只做本機驗證，不會部署。
 
 ---
 
 ## 程式分層與驗證
 
 - 功能依 `domain`（資料與契約）、`application`（流程）、`data`（外部服務）、`presentation`（畫面）分工。`domain` 不引用外層，`application` 不引用畫面。
-- 社群與每週回顧使用具型別的 `PilotRequest<T>`；callable 名稱、欄位轉換與回傳解析集中在 `pilot_wire_mapper.dart`。新增操作時應同時補上 mapper 與契約測試。
+- 社群、每週回顧與試營運各自擁有請求與資料轉換。共用 `RequestRepository` 只提供具型別的操作，`app/data` 組裝各功能的轉換器；畫面不持有 callable 字串或 Firebase SDK。新增操作應同時補上所屬模組的 mapper 與契約測試。
 - 知識索引由 `node scripts/package_knowledge.cjs` 封裝為後端專用的加密產物及 SHA-256 manifest；封裝過程不解密、不讀取金鑰。Firebase Functions 的部署前置步驟與 CI 會自動執行，本機直接啟動 Functions 模擬器前需先執行一次。
 - 後端預設讀取同次部署內的索引，不再依賴 Hosting。知識更新需重新封裝並發布 Functions；僅更新 Hosting 不會改變後端知識版本。遠端索引覆寫必須同時指定 `KB_INDEX_URL` 與 `KB_INDEX_SHA256`，詳見 `functions/.env.example`；金鑰仍由 Secret Manager 提供。
 - 本機驗證：`flutter analyze --no-pub`、`flutter test --no-pub`，以及在 `functions` 執行 `npm run lint`、`npm test`。

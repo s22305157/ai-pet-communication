@@ -1,3 +1,5 @@
+import 'package:ai_pet_communication/core/data/firebase_failure.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -19,13 +21,18 @@ class FirebaseJournalRepository implements JournalRepository {
   @override
   bool get isCurrentSession => auth.currentUser?.uid == uid;
   void _check() {
-    if (!isCurrentSession) throw StateError('帳號已變更，請重新進入日記');
+    if (!isCurrentSession) {
+      throw const ServiceFailure(
+        FailureKind.sessionChanged,
+        message: '帳號已變更，請重新進入日記',
+      );
+    }
   }
 
   Future<Map<String, dynamic>> _call(
     String action, [
     Map<String, dynamic> data = const {},
-  ]) async {
+  ]) => mapFirebaseFailure(() async {
     _check();
     final result = await functions
         .httpsCallable(
@@ -38,7 +45,7 @@ class FirebaseJournalRepository implements JournalRepository {
         });
     _check();
     return Map<String, dynamic>.from(result.data);
-  }
+  });
 
   @override
   Future<String> upload(

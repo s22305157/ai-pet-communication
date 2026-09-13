@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../features/pilot/application/pilot_controller.dart';
-import '../features/pilot/domain/pilot_repository.dart';
+import 'package:ai_pet_communication/core/application/request_controller.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 
 class PilotSurface<T> extends StatefulWidget {
   final String title;
-  final PilotRepository repository;
-  final PilotLoader<T> loader;
-  final Widget Function(BuildContext, PilotController<T>) builder;
+  final RequestRepository repository;
+  final RequestLoader<T> loader;
+  final Widget Function(BuildContext, RequestController<T>) builder;
   const PilotSurface({
     super.key,
     required this.title,
@@ -20,7 +20,7 @@ class PilotSurface<T> extends StatefulWidget {
 
 class _PilotSurfaceState<T> extends State<PilotSurface<T>>
     with WidgetsBindingObserver {
-  late final c = PilotController<T>(widget.repository, () => widget.loader());
+  late final c = RequestController<T>(widget.repository, () => widget.loader());
   @override
   void initState() {
     super.initState();

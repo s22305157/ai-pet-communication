@@ -1,12 +1,12 @@
+import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../domain/pilot_metrics.dart';
-import '../domain/pilot_repository.dart';
-import '../domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 import '../../../widgets/pilot_surface.dart';
 
 class PilotCostScreen extends StatefulWidget {
-  final PilotRepository repository;
+  final RequestRepository repository;
   const PilotCostScreen({super.key, required this.repository});
   @override
   State<PilotCostScreen> createState() => _PilotCostScreenState();

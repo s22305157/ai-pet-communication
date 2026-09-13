@@ -1,10 +1,10 @@
+import 'package:ai_pet_communication/features/community/domain/community_request.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../features/pilot/domain/pilot_repository.dart';
-import '../features/pilot/domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 
 class CommunityImage extends StatefulWidget {
-  final PilotRepository repository;
+  final RequestRepository repository;
   final String postId, mediaId;
   final String? reportId;
   const CommunityImage({

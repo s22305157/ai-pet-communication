@@ -30,6 +30,7 @@ void main() {
   });
   test('feature import boundaries remain explicit', () {
     final violations = <String>[];
+    final observedEdges = <String>{};
     // Exact legacy edges are frozen; journal code has no exceptions.
     final legacy =
         (jsonDecode(
@@ -50,6 +51,14 @@ void main() {
         r'''(?:import|export) ['"]([^'"]+)['"]''',
       ).allMatches(file.readAsStringSync())) {
         final uri = match[1]!;
+        if (path.contains('/presentation/') &&
+            RegExp(
+              r'^package:(firebase[^/]*|cloud_firestore|cloud_functions)/',
+            ).hasMatch(uri)) {
+          violations.add(
+            '$path: presentation imports an external data SDK $uri',
+          );
+        }
         if ((path.contains('/domain/') || path.startsWith('lib/models/')) &&
             (uri.contains('firebase') ||
                 uri.contains('cloud_firestore') ||
@@ -68,6 +77,7 @@ void main() {
                   .path
                   .replaceAll('\\', '/');
         final edge = '$path -> $uri';
+        observedEdges.add(edge);
         final layer = RegExp(
           r'features/([^/]+)/(data|application|presentation)/',
         ).firstMatch(resolved);
@@ -87,6 +97,11 @@ void main() {
         }
       }
     }
+    expect(
+      legacy.difference(observedEdges),
+      isEmpty,
+      reason: 'Remove obsolete exceptions when a feature boundary is fixed.',
+    );
     expect(violations, isEmpty);
   });
 }

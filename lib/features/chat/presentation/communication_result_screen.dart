@@ -1,3 +1,4 @@
+import '../domain/communication_response.dart';
 // lib/features/chat/presentation/communication_result_screen.dart
 // ============================================================
 // PAWLINK - 寵物溝通結果展示頁
@@ -20,7 +21,7 @@ import 'package:ai_pet_communication/features/planet/domain/planet_card.dart';
 import 'package:ai_pet_communication/features/planet/presentation/pet_planet_screen.dart';
 
 class CommunicationResultScreen extends StatelessWidget {
-  final dynamic result; // AiResponseModel or AiSafeResponseModel
+  final CommunicationResponse result;
   final PetModel pet;
 
   const CommunicationResultScreen({
@@ -53,7 +54,7 @@ class CommunicationResultScreen extends StatelessWidget {
 }
 
 class CommunicationResultContent extends StatelessWidget {
-  final dynamic result;
+  final CommunicationResponse result;
   const CommunicationResultContent({super.key, required this.result});
 
   @override
@@ -90,11 +91,11 @@ class CommunicationResultContent extends StatelessWidget {
       else
         _buildStandardResult(result as AiResponseModel),
       const SizedBox(height: 24),
-      if ((result.matchedCardIds as List<String>).isNotEmpty)
+      if (result.matchedCardIds.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Text(
-            '本次知識卡：${planetCards.where((card) => (result.matchedCardIds as List<String>).contains(card.id)).map((card) => '${card.title}（${(result.newCardIds as List<String>).contains(card.id) ? '本次新收藏' : '已收藏'}）').join('、')}',
+            '本次知識卡：${planetCards.where((card) => result.matchedCardIds.contains(card.id)).map((card) => '${card.title}（${result.newCardIds.contains(card.id) ? '本次新收藏' : '已收藏'}）').join('、')}',
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),

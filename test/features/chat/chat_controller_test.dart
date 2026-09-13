@@ -8,33 +8,20 @@ import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
-import 'package:ai_pet_communication/features/knowledge/application/knowledge_retrieval_service.dart';
 
 class MockChatService extends Mock implements ChatService {}
 
 class MockReadingService extends Mock implements ReadingService {}
 
-class MockKnowledgeRetrievalService extends Mock
-    implements KnowledgeRetrievalService {}
-
 void main() {
   late MockChatService mockChatService;
   late MockReadingService mockReadingService;
-  late MockKnowledgeRetrievalService mockKnowledgeRetrievalService;
   late ChatController chatController;
 
   setUp(() {
     mockChatService = MockChatService();
     mockReadingService = MockReadingService();
-    mockKnowledgeRetrievalService = MockKnowledgeRetrievalService();
     chatController = ChatController(mockChatService, mockReadingService);
-    when(
-      () => mockKnowledgeRetrievalService.search(
-        query: any(named: 'query'),
-        species: any(named: 'species'),
-        limit: any(named: 'limit'),
-      ),
-    ).thenAnswer((_) async => const []);
 
     // Register fallback values for mocktail
     registerFallbackValue('pet123');

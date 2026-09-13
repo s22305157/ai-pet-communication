@@ -11,7 +11,7 @@ import '../domain/journal_repository.dart';
 import 'pilot_onboarding.dart';
 import 'journal_editor.dart';
 import 'journal_entry_card.dart';
-import '../../pilot/domain/pilot_repository.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 import '../../../app/pilot_routes.dart';
 
 class JournalScreen extends StatefulWidget {
@@ -29,14 +29,14 @@ class _JournalScreenState extends State<JournalScreen> {
   late final JournalController _controller = JournalController(_repository);
   bool _operating = false;
   Future<void> _openPilot(
-    Future<void> Function(PilotRoutes, PilotRepository) navigate,
+    Future<void> Function(PilotRoutes, RequestRepository) navigate,
   ) async {
     if (!_repository.isCurrentSession ||
-        !getIt.isRegistered<PilotRepository>() ||
+        !getIt.isRegistered<RequestRepository>() ||
         !getIt.isRegistered<PilotRoutes>()) {
       return;
     }
-    final pilot = getIt<PilotRepository>();
+    final pilot = getIt<RequestRepository>();
     if (pilot.uid != _repository.uid || !pilot.isCurrentSession) return;
     await navigate(getIt<PilotRoutes>(), pilot);
   }
@@ -121,7 +121,7 @@ class _JournalScreenState extends State<JournalScreen> {
                     _openPilot((routes, pilot) => routes.admin(context, pilot)),
               ),
             if (c.access?.activated == true &&
-                getIt.isRegistered<PilotRepository>())
+                getIt.isRegistered<RequestRepository>())
               IconButton(
                 tooltip: '站內通知',
                 icon: const Icon(Icons.notifications_none),
@@ -183,7 +183,7 @@ class _JournalScreenState extends State<JournalScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         if (c.access?.activated == true &&
-                            getIt.isRegistered<PilotRepository>())
+                            getIt.isRegistered<RequestRepository>())
                           TextButton.icon(
                             icon: const Icon(Icons.tune),
                             label: const Text('回顧方案與量測設定'),
@@ -247,7 +247,7 @@ class _JournalScreenState extends State<JournalScreen> {
                           ),
                           const Text('私人雲端日記 · 照片可點選放大與下載'),
                           if (c.access?.activated == true &&
-                              getIt.isRegistered<PilotRepository>())
+                              getIt.isRegistered<RequestRepository>())
                             Wrap(
                               spacing: 12,
                               children: [

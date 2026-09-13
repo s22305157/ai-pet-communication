@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../features/pilot/domain/pilot_repository.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 import '../features/journal/domain/journal_entry.dart';
 import '../features/journal/domain/journal_repository.dart';
 
@@ -7,24 +7,27 @@ import '../features/journal/domain/journal_repository.dart';
 abstract interface class PilotRoutes {
   Future<void> review(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     String petId, {
     String? week,
   });
-  Future<void> community(BuildContext context, PilotRepository repository);
+  Future<void> community(BuildContext context, RequestRepository repository);
   Future<void> post(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     String postId,
   );
   Future<void> share(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     JournalRepository journal,
     String petId,
     JournalEntry entry,
   );
-  Future<void> notifications(BuildContext context, PilotRepository repository);
-  Future<void> admin(BuildContext context, PilotRepository repository);
-  Future<void> interest(BuildContext context, PilotRepository repository);
+  Future<void> notifications(
+    BuildContext context,
+    RequestRepository repository,
+  );
+  Future<void> admin(BuildContext context, RequestRepository repository);
+  Future<void> interest(BuildContext context, RequestRepository repository);
 }

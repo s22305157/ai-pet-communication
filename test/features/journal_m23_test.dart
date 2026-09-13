@@ -1,12 +1,13 @@
+import 'package:ai_pet_communication/features/community/domain/community_request.dart';
+import 'package:ai_pet_communication/core/domain/app_request.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
-import 'package:ai_pet_communication/features/pilot/data/pilot_wire_mapper.dart';
+import 'package:ai_pet_communication/app/data/request_wire_mapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:ai_pet_communication/features/pilot/domain/pilot_repository.dart';
-import 'package:ai_pet_communication/features/pilot/application/pilot_controller.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
+import 'package:ai_pet_communication/core/application/request_controller.dart';
 import 'package:ai_pet_communication/features/weekly_review/presentation/weekly_review_screen.dart';
 import 'package:ai_pet_communication/features/community/presentation/community_screen.dart';
 import 'package:ai_pet_communication/features/community/presentation/community_share_screen.dart';
@@ -14,17 +15,17 @@ import 'package:ai_pet_communication/features/pilot/presentation/pilot_notificat
 import 'package:ai_pet_communication/features/journal/domain/journal_entry.dart';
 import 'package:ai_pet_communication/app/flutter_pilot_routes.dart';
 
-class PilotFake implements PilotRepository {
+class PilotFake implements RequestRepository {
   @override
-  String requestKey(PilotRequest<void> request) {
-    final (name, values) = encodePilotRequest(request);
+  String requestKey(AppRequest<void> request) {
+    final (name, values) = encodeAppRequest(request);
     return jsonEncode([name, values]);
   }
 
   @override
-  Future<T> execute<T>(PilotRequest<T> request, {String? operationId}) async {
-    final (name, values) = encodePilotRequest(request);
-    return decodePilotResponse(
+  Future<T> execute<T>(AppRequest<T> request, {String? operationId}) async {
+    final (name, values) = encodeAppRequest(request);
+    return decodeAppResponse(
       request,
       await call(name, {...values, 'operationId': ?operationId}),
     );
@@ -40,7 +41,6 @@ class PilotFake implements PilotRepository {
       (_, _) async => {};
   @override
   Stream<bool> get sessionChanges => sessions.stream;
-  @override
   Future<Map<String, dynamic>> call(
     String name, [
     Map<String, dynamic> data = const {},
@@ -89,21 +89,21 @@ void main() {
       var failed = true;
       repo.handler = (_, _) async {
         if (failed) {
-          throw FirebaseFunctionsException(
-            code: 'unavailable',
-            message: '暫時無法使用',
-          );
+          throw ServiceFailure(FailureKind.unavailable, message: '暫時無法使用');
         }
         return {};
       };
-      final c = PilotController(repo, () async => {'private': '甲的資料'});
+      final c = RequestController(repo, () async => {'private': '甲的資料'});
       await c.load();
-      expect(await c.submit(const EncourageCommunityPost(postId: 'p')), isFalse);
+      expect(
+        await c.submit(const EncourageCommunityPost(postId: 'p')),
+        isFalse,
+      );
       failed = false;
       expect(await c.submit(const EncourageCommunityPost(postId: 'p')), isTrue);
       expect(repo.calls[0].$2['operationId'], repo.calls[1].$2['operationId']);
       repo.logout();
-      expect(c.data, isEmpty);
+      expect(c.value, isNull);
       expect(c.expired, isTrue);
       c.dispose();
       await repo.sessions.close();
@@ -113,23 +113,21 @@ void main() {
     'controller rejects delayed results after session invalidation and clears inaccessible content',
     () async {
       final repo = PilotFake(), response = Completer<Map<String, dynamic>>();
-      final c = PilotController(repo, () => response.future);
+      final c = RequestController(repo, () => response.future);
       final loading = c.load();
       repo.logout();
       response.complete({'private': '甲的資料'});
       await loading;
-      expect(c.data, isEmpty);
+      expect(c.value, isNull);
       c.dispose();
       await repo.sessions.close();
       final second = PilotFake();
-      second.handler = (_, _) async => throw FirebaseFunctionsException(
-        code: 'permission-denied',
-        message: '權限已撤銷',
-      );
-      final d = PilotController(second, () async => {'post': '不可再看'});
+      second.handler = (_, _) async =>
+          throw ServiceFailure(FailureKind.permissionDenied, message: '權限已撤銷');
+      final d = RequestController(second, () async => {'post': '不可再看'});
       await d.load();
-      await d.mutate('encourageCommunityPost', {'postId': 'p'});
-      expect(d.data, isEmpty);
+      await d.submit(const EncourageCommunityPost(postId: 'p'));
+      expect(d.value, isNull);
       d.dispose();
       await second.sessions.close();
     },

@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/app/app_version.g.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
@@ -69,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
                 _buildSettingTile(
                   icon: Icons.info_outline_rounded,
                   title: '版本號',
-                  trailing: const Text('0.3.0'),
+                  trailing: const Text(appVersion),
                 ),
               ]),
 

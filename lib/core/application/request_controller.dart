@@ -1,26 +1,22 @@
+import 'package:ai_pet_communication/core/domain/app_request.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
 import 'package:uuid/uuid.dart';
-import '../domain/pilot_repository.dart';
-import '../domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 
-typedef PilotLoader<T> = Future<T> Function();
+typedef RequestLoader<T> = Future<T> Function();
 
-class PilotController<T> extends ChangeNotifier {
-  final PilotRepository repository;
-  final PilotLoader<T> loader;
+class RequestController<T> extends ChangeNotifier {
+  final RequestRepository repository;
+  final RequestLoader<T> loader;
   T? value;
-  // Compatibility for the existing administrative screens.
-  Map<String, dynamic> get data =>
-      value is Map<String, dynamic> ? value as Map<String, dynamic> : const {};
   String? error;
   bool busy = false, expired = false, _disposed = false;
   int _generation = 0;
   final Map<String, String> _pending = {};
   late final StreamSubscription<bool> _session;
-  PilotController(this.repository, this.loader) {
+  RequestController(this.repository, this.loader) {
     _session = repository.sessionChanges.listen((current) {
       if (!current) {
         expired = true;
@@ -54,15 +50,10 @@ class PilotController<T> extends ChangeNotifier {
     }
   }
 
-  Future<bool> submit(PilotRequest<void> request) => _mutate(
+  Future<bool> submit(AppRequest<void> request) => _mutate(
     repository.requestKey(request),
     (id) => repository.execute(request, operationId: id),
   );
-
-  Future<bool> mutate(String name, Map<String, dynamic> values) =>
-      _mutate(jsonEncode([name, values]), (id) async {
-        await repository.call(name, {...values, 'operationId': id});
-      });
 
   Future<bool> _mutate(String key, Future<void> Function(String) send) async {
     if (!current || busy) return false;
@@ -81,20 +72,9 @@ class PilotController<T> extends ChangeNotifier {
       if (current) {
         error = pilotError(e);
         // Keep ambiguous network failures retryable with the same operation ID.
-        if (e is FirebaseFunctionsException &&
-            ![
-              'unavailable',
-              'deadline-exceeded',
-              'internal',
-            ].contains(e.code)) {
-          _pending.remove(key);
-        }
-        if (e is FirebaseFunctionsException &&
-            [
-              'permission-denied',
-              'not-found',
-              'unauthenticated',
-            ].contains(e.code)) {
+        if (e is ServiceFailure && !e.isRetryable) _pending.remove(key);
+        if (e is ServiceFailure &&
+            (e.isSessionFailure || e.kind == FailureKind.notFound)) {
           value = null;
         }
       }
@@ -120,7 +100,7 @@ class PilotController<T> extends ChangeNotifier {
 }
 
 String pilotError(Object e) {
-  if (e is FirebaseFunctionsException) return e.message ?? '服務暫時無法使用，請稍後重試';
+  if (e is ServiceFailure) return e.message ?? '服務暫時無法使用，請稍後重試';
   if (e is StateError) return e.message.toString();
   return '連線或服務暫時無法使用，請稍後重試';
 }

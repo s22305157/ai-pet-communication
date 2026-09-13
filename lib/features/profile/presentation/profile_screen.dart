@@ -1,7 +1,8 @@
+import 'package:ai_pet_communication/app/app_version.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
 import 'package:ai_pet_communication/models/user_model.dart';
@@ -32,7 +33,6 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
     final authService = getIt<AuthService>();
 
     return Scaffold(
@@ -87,7 +87,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Builder(
                       builder: (context) {
-                        final photoUrl = userModel?.photoURL ?? user?.photoURL;
+                        final photoUrl = userModel?.photoURL;
                         final tierColor = _getTierColor(
                           userModel?.membershipType,
                         );
@@ -151,7 +151,7 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 // 用戶名稱
                 Text(
-                  userModel?.displayName ?? user?.displayName ?? '毛小孩主人',
+                  userModel?.displayName ?? '毛小孩主人',
                   style: GoogleFonts.outfit(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -214,7 +214,7 @@ class ProfileScreen extends StatelessWidget {
                       icon: Icons.email_outlined,
                       title: '電子郵件',
                       trailing: Text(
-                        user?.email ?? '-',
+                        userModel?.email ?? '-',
                         style: GoogleFonts.outfit(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -228,7 +228,7 @@ class ProfileScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _getNumericId(user?.uid),
+                            _getNumericId(userModel?.uid),
                             style: GoogleFonts.outfit(
                               fontSize: 13,
                               color: AppColors.textSecondary,
@@ -255,7 +255,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      onTap: () => _copyToClipboard(context, user?.uid),
+                      onTap: () => _copyToClipboard(context, userModel?.uid),
                     ),
                   ]),
                 ),
@@ -360,7 +360,7 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
                 Text(
-                  '版本號 0.3.0',
+                  '版本號 $appVersion',
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: AppColors.textSecondary.withValues(alpha: 0.5),

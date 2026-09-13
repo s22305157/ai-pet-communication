@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: |
             functions/package-lock.json
@@ -20,6 +20,7 @@ jobs:
           java-version: '21'
       - run: npm ci --ignore-scripts
         working-directory: functions
+      - run: node scripts/verify_generated.cjs
       - run: node scripts/package_knowledge.cjs
       - run: npm run lint && npm test && npm audit --omit=dev
         working-directory: functions
@@ -39,6 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/verify_generated.cjs
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ matrix.sdk == 'minimum' && '3.41.7' || '' }}
@@ -66,5 +71,7 @@ jobs:
           test/features/chat/planet_award_test.dart
           test/features/pilot_m4_test.dart
           test/features/pilot_wire_mapper_test.dart
+          test/features/journal_m1_test.dart
           test/features/journal_m23_test.dart
       - run: flutter build web --release --no-pub
+      - run: node tools/maintenance/pilot-release-check.cjs

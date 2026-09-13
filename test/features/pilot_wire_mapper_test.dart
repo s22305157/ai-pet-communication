@@ -1,11 +1,57 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:ai_pet_communication/features/pilot/data/pilot_wire_mapper.dart';
 import 'package:ai_pet_communication/features/pilot/domain/pilot_request.dart';
+import 'package:ai_pet_communication/features/community/domain/community_request.dart';
+import 'package:ai_pet_communication/features/weekly_review/domain/weekly_review_request.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ai_pet_communication/app/data/request_wire_mapper.dart';
 import 'package:ai_pet_communication/features/community/domain/community_post.dart';
 
 void main() {
+  test(
+    'administrative actions preserve revisions and typed notification cursors',
+    () {
+      final (name, data) = encodeAppRequest(
+        const ModerateCommunity(
+          reportId: 'r',
+          action: 'hide',
+          reason: 'reason',
+          expectedRevision: 4,
+          contentRevision: 7,
+        ),
+      );
+      expect(name, 'adminModerateCommunity');
+      expect(data, {
+        'reportId': 'r',
+        'action': 'hide',
+        'reason': 'reason',
+        'expectedRevision': 4,
+        'contentRevision': 7,
+      });
+      final page = decodeAppResponse(const ListPilotNotifications(), {
+        'items': [
+          {
+            'id': 'n',
+            'type': 'encouragement',
+            'count': 3,
+            'postId': 'p',
+            'read': true,
+          },
+        ],
+        'cursor': {'id': 'n', 'time': 12},
+      });
+      expect(page.items.single.count, 3);
+      expect(page.items.single.read, isTrue);
+      expect(page.cursor!.time, 12);
+      expect(() => page.items.clear(), throwsUnsupportedError);
+      expect(
+        () => decodeAppResponse(const ListPilotNotifications(), {
+          'items': [{}],
+        }),
+        throwsFormatException,
+      );
+    },
+  );
   test('invalidated reviews discard stale or malformed AI payloads', () {
-    final review = decodePilotResponse(
+    final review = decodeAppResponse(
       const GetWeeklyReview(petId: 'pet', week: '2026-09-07'),
       {'status': 'invalidated', 'result': 'stale private content'},
     );
@@ -16,7 +62,7 @@ void main() {
 
   test('malformed ready reviews fail in the data layer before rendering', () {
     expect(
-      () => decodePilotResponse(
+      () => decodeAppResponse(
         const GetWeeklyReview(petId: 'pet', week: '2026-09-07'),
         {
           'status': 'ready',
@@ -30,7 +76,7 @@ void main() {
   test(
     'community pages parse cursor, permissions, counters and immutable media',
     () {
-      final page = decodePilotResponse(
+      final page = decodeAppResponse(
         const ListCommunityPosts(topic: '', mine: false),
         {
           'items': [
@@ -59,7 +105,7 @@ void main() {
       );
       expect(() => page.items.clear(), throwsUnsupportedError);
       expect(
-        () => decodePilotResponse(const GetCommunityPost(postId: 'p'), {
+        () => decodeAppResponse(const GetCommunityPost(postId: 'p'), {
           'text': 'missing identity',
         }),
         throwsFormatException,
@@ -68,7 +114,7 @@ void main() {
   );
 
   test('typed request keeps paging and revision contracts outside the UI', () {
-    final (name, values) = encodePilotRequest(
+    final (name, values) = encodeAppRequest(
       const ListCommunityPosts(
         topic: '熟悉彼此',
         mine: false,
@@ -77,7 +123,7 @@ void main() {
     );
     expect(name, 'listCommunityPosts');
     expect(values['cursor'], {'id': 'p', 'time': 42});
-    final (_, update) = encodePilotRequest(
+    final (_, update) = encodeAppRequest(
       const EditCommunityPost(
         postId: 'p',
         text: '新版',
@@ -86,7 +132,7 @@ void main() {
       ),
     );
     expect(update['expectedRevision'], 3);
-    final (adminName, image) = encodePilotRequest(
+    final (adminName, image) = encodeAppRequest(
       const GetCommunityImage(postId: 'unused', mediaId: 'm', reportId: 'r'),
     );
     expect(adminName, 'adminGetReportedImage');

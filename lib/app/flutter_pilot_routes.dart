@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pilot_routes.dart';
-import '../features/pilot/domain/pilot_repository.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 import '../features/journal/domain/journal_entry.dart';
 import '../features/journal/domain/journal_repository.dart';
 import '../features/journal/presentation/journal_image.dart';
@@ -14,7 +14,7 @@ import '../features/pilot/presentation/pilot_interest_screen.dart';
 
 class FlutterPilotRoutes implements PilotRoutes {
   @override
-  Future<void> interest(BuildContext context, PilotRepository repository) =>
+  Future<void> interest(BuildContext context, RequestRepository repository) =>
       _open(context, PilotInterestScreen(repository: repository));
   Future<void> _open(BuildContext context, Widget page) async {
     await Navigator.push(
@@ -26,7 +26,7 @@ class FlutterPilotRoutes implements PilotRoutes {
   @override
   Future<void> review(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     String petId, {
     String? week,
   }) => _open(
@@ -41,12 +41,12 @@ class FlutterPilotRoutes implements PilotRoutes {
     ),
   );
   @override
-  Future<void> community(BuildContext context, PilotRepository repository) =>
+  Future<void> community(BuildContext context, RequestRepository repository) =>
       _open(context, CommunityScreen(repository: repository));
   @override
   Future<void> post(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     String postId,
   ) => _open(
     context,
@@ -55,7 +55,7 @@ class FlutterPilotRoutes implements PilotRoutes {
   @override
   Future<void> share(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
     JournalRepository journal,
     String petId,
     JournalEntry entry,
@@ -77,12 +77,12 @@ class FlutterPilotRoutes implements PilotRoutes {
   @override
   Future<void> notifications(
     BuildContext context,
-    PilotRepository repository,
+    RequestRepository repository,
   ) => _open(
     context,
     PilotNotificationsScreen(repository: repository, routes: this),
   );
   @override
-  Future<void> admin(BuildContext context, PilotRepository repository) =>
+  Future<void> admin(BuildContext context, RequestRepository repository) =>
       _open(context, PilotAdminScreen(repository: repository));
 }

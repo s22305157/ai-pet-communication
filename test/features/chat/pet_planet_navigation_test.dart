@@ -212,7 +212,7 @@ void main() {
             home: Scaffold(
               body: SingleChildScrollView(
                 child: CommunicationResultContent(
-                  result: parseCommunication(response),
+                  result: parseCommunication(response)!,
                 ),
               ),
             ),

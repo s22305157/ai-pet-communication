@@ -1,13 +1,13 @@
+import 'package:ai_pet_communication/features/community/domain/community_request.dart';
 import 'package:flutter/material.dart';
-import '../../pilot/domain/pilot_repository.dart';
-import '../../pilot/domain/pilot_request.dart';
+import 'package:ai_pet_communication/core/domain/request_repository.dart';
 
 import 'package:ai_pet_communication/widgets/pilot_surface.dart';
 import '../domain/community_post.dart';
 import 'package:ai_pet_communication/widgets/community_image.dart';
 
 class CommunityPostScreen extends StatefulWidget {
-  final PilotRepository repository;
+  final RequestRepository repository;
   final String postId;
   const CommunityPostScreen({
     super.key,

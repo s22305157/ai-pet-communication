@@ -1,3 +1,4 @@
+import 'communication_response.dart';
 // lib/features/chat/domain/ai_response_model.dart
 // ============================================================
 // PAWLINK - AI 回應模型 (Domain Model)
@@ -6,8 +7,10 @@
 import 'dart:convert';
 
 /// AI 寵物溝通回應模型
-class AiResponseModel {
+class AiResponseModel implements CommunicationResponse {
+  @override
   final List<String> matchedCardIds;
+  @override
   final List<String> newCardIds;
 
   /// 寵物心語列表 (1~5 筆)
@@ -68,6 +71,7 @@ class AiResponseModel {
   }
 
   /// 轉換為 Map
+  @override
   Map<String, dynamic> toMap() {
     return {
       'planetAward': {
@@ -86,6 +90,7 @@ class AiResponseModel {
   }
 
   /// 轉換為 JSON 字串
+  @override
   String toJson() => json.encode(toMap());
 
   /// 安全版預設回應 (Fallback)

@@ -6,8 +6,9 @@
 import 'dart:developer' as dev;
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
+import '../domain/chat_repository.dart';
+import '../domain/communication_response.dart';
 import 'package:ai_pet_communication/features/readings/application/reading_service.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/application/ai_validator.dart';
@@ -15,13 +16,13 @@ import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart'
 import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
 
 class ChatController {
-  final ChatService _chatService;
+  final ChatRepository _chatService;
   final ReadingService _readingService;
 
   ChatController(this._chatService, this._readingService);
 
   /// 處理完整的 AI 溝通請求 (包含重試與 Fallback 邏輯)
-  Future<dynamic> handleCommunication(
+  Future<CommunicationResponse> handleCommunication(
     String petId,
     AiRequestModel request,
   ) async =>
@@ -53,7 +54,7 @@ class ChatController {
         );
 
         // 4. 根據模式進行動態驗證
-        dynamic aiResponse;
+        CommunicationResponse aiResponse;
         if (safetyDecision.useSafeMode) {
           final safeResponse = AiValidator.validateSafeResponse(rawResponse);
           AiValidator.enforceSafetyDecision(safeResponse, safetyDecision);
@@ -80,13 +81,7 @@ class ChatController {
       } catch (e) {
         dev.log('AI 溝通失敗 (嘗試 ${retryCount + 1}): $e');
 
-        final sessionChanged =
-            e is FirebaseFunctionsException &&
-            [
-              'unauthenticated',
-              'cancelled',
-              'permission-denied',
-            ].contains(e.code);
+        final sessionChanged = e is ServiceFailure && e.isSessionFailure;
         if (!sessionChanged && retryCount < maxRetries) {
           retryCount++;
           await Future.delayed(const Duration(milliseconds: 500));
@@ -115,27 +110,10 @@ class ChatController {
     if (failure == null) return;
     await _readingService.saveReading(failure.reading);
   }
-
-  // ── 舊有的處理方法 (維持相容性或供簡單測試使用) ──────────────────
-  Future<String> handleUserMessage(String petId, String message) async {
-    try {
-      final aiResponse = await _chatService.sendMessage(message);
-
-      await _readingService.recordAiResponse(
-        petId: petId,
-        aiText: aiResponse,
-        source: 'chat',
-      );
-
-      return aiResponse;
-    } catch (e) {
-      rethrow;
-    }
-  }
 }
 
 class CommunicationOutcome {
-  final dynamic response;
+  final CommunicationResponse response;
   final ReadingPersistenceException? persistenceFailure;
   final bool isFallback;
 

@@ -1,3 +1,4 @@
+import '../domain/communication_response.dart';
 import 'dart:convert';
 import '../domain/ai_response_model.dart';
 import '../domain/ai_safe_response_model.dart';
@@ -15,7 +16,7 @@ String naturalPetVoice(String value) {
   return text.replaceAll('【', '').replaceAll('】', '').trim();
 }
 
-dynamic parseCommunication(String content) {
+CommunicationResponse? parseCommunication(String content) {
   try {
     final value = jsonDecode(content);
     if (value is! Map<String, dynamic>) return null;
@@ -42,7 +43,7 @@ String readingPreview(String content) {
   return content;
 }
 
-String communicationCopyText(dynamic result) {
+String communicationCopyText(CommunicationResponse? result) {
   if (result is AiResponseModel) {
     return [
       for (final voice in result.petVoice)

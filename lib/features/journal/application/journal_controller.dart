@@ -1,3 +1,4 @@
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
 import 'package:flutter/foundation.dart';
 import '../domain/journal_entry.dart';
 import '../domain/journal_repository.dart';
@@ -74,16 +75,17 @@ class JournalController extends ChangeNotifier {
 }
 
 String journalError(Object error) {
-  // FirebaseFunctionsException messages originate from the sanitized backend.
-  final message = error.toString();
-  if (message.contains('permission-denied')) return '此帳號目前無法寫入日記，請確認試營運資格。';
-  if (message.contains('aborted')) return '雲端已有新版本，請重新載入後再編輯；本機草稿已保留。';
-  if (message.contains('resource-exhausted')) {
-    return '已達使用量上限或操作太頻繁；草稿已保留，請稍後重試。';
-  }
-  if (message.contains('unavailable') ||
-      message.contains('deadline-exceeded')) {
-    return '連線或服務暫時無法使用；文字草稿已保留在這個裝置。';
+  if (error is ServiceFailure) {
+    return switch (error.kind) {
+      FailureKind.permissionDenied => '此帳號目前無法寫入日記，請確認試營運資格。',
+      FailureKind.conflict => '雲端已有新版本，請重新載入後再編輯；本機草稿已保留。',
+      FailureKind.quotaExceeded => '已達使用量上限或操作太頻繁；草稿已保留，請稍後再試。',
+      FailureKind.unavailable ||
+      FailureKind.timeout => '連線或服務暫時無法使用；文字草稿已保留在這個裝置。',
+      FailureKind.sessionChanged ||
+      FailureKind.unauthenticated => '帳號已變更，請返回首頁',
+      _ => error.message ?? '操作未完成，請稍後重試；草稿已保留。',
+    };
   }
   if (error is StateError) return error.message.toString();
   return '操作未完成，請檢查輸入或稍後重試；草稿已保留。';
