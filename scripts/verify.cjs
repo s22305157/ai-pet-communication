@@ -36,8 +36,7 @@ if (args.includes('--release')) {
     'test/features/chat/planet_award_test.dart',
     'test/features/journal_m1_test.dart', 'test/features/journal_m23_test.dart',
     'test/features/pilot_m4_test.dart', 'test/features/pilot_wire_mapper_test.dart']);
-  flutter('build', 'web', '--release', '--no-pub');
-  node('tools/maintenance/pilot-release-check.cjs');
+  node('scripts/build_hosting.cjs', '--flutter-sdk', path.resolve(sdk));
 }
 if (args.includes('--emulators')) {
   node('scripts/package_knowledge.cjs');
@@ -47,10 +46,10 @@ if (args.includes('--emulators')) {
   run(process.execPath, [cli, 'emulators:exec', '--config', 'firebase.security.json',
     '--project', 'demo-pawlink-security', '--only', 'firestore,storage',
     'node --test tools/security/rules.test.cjs']);
-  for (const suite of ['journal', 'journal-m23', 'journal-m4']) {
+  for (const suite of ['journal', 'journal-m23', 'journal-m4', 'communication-photos']) {
     run(process.execPath, [cli, 'emulators:exec', '--config', 'firebase.journal-test.json',
       '--project', 'demo-pawlink-security', '--only', 'auth,firestore,storage,functions',
       `node --test tools/security/${suite}.test.cjs`]);
   }
 }
-console.log('\nAll requested local checks passed. No deployment performed.');
+console.log('\nAll requested local check commands completed. Review test output for skipped cases. No deployment performed.');

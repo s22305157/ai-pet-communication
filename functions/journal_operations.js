@@ -21,7 +21,7 @@ const service = () => createJournalService({db: getFirestore(), bucket: getStora
     return ids;
   },
   reviewProvider: args => generateReview({...args, apiKey: reviewKey.value(), model: reviewModel.value()})});
-const {endpointNames, assertEndpointHandlers} = require('./endpoints');
+const {endpointNames} = require('./endpoints');
 const names = endpointNames;
 for (const name of names) {
   exports[name] = onCall({enforceAppCheck, maxInstances: 5, timeoutSeconds: 60, memory: '512MiB',
@@ -30,7 +30,6 @@ for (const name of names) {
     try {
       await consumeJournalQuota(getFirestore(), request.auth?.uid);
       const instance = service();
-      assertEndpointHandlers(instance.handlers);
       return await instance.handlers[name](request);
     } catch (error) {
       if (error instanceof HttpsError) throw error;

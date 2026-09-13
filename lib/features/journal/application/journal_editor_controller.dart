@@ -25,7 +25,6 @@ class JournalEditorController extends ChangeNotifier {
   String status = '草稿加密保存在裝置，登出會清除；共用裝置請記得登出';
   bool _disposed = false;
   int _generation = 0;
-  Future<void> _draftWrites = Future.value();
   String get _draftKey => original?.id ?? 'new';
   bool get current => !_disposed && repository.isCurrentSession;
 
@@ -86,13 +85,9 @@ class JournalEditorController extends ChangeNotifier {
   }
 
   Future<void> _persist(Map<String, dynamic> snapshot) {
-    final write = _draftWrites.then((_) async {
-      if (repository.isCurrentSession) {
-        await drafts.save(repository.uid, petId, _draftKey, snapshot);
-      }
-    });
-    _draftWrites = write.catchError((Object _) {});
-    return write;
+    if (!repository.isCurrentSession) return Future.value();
+    // Enqueue immediately in the shared store, before another editor can read.
+    return drafts.save(repository.uid, petId, _draftKey, snapshot);
   }
 
   void changed({
@@ -213,7 +208,6 @@ class JournalEditorController extends ChangeNotifier {
     ++_generation;
     _notify();
     try {
-      await _draftWrites;
       if (current) await drafts.remove(repository.uid, petId, _draftKey);
     } finally {
       busy = false;

@@ -1,5 +1,5 @@
 const {HttpsError} = require('firebase-functions/v2/https');
-const sharp = require('sharp');
+const {photoExpired, photoCreatedAt} = require('./communication_photo_policy');
 const MAX_BYTES = 10 * 1024 * 1024;
 
 function validateMedia(media) {
@@ -22,12 +22,15 @@ function validatePaths(media, uid, requestId) {
   }
 }
 
-async function loadPhotos({media, uid, requestId, bucket}) {
+async function loadPhotos({media, uid, requestId, bucket, now = Date.now}) {
   validatePaths(media, uid, requestId);
   const images = [];
   for (const path of media?.photos || []) {
     const file = bucket.file(path);
     const [metadata] = await file.getMetadata();
+    if (!Number.isFinite(photoCreatedAt(metadata)) || photoExpired(metadata, now())) {
+      throw new HttpsError('failed-precondition', '照片暫存已到期，請重新選擇照片');
+    }
     if (!['image/jpeg', 'image/png'].includes(metadata.contentType) ||
         !Number.isFinite(Number(metadata.size)) || Number(metadata.size) <= 0 || Number(metadata.size) > MAX_BYTES) {
       throw new HttpsError('invalid-argument', '照片須為 JPG 或 PNG，每張上限 10 MB');
@@ -43,6 +46,7 @@ async function loadPhotos({media, uid, requestId, bucket}) {
     }
     try {
       const bytes = Buffer.concat(chunks);
+      const sharp = require('sharp');
       const info = await sharp(bytes, {limitInputPixels: 40000000}).metadata();
       if (!['jpeg', 'png'].includes(info.format) || (info.pages || 1) > 1) throw new Error('Invalid image');
       // Decode, orient and strip metadata before passing images to the model.

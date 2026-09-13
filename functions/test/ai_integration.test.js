@@ -37,6 +37,24 @@ test('RAG failure never falls through to ungrounded model generation', async () 
   await assert.rejects(h.call(), {code: 'unavailable'});
   assert.equal(h.calls.length, 0);
   assert.equal(h.docs.get(`users/user1/aiRequests/${requestId}`).status, 'failed');
+  await assert.rejects(h.call(), error => error.code === 'failed-precondition' && error.details.reason === 'request-failed');
+});
+
+test('an in-flight duplicate is pending and never starts a second provider request', async () => {
+  let release, started;
+  const entered = new Promise(resolve => { started = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  let calls = 0;
+  const h = harness('plus', {provider: async () => { calls++; started(); await gate; return safe(); }});
+  const first = h.call();
+  await entered;
+  try {
+    await assert.rejects(h.call(), error => error.code === 'failed-precondition' && error.details.reason === 'request-pending');
+    assert.equal(calls, 1);
+  } finally { release(); }
+  await first;
+  await h.call();
+  assert.equal(calls, 1);
 });
 
 test('only active Plus and Pro pass three owned photos to the provider and cache retries', async () => {

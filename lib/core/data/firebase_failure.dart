@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../errors/service_failure.dart';
 
 ServiceFailure firebaseFailure(FirebaseException error) =>
@@ -14,6 +15,12 @@ ServiceFailure firebaseFailure(FirebaseException error) =>
       'not-found' => FailureKind.notFound,
       'invalid-argument' => FailureKind.invalidInput,
       'already-exists' => FailureKind.alreadyExists,
+      'failed-precondition' =>
+        error is FirebaseFunctionsException &&
+                error.details is Map &&
+                error.details['reason'] == 'request-pending'
+            ? FailureKind.pending
+            : FailureKind.failedPrecondition,
       _ => FailureKind.unknown,
     }, message: error.message);
 

@@ -6,6 +6,31 @@ import 'package:ai_pet_communication/features/journal/application/journal_contro
 
 void main() {
   test(
+    'pending and permanent preconditions have distinct operation lifetimes',
+    () {
+      for (final reason in ['request-pending', 'request-failed', null]) {
+        final failure = firebaseFailure(
+          FirebaseFunctionsException(
+            code: 'failed-precondition',
+            message: 'precondition',
+            details: {'reason': reason},
+          ),
+        );
+        expect(
+          failure.kind,
+          reason == 'request-pending'
+              ? FailureKind.pending
+              : FailureKind.failedPrecondition,
+        );
+        expect(failure.isRetryable, isFalse);
+        expect(failure.preservesOperationId, reason == 'request-pending');
+      }
+      const unknown = ServiceFailure(FailureKind.unknown);
+      expect(unknown.isRetryable, isFalse);
+      expect(unknown.preservesOperationId, isTrue);
+    },
+  );
+  test(
     'transport errors preserve retry and conflict meaning without string matching',
     () async {
       await expectLater(

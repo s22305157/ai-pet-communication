@@ -6,7 +6,7 @@ const {validateMedia, loadPhotos, MAX_BYTES} = require('../communication_photos'
 const media = {photos: ['communicationPhotos/u/request-000000001/0']};
 function load(bytes, metadata = {}) {
   return loadPhotos({media, uid: 'u', requestId: 'request-000000001', bucket: {file: (_, options) => ({
-    getMetadata: async () => [{size: bytes.length, contentType: 'image/png', generation: '123', ...metadata}],
+    getMetadata: async () => [{size: bytes.length, contentType: 'image/png', generation: '123', timeCreated: new Date().toISOString(), ...metadata}],
     createReadStream: () => { assert.equal(options.generation, '123'); return Readable.from([bytes]); },
   })}});
 }
@@ -16,6 +16,12 @@ test('media contract enforces counts, uniqueness and disallows inline media or e
     {photos: ['a'], imageUrl: 'https://example.com'}, {imageBase64: 'abc'}, []]) {
     assert.throws(() => validateMedia(invalid), {code: 'invalid-argument'});
   }
+});
+
+test('expired photos cannot start a new generation while cleanup is eligible', async () => {
+  await assert.rejects(load(Buffer.from('unused'), {timeCreated: new Date(Date.now() - 86400001).toISOString()}),
+      {code: 'failed-precondition'});
+  await assert.rejects(load(Buffer.from('unused'), {timeCreated: undefined}), {code: 'failed-precondition'});
 });
 test('valid images are decoded, normalized and support the exact 10 MB boundary', async () => {
   const png = await sharp({create: {width: 2, height: 3, channels: 3, background: '#abcdef'}}).png().toBuffer();

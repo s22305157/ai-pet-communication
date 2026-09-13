@@ -1,3 +1,6 @@
+import 'package:ai_pet_communication/core/errors/service_failure.dart';
+import 'package:ai_pet_communication/features/chat/domain/chat_consultation.dart';
+import 'package:ai_pet_communication/features/chat/data/chat_response_mapper.dart';
 // test/features/chat/chat_controller_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -8,6 +11,8 @@ import 'package:ai_pet_communication/features/readings/domain/reading.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_request_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_response_model.dart';
 import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
+
+class FakeConsultation extends Fake implements ChatConsultation {}
 
 class MockChatService extends Mock implements ChatService {}
 
@@ -24,7 +29,7 @@ void main() {
     chatController = ChatController(mockChatService, mockReadingService);
 
     // Register fallback values for mocktail
-    registerFallbackValue('pet123');
+    registerFallbackValue(FakeConsultation());
   });
 
   group('ChatController - Behavioral Tests', () {
@@ -83,9 +88,9 @@ void main() {
 }
 ''';
 
-      when(
-        () => mockChatService.sendMessage(any()),
-      ).thenAnswer((_) async => normalResponseJson);
+      when(() => mockChatService.sendMessage(any())).thenAnswer(
+        (_) async => ChatResponseMapper.validateResponse(normalResponseJson),
+      );
       when(
         () => mockReadingService.recordAiResponse(
           petId: any(named: 'petId'),
@@ -136,9 +141,9 @@ void main() {
 }
 ''';
 
-      when(
-        () => mockChatService.sendMessage(any()),
-      ).thenAnswer((_) async => safeResponseJson);
+      when(() => mockChatService.sendMessage(any())).thenAnswer(
+        (_) async => ChatResponseMapper.validateSafeResponse(safeResponseJson),
+      );
       when(
         () => mockReadingService.recordAiResponse(
           petId: any(named: 'petId'),
@@ -183,9 +188,9 @@ void main() {
       when(() => mockChatService.sendMessage(any())).thenAnswer((_) async {
         callCount++;
         if (callCount == 1) {
-          throw Exception("API Rate Limit");
+          throw const ServiceFailure(FailureKind.unavailable);
         }
-        return safeResponseJson;
+        return ChatResponseMapper.validateSafeResponse(safeResponseJson);
       });
 
       when(
@@ -233,9 +238,9 @@ void main() {
         content: 'content',
         createdAt: DateTime(2026),
       );
-      when(
-        () => mockChatService.sendMessage(any()),
-      ).thenAnswer((_) async => safeResponseJson);
+      when(() => mockChatService.sendMessage(any())).thenAnswer(
+        (_) async => ChatResponseMapper.validateSafeResponse(safeResponseJson),
+      );
       when(
         () => mockReadingService.recordAiResponse(
           petId: any(named: 'petId'),
@@ -283,9 +288,9 @@ void main() {
         content: 'content',
         createdAt: DateTime(2026),
       );
-      when(
-        () => mockChatService.sendMessage(any()),
-      ).thenAnswer((_) async => safeResponseJson);
+      when(() => mockChatService.sendMessage(any())).thenAnswer(
+        (_) async => ChatResponseMapper.validateSafeResponse(safeResponseJson),
+      );
       when(
         () => mockReadingService.recordAiResponse(
           petId: any(named: 'petId'),
@@ -316,7 +321,7 @@ void main() {
 
       when(
         () => mockChatService.sendMessage(any()),
-      ).thenThrow(Exception("Network Timeout"));
+      ).thenThrow(const ServiceFailure(FailureKind.timeout));
 
       final result = await chatController.handleCommunication(petId, request);
 

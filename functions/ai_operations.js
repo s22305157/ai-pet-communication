@@ -59,7 +59,10 @@ function createHandler({db, config, provider = generate, retrieve = searchKnowle
       if (operation.exists) {
         if (operation.get('hash') !== hash) throw new HttpsError('already-exists', '請勿重用請求編號');
         if (operation.get('status') === 'completed') return {cached: operation.get('response')};
-        throw new HttpsError('failed-precondition', '此請求已處理或仍在處理中，請重新開始');
+        if (operation.get('status') === 'processing') {
+          throw new HttpsError('failed-precondition', '此請求仍在處理中，請稍後再試', {reason: 'request-pending'});
+        }
+        throw new HttpsError('failed-precondition', '此請求已失敗，請重新開始', {reason: 'request-failed'});
       }
       if (!['free', 'plus', 'pro'].includes(user.get('membershipTier'))) throw new HttpsError('permission-denied', '此方案尚未開放 AI 溝通');
       const selectedModel = settings.model?.trim();

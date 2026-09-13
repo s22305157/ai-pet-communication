@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:ai_pet_communication/core/errors/service_failure.dart';
@@ -83,24 +82,6 @@ void main() {
       expect(await editor.save(), isFalse);
       verify(() => repository.saveEntry(any())).called(1);
       verifyNever(() => drafts.remove(any(), any(), any()));
-    },
-  );
-
-  test(
-    'discard waits for queued draft writes so a late write cannot resurrect it',
-    () async {
-      final pending = Completer<void>();
-      when(
-        () => drafts.save('a', 'pet', 'new', any()),
-      ).thenAnswer((_) => pending.future);
-      await editor.restore();
-      editor.changed(observation: '保留草稿', action: '', outcome: '');
-      final discard = editor.discard();
-      await Future<void>.delayed(Duration.zero);
-      verifyNever(() => drafts.remove(any(), any(), any()));
-      pending.complete();
-      await discard;
-      verify(() => drafts.remove('a', 'pet', 'new')).called(1);
     },
   );
 }

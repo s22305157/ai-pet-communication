@@ -9,3 +9,12 @@ test('every registered feature endpoint has an implemented handler', () => {
   assert.equal(endpointNames.length, Object.keys(handlers).length);
   assert.throws(() => assertEndpointHandlers({...handlers, getWeeklyReview: null}), /getWeeklyReview/);
 });
+
+test('lazy feature handlers reject anonymous callers before any data access', async () => {
+  for (const name of endpointNames) {
+    const db = {runTransaction: async callback => callback({get: () => assert.fail('anonymous storage access')})};
+    const {handlers} = createJournalService({db, bucket: {}});
+    await assert.rejects(async () => handlers[name]({data: {}}),
+        error => ['unauthenticated', 'permission-denied'].includes(error.code), name);
+  }
+});

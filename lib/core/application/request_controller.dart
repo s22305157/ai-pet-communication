@@ -72,7 +72,9 @@ class RequestController<T> extends ChangeNotifier {
       if (current) {
         error = pilotError(e);
         // Keep ambiguous network failures retryable with the same operation ID.
-        if (e is ServiceFailure && !e.isRetryable) _pending.remove(key);
+        if (e is ServiceFailure && !e.preservesOperationId) {
+          _pending.remove(key);
+        }
         if (e is ServiceFailure &&
             (e.isSessionFailure || e.kind == FailureKind.notFound)) {
           value = null;

@@ -221,6 +221,7 @@ exports.getAccountDeletionStatus = accountOperations.getAccountDeletionStatus;
 exports.processAccountDeletion = require('./account_deletion_runtime').processAccountDeletion;
 exports.retryAccountDeletions = require('./account_deletion_runtime').retryAccountDeletions;
 exports.communicateWithPet = require('./ai_operations').communicateWithPet;
+exports.cleanupCommunicationPhotos = require('./communication_photo_cleanup_runtime').cleanupCommunicationPhotos;
 const subscriptions = require('./subscription_operations');
 exports.syncSubscription = subscriptions.syncSubscription;
 exports.revenueCatWebhook = subscriptions.revenueCatWebhook;

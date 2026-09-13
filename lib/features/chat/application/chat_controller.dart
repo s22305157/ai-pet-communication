@@ -4,7 +4,8 @@
 // ============================================================
 
 import 'dart:developer' as dev;
-import 'dart:convert';
+import '../domain/chat_consultation.dart';
+import '../domain/ai_safe_response_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:ai_pet_communication/core/errors/service_failure.dart';
 import '../domain/chat_repository.dart';
@@ -33,76 +34,57 @@ class ChatController {
     AiRequestModel request, {
     String? requestId,
   }) async {
-    final operationId = requestId ?? const Uuid().v4();
-    int retryCount = 0;
-    const int maxRetries = 1; // 失敗時重試一次
-
-    while (retryCount <= maxRetries) {
+    try {
+      // Validate once; invalid input and malformed responses never re-send AI.
+      AiValidator.validateRequest(request);
+      final safety = SafetyRouter.evaluate(request);
+      final consultation = ChatConsultation(
+        requestId: requestId ?? const Uuid().v4(),
+        petId: petId,
+        request: request,
+        useSafeMode: safety.useSafeMode,
+      );
+      final response = await _send(consultation);
+      if (safety.useSafeMode) {
+        if (response is! AiSafeResponseModel) {
+          throw AiValidationException('Expected a safe response');
+        }
+        AiValidator.enforceSafetyDecision(response, safety);
+      }
+      ReadingPersistenceException? persistenceFailure;
       try {
-        // 本機驗證作為 UI 防護；正式權限、知識檢索與提示詞由後端決定。
-        final safetyDecision = SafetyRouter.evaluate(request);
-
-        AiValidator.validateRequest(request);
-
-        // 只傳原始資料；不將前端提示詞、模型選擇或檢索結果視為可信指令。
-        final rawResponse = await _chatService.sendMessage(
-          jsonEncode({
-            'requestId': operationId,
-            'petId': petId,
-            'request': request.toMap(),
-          }),
+        await _readingService.recordAiResponse(
+          petId: petId,
+          aiText: response.toJson(),
+          source: safety.useSafeMode ? 'safe_chat' : 'pro_chat',
         );
+      } on ReadingPersistenceException catch (error) {
+        persistenceFailure = error;
+      }
+      return CommunicationOutcome(
+        response: response,
+        persistenceFailure: persistenceFailure,
+      );
+    } catch (error) {
+      // Do not log input, provider payloads or private response text.
+      dev.log('AI 溝通未完成，回傳 Fallback 內容');
+      return CommunicationOutcome(
+        response: AiResponseModel.safeFallback(error: error.toString()),
+        isFallback: true,
+      );
+    }
+  }
 
-        // 4. 根據模式進行動態驗證
-        CommunicationResponse aiResponse;
-        if (safetyDecision.useSafeMode) {
-          final safeResponse = AiValidator.validateSafeResponse(rawResponse);
-          AiValidator.enforceSafetyDecision(safeResponse, safetyDecision);
-          aiResponse = safeResponse;
-        } else {
-          aiResponse = AiValidator.validateResponse(rawResponse);
-        }
-        // 5. 記錄到資料庫 (儲存 JSON 字串)
-        ReadingPersistenceException? persistenceFailure;
-        try {
-          await _readingService.recordAiResponse(
-            petId: petId,
-            aiText: aiResponse.toJson(),
-            source: safetyDecision.useSafeMode ? 'safe_chat' : 'pro_chat',
-          );
-        } on ReadingPersistenceException catch (error) {
-          persistenceFailure = error;
-        }
-
-        return CommunicationOutcome(
-          response: aiResponse,
-          persistenceFailure: persistenceFailure,
-        );
-      } catch (e) {
-        dev.log('AI 溝通失敗 (嘗試 ${retryCount + 1}): $e');
-
-        final sessionChanged = e is ServiceFailure && e.isSessionFailure;
-        if (!sessionChanged && retryCount < maxRetries) {
-          retryCount++;
-          await Future.delayed(const Duration(milliseconds: 500));
-          continue;
-        }
-
-        // 重試也失敗，回傳標準版的安全預設值 (AiResponseModel)
-        dev.log('AI 溝通最終失敗，回傳 Fallback 內容');
-        return CommunicationOutcome(
-          response: AiResponseModel.safeFallback(error: e.toString()),
-          isFallback: true,
-        );
+  Future<CommunicationResponse> _send(ChatConsultation consultation) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await _chatService.sendMessage(consultation);
+      } on ServiceFailure catch (error) {
+        if (attempt >= 1 || !error.isRetryable) rethrow;
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        // Preserve the original request ID for backend idempotency.
       }
     }
-
-    return CommunicationOutcome(
-      response: AiResponseModel.safeFallback(
-        error: 'Unknown error in communication loop',
-      ),
-      isFallback: true,
-    );
   }
 
   Future<void> retryPersistence(CommunicationOutcome outcome) async {

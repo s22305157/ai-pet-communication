@@ -1,4 +1,6 @@
-import 'dart:convert';
+import 'package:ai_pet_communication/features/chat/domain/chat_consultation.dart';
+import 'package:ai_pet_communication/features/chat/domain/communication_response.dart';
+import 'package:ai_pet_communication/features/chat/data/chat_response_mapper.dart';
 
 import 'package:ai_pet_communication/features/chat/application/chat_controller.dart';
 import 'package:ai_pet_communication/features/chat/application/safety_router.dart';
@@ -14,14 +16,16 @@ class MockReadingService extends Mock implements ReadingService {}
 
 class RecordingChatService extends ChatService {
   final String response;
-  String? lastRequest;
+  ChatConsultation? lastRequest;
 
   RecordingChatService(this.response);
 
   @override
-  Future<String> sendMessage(String message) async {
+  Future<CommunicationResponse> sendMessage(ChatConsultation message) async {
     lastRequest = message;
-    return response;
+    return ChatResponseMapper.fromCallable({
+      'response': response,
+    }, useSafeMode: message.useSafeMode);
   }
 }
 
@@ -97,8 +101,7 @@ void main() {
 
     expect(result, isA<AiSafeResponseModel>());
     expect((result as AiSafeResponseModel).safetyAlert.hasRedFlags, isTrue);
-    final envelope =
-        jsonDecode(chatService.lastRequest!) as Map<String, dynamic>;
+    final envelope = ChatResponseMapper.request(chatService.lastRequest!);
     expect(envelope['petId'], 'cat-1');
     expect(envelope['request'], request.toMap());
     expect(envelope.keys.toSet(), {'petId', 'requestId', 'request'});
@@ -139,8 +142,7 @@ void main() {
 
     expect(result, isA<AiResponseModel>());
     expect((result as AiResponseModel).knowledgeStation.title, '獨處觀察');
-    final envelope =
-        jsonDecode(chatService.lastRequest!) as Map<String, dynamic>;
+    final envelope = ChatResponseMapper.request(chatService.lastRequest!);
     expect(envelope['request'], request.toMap());
     expect(envelope.containsKey('model'), isFalse);
     verify(

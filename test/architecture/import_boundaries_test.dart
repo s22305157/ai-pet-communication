@@ -28,6 +28,79 @@ void main() {
       isFalse,
     );
   });
+  test('core, features and app have explicit dependency directions', () {
+    for (final target in ['domain', 'application', 'data', 'presentation']) {
+      expect(
+        forbiddenLayerDependency(
+          'lib/core/domain/request.dart',
+          'lib/features/sample/$target/example.dart',
+        ),
+        isTrue,
+      );
+      expect(
+        forbiddenLayerDependency(
+          'lib/core/application/controller.dart',
+          'lib/features/sample/$target/example.dart',
+        ),
+        isTrue,
+      );
+      expect(
+        forbiddenLayerDependency(
+          'lib/app/injection.dart',
+          'lib/features/sample/$target/example.dart',
+        ),
+        isFalse,
+      );
+    }
+    for (final source in [
+      'core/domain',
+      'core/application',
+      'features/sample/data',
+    ]) {
+      expect(
+        forbiddenLayerDependency(
+          'lib/$source/example.dart',
+          'lib/app/injection.dart',
+        ),
+        isTrue,
+      );
+    }
+    for (final source in [
+      'core/domain',
+      'core/application',
+      'features/sample/domain',
+      'features/sample/application',
+    ]) {
+      expect(
+        forbiddenLayerDependency(
+          'lib/$source/example.dart',
+          'C:/checkout/lib/core/data/firebase.dart',
+        ),
+        isTrue,
+      );
+    }
+    expect(
+      forbiddenLayerDependency(
+        'lib/features/sample/application/controller.dart',
+        'lib/core/domain/request.dart',
+      ),
+      isFalse,
+    );
+    expect(
+      forbiddenLayerDependency(
+        'lib/core/data/firebase.dart',
+        'lib/core/domain/request.dart',
+      ),
+      isFalse,
+    );
+    expect(
+      forbiddenLayerDependency(
+        'lib/features/sample/data/repository.dart',
+        'lib/features/other/data/repository.dart',
+      ),
+      isTrue,
+    );
+  });
   test('feature import boundaries remain explicit', () {
     final violations = <String>[];
     final observedEdges = <String>{};
@@ -78,22 +151,9 @@ void main() {
                   .replaceAll('\\', '/');
         final edge = '$path -> $uri';
         observedEdges.add(edge);
-        final layer = RegExp(
-          r'features/([^/]+)/(data|application|presentation)/',
-        ).firstMatch(resolved);
-        if (layer != null && feature != null) {
-          final invalid = forbiddenLayerDependency(path, resolved);
-          if (invalid && (!legacy.contains(edge) || feature == 'journal')) {
-            violations.add('$path: layer boundary imports $uri');
-          }
-        }
-        final dependency = RegExp(
-          r'features/([^/]+)/data/',
-        ).firstMatch(resolved);
-        if (dependency != null && feature != null && dependency[1] != feature) {
-          violations.add(
-            '$path: imports another feature data implementation $uri',
-          );
+        if (forbiddenLayerDependency(path, resolved) &&
+            (!legacy.contains(edge) || feature == 'journal')) {
+          violations.add('$path: layer boundary imports $uri');
         }
       }
     }
@@ -107,17 +167,31 @@ void main() {
 }
 
 bool forbiddenLayerDependency(String source, String target) {
-  final from = RegExp(
-    r'features/([^/]+)/(domain|application|data|presentation)/',
-  ).firstMatch(source);
-  final to = RegExp(
-    r'features/([^/]+)/(domain|application|data|presentation)/',
-  ).firstMatch(target);
+  final scope = RegExp(
+    r'(?:^|/)lib/(app|core|features/[^/]+)/(domain|application|data|presentation)?',
+  );
+  final from = scope.firstMatch(source.replaceAll('\\', '/'));
+  final to = scope.firstMatch(target.replaceAll('\\', '/'));
   if (from == null || to == null) return false;
-  return (from[2] == 'domain' && to[2] != 'domain') ||
+  if (from[1] == 'app') return false; // Dependency composition belongs here.
+  if (to[1] == 'app') {
+    // Existing views resolve dependencies, theme and cross-feature routes here.
+    // Core and business layers never inherit these presentation-only seams.
+    return !(from[1]!.startsWith('features/') &&
+        from[2] == 'presentation' &&
+        RegExp(
+          r'/app/(theme|injection|pilot_routes|app_version\.g)\.dart$',
+        ).hasMatch(target));
+  }
+  if (from[1] == 'core' && to[1]!.startsWith('features/')) return true;
+  return (from[2] == 'domain' && to[2] != null && to[2] != 'domain') ||
       (from[2] == 'application' && to[2] == 'presentation') ||
       (['application', 'presentation'].contains(from[2]) && to[2] == 'data') ||
       (from[2] == 'presentation' &&
           to[2] == 'presentation' &&
-          from[1] != to[1]);
+          from[1] != to[1]) ||
+      (from[1]!.startsWith('features/') &&
+          to[1]!.startsWith('features/') &&
+          from[1] != to[1] &&
+          to[2] == 'data');
 }

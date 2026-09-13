@@ -10,6 +10,8 @@ enum FailureKind {
   notFound,
   invalidInput,
   alreadyExists,
+  failedPrecondition,
+  pending,
   unknown,
 }
 
@@ -23,8 +25,13 @@ class ServiceFailure implements Exception {
     FailureKind.unavailable,
     FailureKind.timeout,
     FailureKind.internal,
-    FailureKind.unknown,
   }.contains(kind);
+
+  /// Ambiguous or pending operations retain their ID for explicit retry, even
+  /// when automatically sending the request again would be inappropriate.
+  bool get preservesOperationId =>
+      isRetryable ||
+      const {FailureKind.pending, FailureKind.unknown}.contains(kind);
 
   bool get isSessionFailure => const {
     FailureKind.unauthenticated,

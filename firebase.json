@@ -20,8 +20,7 @@
       }
     ],
     "predeploy": [
-      "node scripts/verify_generated.cjs",
-      "node tools/maintenance/pilot-release-check.cjs"
+      "node scripts/build_hosting.cjs"
     ]
   },
   "firestore": {

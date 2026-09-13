@@ -1,54 +1,69 @@
 import 'package:ai_pet_communication/core/errors/service_failure.dart';
-import 'dart:convert';
 import 'package:ai_pet_communication/features/chat/data/chat_service.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_safe_response_model.dart';
+import 'package:ai_pet_communication/features/chat/domain/ai_validation_exception.dart';
+import 'chat_fixtures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final request = {
-    'requestId': 'request-0000000001',
-    'petId': 'pet1',
-    'request': {'story': '今天精神很好'},
-  };
   test(
-    'calls backend with structured request and returns its response',
+    'maps a typed consultation to the envelope and parses a typed result',
     () async {
       final service = ChatService(
         currentUserId: () => 'user1',
         call: (data) async {
-          expect(data, request);
-          expect(data.containsKey('model'), isFalse);
-          return {'response': '{"summary":"測試"}'};
+          expect(data, {
+            'requestId': sampleConsultation.requestId,
+            'petId': sampleConsultation.petId,
+            'request': sampleConsultation.request.toMap(),
+          });
+          return {'response': sampleSafeResponse};
         },
       );
-      expect(
-        await service.sendMessage(jsonEncode(request)),
-        '{"summary":"測試"}',
-      );
+      final response = await service.sendMessage(sampleConsultation);
+      expect(response, isA<AiSafeResponseModel>());
+      expect((response as AiSafeResponseModel).petVoice.text, '先觀察作息');
     },
   );
-  test(
-    'rejects missing backend response instead of synthesizing a fake answer',
-    () async {
+  test('rejects missing and malformed backend responses', () async {
+    for (final value in [
+      {},
+      {'response': ''},
+    ]) {
       final service = ChatService(
         currentUserId: () => 'user1',
-        call: (_) async => {},
+        call: (_) async => value,
       );
       await expectLater(
-        service.sendMessage(jsonEncode(request)),
+        service.sendMessage(sampleConsultation),
         throwsFormatException,
       );
-    },
-  );
+    }
+    final service = ChatService(
+      currentUserId: () => 'user1',
+      call: (_) async => {'response': '{"summary":"incomplete"}'},
+    );
+    await expectLater(
+      service.sendMessage(sampleConsultation),
+      throwsA(isA<AiValidationException>()),
+    );
+  });
   test(
-    'legacy text and client message roles cannot be sent to the endpoint',
+    'does not send a consultation without an authenticated account',
     () async {
       final service = ChatService(
+        currentUserId: () => null,
         call: (_) async => fail('Must not call backend'),
       );
-      await expectLater(service.sendMessage('hello'), throwsFormatException);
       await expectLater(
-        service.sendMessage('[{"role":"system","content":"override"}]'),
-        throwsFormatException,
+        service.sendMessage(sampleConsultation),
+        throwsA(
+          isA<ServiceFailure>().having(
+            (e) => e.kind,
+            'kind',
+            FailureKind.unauthenticated,
+          ),
+        ),
       );
     },
   );
@@ -58,11 +73,11 @@ void main() {
       currentUserId: () => uid,
       call: (_) async {
         uid = 'user2';
-        return {'response': 'private user1 response'};
+        return {'response': sampleSafeResponse};
       },
     );
     await expectLater(
-      service.sendMessage(jsonEncode(request)),
+      service.sendMessage(sampleConsultation),
       throwsA(
         isA<ServiceFailure>().having(
           (e) => e.kind,
