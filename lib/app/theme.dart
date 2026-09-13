@@ -13,7 +13,8 @@ class AppColors {
   static const Color outline = Color(0xFFD4E3EA);
 
   static const Color textPrimary = Color(0xFF2D4A5E); // 主要文本色（深石板藍）
-  static const Color textSecondary = Color(0xFF5A7A8E); // 次要文本色（淺石板藍）
+  static const Color textSecondary = Color(0xFF486779);
+  static const Color error = Color(0xFFB3261E);
 
   // 背景漸層（符合品牌氛圍的微光漸層）
   static const LinearGradient backgroundGradient = LinearGradient(
@@ -61,6 +62,35 @@ class AppTheme {
       fontFamily: 'NotoSansTC',
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.background,
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(fontSize: 16, height: 1.5),
+        bodyMedium: TextStyle(fontSize: 16, height: 1.5),
+        bodySmall: TextStyle(fontSize: 14, height: 1.5),
+        labelLarge: TextStyle(fontSize: 16, height: 1.5),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: AppStyles.primaryButton,
+      ),
+      filledButtonTheme: FilledButtonThemeData(style: AppStyles.primaryButton),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.accent,
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.accent,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.accent,
+          minimumSize: const Size(48, 48),
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
@@ -78,4 +108,42 @@ class AppTheme {
 class AppStyles {
   static const double borderRadius = 24.0;
   static const double padding = 24.0;
+  static const double contentMaxWidth = 720;
+  static double horizontalPadding(BuildContext context) =>
+      MediaQuery.sizeOf(context).width < 600 ? 16 : 24;
+  static ButtonStyle get primaryButton => ElevatedButton.styleFrom(
+    backgroundColor: AppColors.accent,
+    foregroundColor: Colors.white,
+    minimumSize: const Size(48, 52),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    textStyle: const TextStyle(
+      fontFamily: 'NotoSansTC',
+      fontSize: 16,
+      height: 1.5,
+      fontWeight: FontWeight.w600,
+    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  );
+}
+
+/// Centers shared mobile content without imposing a fixed height.
+class AppContent extends StatelessWidget {
+  final Widget child;
+  final double verticalPadding;
+  const AppContent({super.key, required this.child, this.verticalPadding = 16});
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    heightFactor: 1,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: AppStyles.contentMaxWidth),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppStyles.horizontalPadding(context),
+          vertical: verticalPadding,
+        ),
+        child: child,
+      ),
+    ),
+  );
 }

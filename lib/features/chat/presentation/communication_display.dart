@@ -46,18 +46,18 @@ String readingPreview(String content) {
 String communicationCopyText(CommunicationResponse? result) {
   if (result is AiResponseModel) {
     return [
+      '重點摘要\n${result.summary}',
       for (final voice in result.petVoice)
         '你：${voice.question}\n毛孩：${naturalPetVoice(voice.answer)}',
       '${result.knowledgeStation.title}\n${result.knowledgeStation.content}',
-      '重點摘要\n${result.summary}',
     ].join('\n\n');
   }
   if (result is AiSafeResponseModel) {
     return [
-      naturalPetVoice(result.petVoice.text),
       if (result.safetyAlert.hasRedFlags) result.safetyAlert.message,
-      ...result.knowledgeTips,
       ...result.nextSteps,
+      naturalPetVoice(result.petVoice.text),
+      ...result.knowledgeTips,
     ].join('\n\n');
   }
   return '';

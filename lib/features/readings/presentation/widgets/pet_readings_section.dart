@@ -57,7 +57,7 @@ class _PetReadingsSectionState extends State<PetReadingsSection> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -65,12 +65,14 @@ class _PetReadingsSectionState extends State<PetReadingsSection> {
             children: [
               const Icon(Icons.history, color: AppColors.secondary),
               const SizedBox(width: 8),
-              Text(
-                '溝通紀錄',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  '溝通紀錄',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -92,7 +94,7 @@ class _PetReadingsSectionState extends State<PetReadingsSection> {
                 return Center(
                   child: Text(
                     '無法載入紀錄',
-                    style: GoogleFonts.outfit(color: Colors.redAccent),
+                    style: GoogleFonts.outfit(color: AppColors.error),
                   ),
                 );
               }
@@ -129,8 +131,8 @@ class _PetReadingsSectionState extends State<PetReadingsSection> {
                       Text(
                         '未來會在這裡顯示您與 ${widget.pet.name} 的對話',
                         style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          color: AppColors.textSecondary.withValues(alpha: 0.7),
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),

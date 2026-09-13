@@ -90,6 +90,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
+            tooltip: '毛孩選項',
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -132,100 +133,82 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            PetAvatarSection(
-              pet: currentPet,
-              petService: _petService,
-              onPetUpdated: (updatedPet) {
-                _controller.updatePet(updatedPet);
-              },
-            ),
-            const SizedBox(height: 16),
-            Text(
-              currentPet.name,
-              style: GoogleFonts.outfit(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (currentPet.species.isNotEmpty || currentPet.breed.isNotEmpty)
-              Text(
-                '${currentPet.species}${currentPet.breed.isNotEmpty ? ' · ${currentPet.breed}' : ''}',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: AppContent(
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                PetAvatarSection(
+                  pet: currentPet,
+                  petService: _petService,
+                  onPetUpdated: (updatedPet) {
+                    _controller.updatePet(updatedPet);
+                  },
                 ),
-              ),
-            const SizedBox(height: 32),
-            PetInfoCard(pet: currentPet),
-            const SizedBox(height: 32),
-            PetReadingsSection(
-              pet: currentPet,
-              readingsRepository: _readingsRepository,
-              readingService: _readingService,
+                const SizedBox(height: 16),
+                Text(
+                  currentPet.name,
+                  style: GoogleFonts.outfit(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (currentPet.species.isNotEmpty ||
+                    currentPet.breed.isNotEmpty)
+                  Text(
+                    '${currentPet.species}${currentPet.breed.isNotEmpty ? ' · ${currentPet.breed}' : ''}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                const SizedBox(height: 32),
+                PetInfoCard(pet: currentPet),
+                const SizedBox(height: 32),
+                PetReadingsSection(
+                  pet: currentPet,
+                  readingsRepository: _readingsRepository,
+                  readingService: _readingService,
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomAction(context, currentPet),
     );
   }
 
-  Widget _buildBottomAction(BuildContext context, PetModel currentPet) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        16 + MediaQuery.of(context).padding.bottom,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
+  Widget _buildBottomAction(BuildContext context, PetModel currentPet) =>
+      SafeArea(
+        top: false,
+        child: AppContent(
+          verticalPadding: 12,
+          child: SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
+              key: const Key('start-pet-communication'),
               onPressed: () => _controller.handleStartCommunication(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
+              style: AppStyles.primaryButton,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+                  const Icon(Icons.auto_awesome_rounded),
                   const SizedBox(width: 12),
-                  Text(
-                    '開始與 ${currentPet.name} 溝通',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Flexible(
+                    child: Text(
+                      '開始與 ${currentPet.name} 溝通',
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
 }

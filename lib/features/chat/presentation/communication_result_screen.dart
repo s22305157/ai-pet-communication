@@ -6,7 +6,6 @@ import '../domain/communication_response.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/app/injection.dart';
 import 'package:ai_pet_communication/features/auth/application/auth_service.dart';
@@ -23,34 +22,27 @@ import 'package:ai_pet_communication/features/planet/presentation/pet_planet_scr
 class CommunicationResultScreen extends StatelessWidget {
   final CommunicationResponse result;
   final PetModel pet;
-
   const CommunicationResultScreen({
     super.key,
     required this.result,
     required this.pet,
   });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: FreeMemberAd(
-        users: getIt<AuthService>().getUserStream(),
-        uid: pet.ownerId,
-        onViewPlans: () => PointsShopScreen.open(context, initialOffer: 'plus'),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.background,
+    appBar: AppBar(title: const Text('溝通結果')),
+    bottomNavigationBar: FreeMemberAd(
+      users: getIt<AuthService>().getUserStream(),
+      uid: pet.ownerId,
+      onViewPlans: () => PointsShopScreen.open(context, initialOffer: 'plus'),
+    ),
+    body: SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: AppContent(child: CommunicationResultContent(result: result)),
       ),
-      appBar: AppBar(
-        title: const Text('溝通結果'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppStyles.padding),
-        child: CommunicationResultContent(result: result),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class CommunicationResultContent extends StatelessWidget {
@@ -59,11 +51,17 @@ class CommunicationResultContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (result is AiSafeResponseModel)
+        _safe(result as AiSafeResponseModel)
+      else
+        _standard(result as AiResponseModel),
+      const SizedBox(height: 16),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton.icon(
+          key: const Key('copy-response'),
           icon: const Icon(Icons.copy_outlined),
           label: const Text('複製回覆'),
           onPressed: () async {
@@ -86,250 +84,186 @@ class CommunicationResultContent extends StatelessWidget {
           },
         ),
       ),
-      if (result is AiSafeResponseModel)
-        _buildSafeResult(result as AiSafeResponseModel)
-      else
-        _buildStandardResult(result as AiResponseModel),
-      const SizedBox(height: 24),
       if (result.matchedCardIds.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Text(
             '本次知識卡：${planetCards.where((card) => result.matchedCardIds.contains(card.id)).map((card) => '${card.title}（${result.newCardIds.contains(card.id) ? '本次新收藏' : '已收藏'}）').join('、')}',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: const TextStyle(fontSize: 16, height: 1.5),
           ),
         ),
-      SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const PetPlanetScreen()),
+      OutlinedButton.icon(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const PetPlanetScreen()),
+        ),
+        icon: const Icon(Icons.auto_stories_outlined),
+        label: const Text('查看寵物星球圖鑑', textAlign: TextAlign.center),
+      ),
+    ],
+  );
+
+  Widget _standard(AiResponseModel model) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _card('重點摘要', model.summary, key: const Key('result-summary')),
+      const SizedBox(height: 24),
+      _heading(ChatUiTexts.petVoiceTitle, Icons.pets),
+      for (final voice in model.petVoice)
+        _card(
+          voice.question.isEmpty ? '毛孩的回覆' : '提問：${voice.question}',
+          naturalPetVoice(voice.answer),
+        ),
+      const SizedBox(height: 24),
+      _knowledge([
+        _card(model.knowledgeStation.title, model.knowledgeStation.content),
+      ]),
+    ],
+  );
+
+  Widget _safe(AiSafeResponseModel model) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (model.safetyAlert.hasRedFlags) ...[
+        Semantics(
+          liveRegion: true,
+          child: _card(
+            ChatUiTexts.safetyAlertTitle,
+            model.safetyAlert.message,
+            key: const Key('result-safety'),
+            alert: true,
           ),
-          icon: const Icon(Icons.auto_stories_outlined),
-          label: const Text('查看寵物星球圖鑑', textAlign: TextAlign.center),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.accent,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        const SizedBox(height: 16),
+      ] else ...[
+        _heading(ChatUiTexts.safeModeTitle, Icons.shield_outlined),
+        const SizedBox(height: 16),
+      ],
+      if (model.nextSteps.isNotEmpty)
+        Column(
+          key: const Key('result-next-steps'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _heading('接下來可以做', Icons.check_circle_outline),
+            for (final step in model.nextSteps) _bullet(step),
+            const SizedBox(height: 24),
+          ],
+        ),
+      _heading(ChatUiTexts.petVoiceTitle, Icons.pets),
+      _card(
+        '毛孩的回覆',
+        naturalPetVoice(model.petVoice.text),
+        key: const Key('result-voice'),
+      ),
+      if (model.knowledgeTips.isNotEmpty) ...[
+        const SizedBox(height: 24),
+        _knowledge([for (final tip in model.knowledgeTips) _bullet(tip)]),
+      ],
+    ],
+  );
+
+  Widget _knowledge(List<Widget> children) => Material(
+    color: AppColors.surfaceSoft,
+    borderRadius: BorderRadius.circular(16),
+    clipBehavior: Clip.antiAlias,
+    child: ExpansionTile(
+      key: const Key('result-knowledge'),
+      maintainState: true,
+      iconColor: AppColors.accent,
+      collapsedIconColor: AppColors.accent,
+      textColor: AppColors.textPrimary,
+      collapsedTextColor: AppColors.textPrimary,
+      title: const Text(
+        ChatUiTexts.knowledgeTipsTitle,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      subtitle: const Text(
+        '展開閱讀照護說明',
+        style: TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      children: children,
+    ),
+  );
+
+  Widget _heading(String title, IconData icon) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, color: AppColors.accent),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
         ),
       ),
     ],
   );
 
-  Widget _buildStandardResult(AiResponseModel model) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          ChatUiTexts.petVoiceTitle,
-          ChatUiTexts.petVoiceSubtitle,
-          Icons.pets,
+  Widget _card(String title, String content, {Key? key, bool alert = false}) =>
+      Container(
+        key: key,
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: alert ? const Color(0xFFFFF1F0) : AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(16),
+          border: alert ? Border.all(color: AppColors.error) : null,
         ),
-        ...model.petVoice.map((v) => _buildMessageCard(v.question, v.answer)),
-        const SizedBox(height: 24),
-        _buildSectionHeader(
-          ChatUiTexts.knowledgeTipsTitle,
-          ChatUiTexts.knowledgeTipsSubtitle,
-          Icons.lightbulb_outline,
-        ),
-        _buildContentCard(
-          model.knowledgeStation.title,
-          model.knowledgeStation.content,
-        ),
-        const SizedBox(height: 24),
-        _buildSectionHeader('總結', '本次溝通的核心要點', Icons.summarize_outlined),
-        _buildContentCard('重點摘要', model.summary),
-      ],
-    );
-  }
-
-  Widget _buildSafeResult(AiSafeResponseModel model) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          ChatUiTexts.safeModeTitle,
-          ChatUiTexts.safeModeSubtitle,
-          Icons.shield_outlined,
-          color: AppColors.secondary,
-        ),
-        const SizedBox(height: 16),
-        _buildSectionHeader(
-          ChatUiTexts.petVoiceTitle,
-          ChatUiTexts.petVoiceSubtitle,
-          Icons.pets,
-        ),
-        _buildContentCard('毛孩的回覆', naturalPetVoice(model.petVoice.text)),
-        if (model.safetyAlert.hasRedFlags) ...[
-          const SizedBox(height: 24),
-          _buildSectionHeader(
-            ChatUiTexts.safetyAlertTitle,
-            ChatUiTexts.safetyAlertSubtitle,
-            Icons.warning_amber_rounded,
-            color: Colors.redAccent,
-          ),
-          _buildContentCard('安全警示', model.safetyAlert.message, isAlert: true),
-        ],
-        const SizedBox(height: 24),
-        _buildSectionHeader(
-          ChatUiTexts.knowledgeTipsTitle,
-          ChatUiTexts.knowledgeTipsSubtitle,
-          Icons.lightbulb_outline,
-        ),
-        ...model.knowledgeTips.map((tip) => _buildBulletItem(tip)),
-        if (model.nextSteps.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          _buildSectionHeader('接下來可以做', '具體的照護步驟', Icons.check_circle_outline),
-          ...model.nextSteps.map((step) => _buildBulletItem(step)),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(
-    String title,
-    String subtitle,
-    IconData icon, {
-    Color? color,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color ?? AppColors.primary, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          if (subtitle.isNotEmpty)
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Text(
-              subtitle,
-              style: GoogleFonts.outfit(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageCard(String q, String a) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (q.isNotEmpty) ...[
-            Text(
-              '提問：$q',
-              style: GoogleFonts.outfit(
-                fontSize: 14,
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+                color: alert ? AppColors.error : AppColors.textPrimary,
               ),
             ),
-            const Divider(height: 24),
-          ],
-          SelectableText(
-            naturalPetVoice(a),
-            style: GoogleFonts.outfit(
-              fontSize: 15,
-              height: 1.6,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContentCard(
-    String title,
-    String content, {
-    bool isAlert = false,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isAlert
-            ? Colors.redAccent.withValues(alpha: 0.05)
-            : AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(16),
-        border: isAlert
-            ? Border.all(color: Colors.redAccent.withValues(alpha: 0.2))
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold,
-              color: isAlert ? Colors.redAccent : AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: GoogleFonts.outfit(
-              fontSize: 15,
-              height: 1.6,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBulletItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.check_circle_outline,
-            size: 18,
-            color: AppColors.secondary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.outfit(
-                fontSize: 14,
+            const SizedBox(height: 8),
+            SelectableText(
+              content,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.5,
                 color: AppColors.textPrimary,
               ),
             ),
+          ],
+        ),
+      );
+
+  Widget _bullet(String text) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.check_circle_outline,
+          color: AppColors.accent,
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SelectableText(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }

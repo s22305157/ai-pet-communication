@@ -139,48 +139,47 @@ class _PetAvatarSectionState extends State<PetAvatarSection> {
     return Center(
       child: Stack(
         children: [
-          GestureDetector(
-            onTap: (_isUploading || _isLoadingAvatar)
-                ? null
-                : _pickAndUploadAvatar,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-                border: Border.all(color: Colors.white, width: 4),
-              ),
-              child: ClipOval(child: _buildAvatarContent()),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
+          Semantics(
+            button: true,
+            label: '更換毛孩頭像',
             child: GestureDetector(
               onTap: (_isUploading || _isLoadingAvatar)
                   ? null
                   : _pickAndUploadAvatar,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.surface,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                  border: Border.all(color: Colors.white, width: 4),
                 ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 16,
-                  color: Colors.white,
-                ),
+                child: ClipOval(child: _buildAvatarContent()),
               ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: IconButton(
+              tooltip: '更換毛孩頭像',
+              onPressed: (_isUploading || _isLoadingAvatar)
+                  ? null
+                  : _pickAndUploadAvatar,
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(48, 48),
+                side: const BorderSide(color: Colors.white, width: 2),
+              ),
+              icon: const Icon(Icons.camera_alt, size: 24, color: Colors.white),
             ),
           ),
         ],

@@ -10,127 +10,102 @@ import '../../../../../widgets/pet_avatar.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 
 class HomePetList extends StatelessWidget {
+  final Widget? header;
+  final Widget? footer;
+  final VoidCallback? onAddPet;
   final String uid;
   final Stream<List<PetModel>>? petsStream;
   final PetService petService;
 
   const HomePetList({
     super.key,
+    this.header,
+    this.footer,
+    this.onAddPet,
     required this.uid,
     required this.petsStream,
     required this.petService,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<PetModel>>(
-      stream: petsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.redAccent,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '載入資料時發生錯誤',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${snapshot.error}',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+  Widget build(BuildContext context) => StreamBuilder<List<PetModel>>(
+    stream: petsStream,
+    builder: (context, snapshot) {
+      final pets = snapshot.data ?? [];
+      return CustomScrollView(
+        slivers: [
+          if (header != null) SliverToBoxAdapter(child: header),
+          if (snapshot.connectionState == ConnectionState.waiting)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.accent),
+                ),
               ),
-            ),
-          );
-        }
-
-        final pets = snapshot.data ?? [];
-
-        if (pets.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.pets_rounded,
-                    size: 80,
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  '還沒有新增任何毛小孩喔！',
-                  style: GoogleFonts.outfit(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    '點擊右下角的「+」按鈕，\n開始建立您與毛小孩的專屬回憶。',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                      height: 1.5,
+            )
+          else if (snapshot.hasError)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text('暫時無法載入毛孩資料，請稍後再試。', textAlign: TextAlign.center),
+              ),
+            )
+          else if (pets.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.pets_rounded,
+                      size: 64,
+                      color: AppColors.accent,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '還沒有新增任何毛小孩喔！',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '先建立毛孩檔案，開始記錄你們的相處。',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      key: const Key('empty-add-pet'),
+                      onPressed:
+                          onAddPet ??
+                          () => showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            builder: (_) => const PetFormSheet(),
+                          ),
+                      icon: const Icon(Icons.add),
+                      label: const Text('新增毛小孩', textAlign: TextAlign.center),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            )
+          else
+            SliverList.builder(
+              itemCount: pets.length,
+              itemBuilder: (context, index) =>
+                  _buildPetCard(context, pets[index]),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 8,
-            bottom: 80,
-          ),
-          itemCount: pets.length,
-          itemBuilder: (context, index) {
-            final pet = pets[index];
-            return _buildPetCard(context, pet);
-          },
-        );
-      },
-    );
-  }
+          if (footer != null) SliverToBoxAdapter(child: footer),
+          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+        ],
+      );
+    },
+  );
 
   Widget _buildPetCard(BuildContext context, PetModel pet) {
     return Container(
@@ -197,6 +172,7 @@ class HomePetList extends StatelessWidget {
                 ),
                 // 選項選單
                 PopupMenuButton<String>(
+                  tooltip: '毛孩選項',
                   icon: const Icon(
                     Icons.more_vert,
                     color: AppColors.textSecondary,
@@ -241,7 +217,7 @@ class HomePetList extends StatelessWidget {
                               onPressed: () => Navigator.pop(ctx, true),
                               child: const Text(
                                 '刪除',
-                                style: TextStyle(color: Colors.redAccent),
+                                style: TextStyle(color: AppColors.error),
                               ),
                             ),
                           ],
@@ -300,10 +276,10 @@ class HomePetList extends StatelessWidget {
                           Icon(
                             Icons.delete_outline,
                             size: 20,
-                            color: Colors.redAccent,
+                            color: AppColors.error,
                           ),
                           SizedBox(width: 12),
-                          Text('刪除', style: TextStyle(color: Colors.redAccent)),
+                          Text('刪除', style: TextStyle(color: AppColors.error)),
                         ],
                       ),
                     ),

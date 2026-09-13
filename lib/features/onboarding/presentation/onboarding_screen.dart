@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/models/onboarding_model.dart';
 import 'package:ai_pet_communication/features/onboarding/application/onboarding_service.dart';
@@ -28,375 +27,316 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  // 產品理念文字
-  final String _philosophyText =
-      'AI Pet Communicator 以寵物溝通為核心，幫助你和毛孩建立更深的連結，並補充實用的寵物知識，讓日常互動延伸成有依據的照顧與陪伴。透過 AI 輔助、直覺操作與本地優先的設計，讓你用更簡單的方式，接近毛孩想表達的世界。';
-
   @override
   Widget build(BuildContext context) {
-    final int totalSlides = 1 + onboardingQuestions.length + 1; // 理念 + 問題 + 結束
-
+    final totalSlides = onboardingQuestions.length + 2;
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // 進度條
             if (_currentPage > 0 && _currentPage <= onboardingQuestions.length)
-              _buildProgressBar(),
-
+              AppContent(
+                verticalPadding: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '第 $_currentPage／${onboardingQuestions.length} 題',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: _currentPage / onboardingQuestions.length,
+                      minHeight: 6,
+                      color: AppColors.accent,
+                      backgroundColor: AppColors.outline,
+                      semanticsLabel:
+                          '引導進度，第 $_currentPage 題，共 ${onboardingQuestions.length} 題',
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(), // 強制透過按鈕切換
+                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) => setState(() => _currentPage = page),
                 children: [
-                  _buildPhilosophySlide(),
-                  ...onboardingQuestions.map((q) => _buildQuestionSlide(q)),
-                  _buildConclusionSlide(),
+                  _welcome(),
+                  for (final question in onboardingQuestions)
+                    _question(question),
+                  _conclusion(),
                 ],
               ),
             ),
-
-            // 底部按鈕
-            _buildFooter(totalSlides),
+            _footer(totalSlides),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProgressBar() {
-    double progress = _currentPage / onboardingQuestions.length;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: LinearProgressIndicator(
-          value: progress,
-          minHeight: 6,
-          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+  Widget _page(Widget child) =>
+      SingleChildScrollView(child: AppContent(child: child));
+
+  Widget _welcome() => _page(
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        const Icon(Icons.pets_rounded, size: 64, color: AppColors.accent),
+        const SizedBox(height: 24),
+        const Text(
+          '歡迎來到 PAWLINK',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 24),
+        _intro(Icons.edit_note_rounded, '分享近況與問題', '說說毛孩最近的生活，以及你想了解的事。'),
+        _intro(Icons.chat_bubble_outline, '閱讀 AI 輔助回覆', '依你提供的描述，整理對話與照護參考。'),
+        _intro(Icons.auto_stories_outlined, '累積紀錄與照護知識', '回看你們的相處，慢慢累積理解與陪伴。'),
+        const SizedBox(height: 16),
+        Material(
+          color: AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(16),
+          child: CheckboxListTile(
+            key: const Key('onboarding-consent'),
+            value: _isDisclaimerAccepted,
+            activeColor: AppColors.accent,
+            onChanged: (value) =>
+                setState(() => _isDisclaimerAccepted = value ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 8,
+            ),
+            title: const Text(
+              '我了解此服務為 AI 娛樂性質，非解釋毛孩行為之準則',
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
-  Widget _buildPhilosophySlide() {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Hero(
-            tag: 'logo',
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+  Widget _intro(IconData icon, String title, String subtitle) => Padding(
+    padding: const EdgeInsets.only(bottom: 20),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.accent),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              child: const Icon(
-                Icons.pets_rounded,
-                size: 80,
-                color: AppColors.primary,
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 48),
-          Text(
-            '歡迎來到 PAWLINK',
-            style: GoogleFonts.outfit(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _philosophyText,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 17,
-              height: 1.8,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 32),
-          // 免責聲明勾選
-          InkWell(
-            onTap: () =>
-                setState(() => _isDisclaimerAccepted = !_isDisclaimerAccepted),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              child: Row(
-                children: [
-                  SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: Checkbox(
-                      value: _isDisclaimerAccepted,
-                      onChanged: (val) =>
-                          setState(() => _isDisclaimerAccepted = val ?? false),
-                      activeColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '我了解此服務為 AI 娛樂性質，非解釋毛孩行為之準則',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        color: AppColors.textPrimary.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
-  Widget _buildQuestionSlide(OnboardingQuestion question) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            question.title,
-            style: GoogleFonts.outfit(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+  Widget _question(OnboardingQuestion question) => _page(
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          question.title,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        if (!question.isRequired)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              '選填，可以直接前往下一步',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
           ),
-          if (question.subtitle != null) ...[
-            const SizedBox(height: 12),
-            Text(
+        if (question.subtitle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
               question.subtitle!,
-              style: GoogleFonts.outfit(
+              style: const TextStyle(
                 fontSize: 16,
+                height: 1.5,
                 color: AppColors.textSecondary,
               ),
             ),
-          ],
-          const SizedBox(height: 40),
-          Expanded(
-            child: ListView.builder(
-              itemCount: question.options.length,
-              itemBuilder: (context, index) {
-                final option = question.options[index];
-                bool isSelected = _answers[question.id] == option.value;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _answers[question.id] = option.value;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.05)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.grey.shade200,
-                          width: 2,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ]
-                            : [],
-                      ),
+          ),
+        const SizedBox(height: 24),
+        for (final option in question.options)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Semantics(
+              checked: _answers[question.id] == option.value,
+              inMutuallyExclusiveGroup: true,
+              child: Material(
+                color: _answers[question.id] == option.value
+                    ? AppColors.surfaceMint
+                    : AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: _answers[question.id] == option.value
+                        ? AppColors.accent
+                        : AppColors.outline,
+                  ),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () =>
+                      setState(() => _answers[question.id] = option.value),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 52),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
                               option.label,
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                height: 1.5,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ),
-                          if (isSelected)
+                          if (_answers[question.id] == option.value) ...[
+                            const SizedBox(width: 8),
                             const Icon(
                               Icons.check_circle,
-                              color: AppColors.primary,
+                              color: AppColors.accent,
                             ),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
 
-  Widget _buildConclusionSlide() {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.stars_rounded,
-            size: 100,
-            color: AppColors.secondary,
+  Widget _conclusion() => _page(
+    const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(height: 24),
+        Icon(Icons.stars_rounded, size: 64, color: AppColors.accent),
+        SizedBox(height: 24),
+        Text(
+          '太棒了！',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
-          const SizedBox(height: 40),
-          Text(
-            '太棒了！',
-            style: GoogleFonts.outfit(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+        ),
+        SizedBox(height: 16),
+        Text(
+          '準備好開始了。\n從新增毛孩檔案開始，記錄你們的日常。',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            height: 1.5,
+            color: AppColors.textSecondary,
           ),
-          const SizedBox(height: 16),
-          Text(
-            '我們已經為您調整好個性化的導引內容。\n現在，就開始您的 AI 寵物溝通之旅吧！',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              height: 1.6,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 
-  Widget _buildFooter(int totalSlides) {
-    bool isLastPage = _currentPage == totalSlides - 1;
-    bool canGoNext = true;
-
-    // 檢查必填問題是否已作答
-    if (_currentPage > 0 && _currentPage <= onboardingQuestions.length) {
-      final q = onboardingQuestions[_currentPage - 1];
-      if (q.isRequired && _answers[q.id] == null) {
-        canGoNext = false;
-      }
-    } else if (_currentPage == 0) {
-      // 首次進入需勾選免責聲明
-      if (!_isDisclaimerAccepted) {
-        canGoNext = false;
-      }
+  Widget _footer(int totalSlides) {
+    final isLastPage = _currentPage == totalSlides - 1;
+    var canGoNext = true;
+    if (_currentPage == 0) {
+      canGoNext = _isDisclaimerAccepted;
+    } else if (_currentPage <= onboardingQuestions.length) {
+      final question = onboardingQuestions[_currentPage - 1];
+      canGoNext = !question.isRequired || _answers[question.id] != null;
     }
-
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Stack(
-        alignment: Alignment.center,
+    return AppContent(
+      verticalPadding: 12,
+      child: Row(
         children: [
-          if (_currentPage > 0)
-            Align(
-              alignment: Alignment.centerLeft,
+          if (_currentPage > 0) ...[
+            Expanded(
               child: TextButton(
                 onPressed: _isSubmitting
                     ? null
-                    : () {
-                        _pageController.previousPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                child: Text(
-                  '上一步',
-                  style: GoogleFonts.outfit(
-                    color: AppColors.textSecondary,
-                    fontSize: 16,
-                  ),
-                ),
+                    : () => _pageController.previousPage(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                      ),
+                child: const Text('上一步', textAlign: TextAlign.center),
               ),
             ),
-
-          Align(
-            alignment: _currentPage == 0
-                ? Alignment.center
-                : Alignment.centerRight,
+            const SizedBox(width: 12),
+          ],
+          Expanded(
             child: ElevatedButton(
+              key: const Key('onboarding-next'),
+              style: AppStyles.primaryButton,
               onPressed: canGoNext && !_isSubmitting
                   ? () => _handleNext(isLastPage)
                   : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: canGoNext && !_isSubmitting
-                    ? AppColors.primary
-                    : Colors.grey.shade300,
-                foregroundColor: canGoNext && !_isSubmitting
-                    ? Colors.white
-                    : Colors.grey.shade500,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
               child: _isSubmitting
                   ? const SizedBox(
-                      height: 20,
                       width: 20,
+                      height: 20,
                       child: CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
+                        semanticsLabel: '正在儲存',
                       ),
                     )
                   : Text(
                       isLastPage
                           ? '開始使用'
-                          : (_currentPage == 0 ? '立即開始' : '下一步'),
-                      style: GoogleFonts.outfit(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          : _currentPage == 0
+                          ? '立即開始'
+                          : '下一步',
+                      textAlign: TextAlign.center,
                     ),
             ),
           ),

@@ -30,6 +30,10 @@ flutter('analyze', '--no-pub');
 flutter('test', '--no-pub', '--reporter', 'expanded');
 if (args.includes('--release')) {
   run(dart, ['tools/maintenance/chrome_test_runner.dart', path.resolve(sdk),
+    'test/screens/mobile_input_test.dart', 'test/screens/mobile_layout_test.dart',
+    'test/screens/mobile_flow_completion_test.dart',
+    'test/screens/onboarding/onboarding_screen_test.dart',
+    'test/widgets/home_screen_test.dart',
     'test/features/chat/communication_photo_test.dart',
     'test/screens/pet_communication_credit_test.dart',
     'test/features/chat/pet_planet_navigation_test.dart',

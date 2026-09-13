@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/pet/domain/models/pet_model.dart';
 
@@ -17,10 +16,12 @@ class PetInfoCard extends StatelessWidget {
           Icon(icon, size: 20, color: AppColors.primary),
           const SizedBox(width: 12),
           SizedBox(
-            width: 80,
+            width: 64,
             child: Text(
               label,
-              style: GoogleFonts.outfit(
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
@@ -29,7 +30,9 @@ class PetInfoCard extends StatelessWidget {
           Expanded(
             child: Text(
               value.isNotEmpty ? value : '-',
-              style: GoogleFonts.outfit(
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.5,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
@@ -43,8 +46,7 @@ class PetInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppStyles.borderRadius),

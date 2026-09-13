@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ai_pet_communication/features/journal/presentation/journal_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ai_pet_communication/app/theme.dart';
 import 'package:ai_pet_communication/features/pet/application/pet_service.dart';
 import 'package:ai_pet_communication/features/home/presentation/controllers/home_controller.dart';
@@ -70,74 +69,70 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            HomeTopBar(
-              user: widget.user,
-              authService: _authService,
-              petService: _petService,
-              adService: _adService,
-              membershipHandler: _membershipHandler,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 8.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '我的毛小孩',
-                    style: GoogleFonts.outfit(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: HomePetList(
-                uid: _uid,
-                petsStream: _controller.petsStream,
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.background,
+    body: SafeArea(
+      bottom: false,
+      child: AppContent(
+        verticalPadding: 0,
+        child: HomePetList(
+          uid: _uid,
+          petsStream: _controller.petsStream,
+          petService: _petService,
+          onAddPet: () => _controller.handleAddPet(context),
+          header: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              HomeTopBar(
+                user: widget.user,
+                authService: _authService,
                 petService: _petService,
+                adService: _adService,
+                membershipHandler: _membershipHandler,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 84),
-              child: OutlinedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => const JournalScreen(),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '我的毛小孩',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                icon: const Icon(Icons.auto_stories_outlined),
-                label: const Text('毛孩日記 · 邀請試營運'),
               ),
+            ],
+          ),
+          footer: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: OutlinedButton.icon(
+              key: const Key('open-journal'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const JournalScreen()),
+              ),
+              icon: const Icon(Icons.auto_stories_outlined),
+              label: const Text('毛孩日記 · 邀請試營運', textAlign: TextAlign.center),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _controller.handleAddPet(context),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          '新增毛小孩',
-          style: GoogleFonts.outfit(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
-    );
-  }
+    ),
+    bottomNavigationBar: SafeArea(
+      top: false,
+      child: AppContent(
+        verticalPadding: 12,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            key: const Key('add-pet'),
+            onPressed: () => _controller.handleAddPet(context),
+            style: AppStyles.primaryButton,
+            icon: const Icon(Icons.add),
+            label: const Text('新增毛小孩', textAlign: TextAlign.center),
+          ),
+        ),
+      ),
+    ),
+  );
 }

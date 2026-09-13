@@ -22,6 +22,7 @@ class PointsBalanceButton extends StatelessWidget {
       button: true,
       label: '點數餘額 $points 點，查看點數與會員方案',
       excludeSemantics: true,
+      onTap: onPressed,
       child: Tooltip(
         message: '點數與會員方案',
         child: Material(
@@ -49,12 +50,16 @@ class PointsBalanceButton extends StatelessWidget {
                       size: 20,
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      '$points PT',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Flexible(
+                      child: Text(
+                        '$points PT',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),

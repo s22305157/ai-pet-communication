@@ -120,7 +120,7 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
                         onPressed: () => Navigator.pop(ctx, true),
                         child: const Text(
                           '刪除',
-                          style: TextStyle(color: Colors.redAccent),
+                          style: TextStyle(color: AppColors.error),
                         ),
                       ),
                     ],
@@ -141,9 +141,9 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, color: Colors.redAccent),
+                    Icon(Icons.delete_outline, color: AppColors.error),
                     SizedBox(width: 12),
-                    Text('刪除紀錄', style: TextStyle(color: Colors.redAccent)),
+                    Text('刪除紀錄', style: TextStyle(color: AppColors.error)),
                   ],
                 ),
               ),
@@ -173,7 +173,7 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
               Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.redAccent.withValues(alpha: 0.5),
+                color: AppColors.error.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -190,7 +190,7 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
                 icon: const Icon(Icons.refresh),
                 label: const Text('重試'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -204,103 +204,110 @@ class _ReadingDetailScreenState extends State<ReadingDetailScreen> {
     final communication = parseCommunication(reading.content);
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm');
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            reading.title.isNotEmpty ? reading.title : 'AI 寵物溝通紀錄',
-            style: GoogleFonts.outfit(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: AppContent(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.access_time,
-                size: 16,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 8),
               Text(
-                dateFormat.format(reading.createdAt),
+                reading.title.isNotEmpty ? reading.title : 'AI 寵物溝通紀錄',
                 style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
+              const SizedBox(height: 12),
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    dateFormat.format(reading.createdAt),
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              if (reading.source != null || reading.mood != null) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (reading.mood != null)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          reading.mood!,
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    if (reading.source != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          const {
+                                'pro_chat': '毛孩對話',
+                                'safe_chat': '照護對話',
+                                'chat': '毛孩對話',
+                              }[reading.source] ??
+                              '溝通紀錄',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+              if (communication != null)
+                CommunicationResultContent(result: communication)
+              else
+                Text(
+                  readingPreview(reading.content),
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                    height: 1.6,
+                  ),
+                ),
             ],
           ),
-          if (reading.source != null || reading.mood != null) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (reading.mood != null)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      reading.mood!,
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        color: AppColors.secondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                if (reading.source != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      const {
-                            'pro_chat': '毛孩對話',
-                            'safe_chat': '照護對話',
-                            'chat': '毛孩對話',
-                          }[reading.source] ??
-                          '溝通紀錄',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 24),
-          if (communication != null)
-            CommunicationResultContent(result: communication)
-          else
-            Text(
-              readingPreview(reading.content),
-              style: GoogleFonts.outfit(
-                fontSize: 16,
-                color: AppColors.textPrimary,
-                height: 1.6,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
